@@ -1,10 +1,16 @@
-# Python
+# ==============================================================================
+# RoofShift AI — Comprehensive Git Ignore Rules
+# ==============================================================================
+
+# Python & Backend Artifacts
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
 env/
+venv/
+.venv/
 build/
 develop-eggs/
 dist/
@@ -21,23 +27,53 @@ wheels/
 .installed.cfg
 *.egg
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Databases
 *.db
+*.sqlite
+*.sqlite3
 roofshift.db
+
+# Generated Application Reports & Uploads
 generated_reports/
-
-# Node & Frontend
-node_modules/
-frontend/dist/
-frontend/node_modules/
-.npm
+backend/generated_reports/
+uploaded_inspections/
+backend/uploaded_inspections/
+uploaded_demand/
+tmp/
 *.log
-.DS_Store
 
-# Environments
+# Node & Frontend Build Artifacts
+node_modules/
+frontend/node_modules/
+frontend/dist/
+dist/
+.npm/
+
+# Environment Variables & Secrets
 .env
+.env.*
 .env.local
 .env.production
+!.env.example
+!frontend/.env.example
+*.pem
+*.key
 
-# Disposable application verification data
-tmp/
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Worktrees
+roofshift-integration/
+
+# Additional delivery/test artifacts
+.npm
 pytest-cache-files-*/

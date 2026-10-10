@@ -106,7 +106,7 @@ export const HomePage: React.FC = () => {
               <div className="text-[11px] font-mono font-semibold text-slate-400 mb-2">01 / GEOMETRY</div>
               <h3 className="font-semibold text-slate-900 text-sm mb-1.5">GIS & Irradiance</h3>
               <p className="text-slate-600 leading-relaxed text-[11px]">
-                NASA POWER climatological GHI and DNI data derated for structural tilt and shading obstacles.
+                NASA POWER climatological GHI or labelled illustrative fallback, with supplied shading and performance assumptions.
               </p>
             </div>
             <div className="mt-3 text-[10px] text-slate-400">Physics Solar Engine</div>
@@ -273,7 +273,7 @@ export const HomePage: React.FC = () => {
         <div className="space-y-0.5">
           <strong className="text-slate-800 font-semibold">Engineering Grounding & Verification:</strong>
           <p className="text-[11px] text-slate-600 leading-relaxed">
-            RoofShift AI delivers deterministic screening models. Calculations integrate official NASA POWER climatological satellite irradiance and Central Electricity Authority (CEA) grid baseline emission factors. For capital procurement, structural load inspections and electrical utility sanction limits must be formally certified.
+            RoofShift AI delivers deterministic screening models. Calculations use NASA POWER climatological irradiance or a labelled illustrative fallback, plus project-supplied grid emission factors. For capital procurement, structural load inspections and electrical utility sanction limits must be formally certified.
           </p>
         </div>
       </section>
