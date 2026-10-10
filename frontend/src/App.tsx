@@ -30,7 +30,7 @@ function ApplicationShell() {
   }, [navigationOpen]);
 
   return (
-        <div className="flex h-screen w-screen overflow-hidden bg-[#F6F8F7]">
+        <div className="flex h-screen w-screen overflow-hidden bg-slate-50">
           {/* Main App Sidebar */}
           {navigationOpen && <button aria-label="Close navigation" onClick={() => setNavigationOpen(false)} className="fixed inset-0 z-40 bg-slate-900/50 md:hidden" />}
           <AppSidebar mobileOpen={navigationOpen} onClose={() => setNavigationOpen(false)} onOpenNewProjectModal={() => { setNavigationOpen(false); setIsNewProjectModalOpen(true); }} />
@@ -41,8 +41,8 @@ function ApplicationShell() {
 
             {/* Scrollable Page Body */}
             <main className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-              {error && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><span>{error}</span><button onClick={() => void refreshProjects()} className="font-semibold underline">Retry connection</button></div>}
-              {loading && !activeProject ? <p role="status" className="p-6 text-sm text-slate-500">Loading your planning workspace…</p> : !activeProject ? <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="text-xl font-bold text-[#123C32]">Start your solar plan</h2><p className="my-3 text-sm text-slate-500">Create a project to add rooftops, compare investments, and generate a report.</p><button onClick={() => setIsNewProjectModalOpen(true)} className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white">Create project</button></div> : <Suspense fallback={<p role="status" className="p-6 text-sm text-slate-500">Loading page…</p>}>
+              {error && <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800"><span>{error}</span><button onClick={() => void refreshProjects()} className="font-semibold underline">Retry connection</button></div>}
+              {loading && !activeProject ? <p role="status" className="p-6 text-sm text-slate-500">Loading portfolio workspace…</p> : !activeProject ? <div className="rounded-xl border border-slate-200 bg-white p-8 text-center max-w-md mx-auto my-12 shadow-xs"><h2 className="text-lg font-bold text-slate-900">Portfolio Not Found</h2><p className="my-2.5 text-xs text-slate-500">Create a solar planning portfolio to add building rooftops and optimize your clean energy capital.</p><button onClick={() => setIsNewProjectModalOpen(true)} className="rounded-md bg-slate-900 hover:bg-slate-800 px-4 py-2 text-xs font-semibold text-white transition-colors">Create Portfolio</button></div> : <Suspense fallback={<p role="status" className="p-6 text-sm text-slate-500">Loading view…</p>}>
               <Routes key={activeProject.id}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/map" element={<SolarMapPage />} />

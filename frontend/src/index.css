@@ -2,19 +2,39 @@
 @import "leaflet/dist/leaflet.css";
 
 :root {
-  --brand-forest: #123C32;
-  --brand-forest-dark: #0B251F;
-  --brand-emerald: #10B981;
-  --brand-emerald-dark: #059669;
-  --brand-amber: #F5B942;
-  --brand-amber-light: #FEF3C7;
-  --brand-bg: #F6F8F7;
-  --brand-text: #17231F;
-  --brand-border: #E5EAE7;
-  
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  color: var(--brand-text);
-  background-color: var(--brand-bg);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Menlo, monospace;
+
+  /* Surfaces & Neutrals */
+  --surface-bg: #F8FAFC;
+  --surface-card: #FFFFFF;
+  --surface-muted: #F1F5F9;
+  --border-default: #E2E8F0;
+  --border-subtle: #F1F5F9;
+
+  /* Typography Colors */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+
+  /* Intentional Brand Tokens */
+  --accent-solar: #D97706; /* Solar Amber/Ochre */
+  --accent-solar-hover: #B45309;
+  --accent-solar-subtle: #FEF3C7;
+  --accent-pine: #059669; /* Clean Energy Emerald */
+  --accent-pine-hover: #047857;
+  --accent-pine-subtle: #ECFDF5;
+
+  /* Sidebar Tokens */
+  --nav-bg: #0F172A; /* Crisp deep charcoal slate-900 */
+  --nav-surface: #1E293B;
+  --nav-border: #334155;
+  --nav-text: #F8FAFC;
+  --nav-text-muted: #94A3B8;
+
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background-color: var(--surface-bg);
 }
 
 * {
@@ -25,9 +45,11 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background-color: var(--brand-bg);
-  color: var(--brand-text);
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -36,26 +58,39 @@ body {
   flex-direction: column;
 }
 
-/* Custom scrollbar */
+/* Tabular numbers for numerical accuracy */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.num-font {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f5f3;
+  background: #F1F5F9;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: #CBD5E1;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #94A3B8;
 }
 
 /* Leaflet map overrides */
 .leaflet-container {
   width: 100%;
   height: 100%;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   z-index: 10;
+  font-family: var(--font-sans);
 }
+

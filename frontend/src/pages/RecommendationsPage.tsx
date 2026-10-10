@@ -5,16 +5,9 @@ import { RecommendationCard } from '../types/models';
 import { api } from '../services/api';
 import {
   Sparkles,
-  ShieldAlert,
   ArrowRight,
-  CheckCircle2,
-  AlertTriangle,
-  Info,
-  DollarSign,
-  Sun,
-  Clock,
-  Layers,
   ChevronRight,
+  Filter,
 } from 'lucide-react';
 
 export const RecommendationsPage: React.FC = () => {
@@ -60,34 +53,39 @@ export const RecommendationsPage: React.FC = () => {
   const getPriorityBadge = (p: string) => {
     switch (p.toLowerCase()) {
       case 'high':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return 'bg-red-50 text-red-700 border-red-200/80';
       case 'medium':
-        return 'bg-amber-100 text-amber-800 border-amber-200';
+        return 'bg-amber-50 text-amber-800 border-amber-200/80';
       default:
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
   return (
     <div className="space-y-6 pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#E5EAE7] shadow-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-slate-200 shadow-2xs">
         <div>
-          <h2 className="text-lg font-bold text-[#17231F] flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-emerald-600" />
-            <span>Explainable Smart Recommendations Feed</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Deterministic, calculation-grounded advice generated directly from solver outputs and shading geometry.
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-slate-900 tracking-tight flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-600" />
+              <span>Decision Intelligence & Recommendations</span>
+            </h2>
+            <span className="text-[11px] font-medium px-2 py-0.5 rounded border bg-slate-100 text-slate-700 border-slate-200">
+              Deterministic Logic
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Calculation-grounded advisory generated directly from knapsack solver outputs, irradiance geometry, and tariff models.
           </p>
         </div>
 
         <button
           onClick={() => navigate('/reports')}
-          className="px-4 py-2 bg-[#123C32] hover:bg-[#0B251F] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors"
         >
           <span>Generate Formal PDF Report</span>
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
         </button>
       </div>
 
@@ -97,10 +95,10 @@ export const RecommendationsPage: React.FC = () => {
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs transition-colors ${
               selectedCategory === cat
-                ? 'bg-[#123C32] text-white shadow-xs'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                ? 'bg-slate-900 text-white font-medium shadow-2xs'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 font-normal'
             }`}
           >
             {cat}
@@ -113,20 +111,20 @@ export const RecommendationsPage: React.FC = () => {
         {filtered.map((rec) => (
           <div
             key={rec.id}
-            className="bg-white rounded-2xl border border-[#E5EAE7] p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition-all space-y-4"
+            className="bg-white rounded-lg border border-slate-200 p-5 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors space-y-3.5"
           >
             <div>
               <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded">
+                <span className="text-[10px] font-mono font-medium uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
                   {rec.category}
                 </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getPriorityBadge(rec.priority)}`}>
+                <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded border ${getPriorityBadge(rec.priority)}`}>
                   {rec.priority} Priority
                 </span>
               </div>
 
-              <h3 className="font-bold text-sm text-[#123C32] mb-1">{rec.title}</h3>
-              <div className="text-[11px] font-semibold text-emerald-700 mb-2.5">
+              <h3 className="font-semibold text-sm text-slate-900 mb-0.5">{rec.title}</h3>
+              <div className="text-xs font-medium text-emerald-700 mb-2 font-mono">
                 Target: {rec.target}
               </div>
 
@@ -135,33 +133,33 @@ export const RecommendationsPage: React.FC = () => {
               </p>
 
               {/* Supporting calculation */}
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1 mb-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Supporting Calculation:
+              <div className="p-3 bg-slate-50 rounded border border-slate-150 text-xs space-y-1 mb-2">
+                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                  Supporting Solver Proof:
                 </span>
-                <p className="text-slate-800 font-mono text-[11px]">{rec.supporting_calculation}</p>
+                <p className="text-slate-800 font-mono text-[11px] leading-relaxed">{rec.supporting_calculation}</p>
               </div>
 
               {/* Benefit & Confidence */}
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-100 text-slate-600">
-                <span>Benefit: <strong className="text-emerald-700">{rec.expected_benefit}</strong></span>
-                <span className="text-[10px] bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded">
+              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-100 text-slate-600">
+                <span>Expected Yield: <strong className="text-emerald-700 font-mono">{rec.expected_benefit}</strong></span>
+                <span className="text-[10px] font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
                   {rec.confidence_label}
                 </span>
               </div>
             </div>
 
             {/* Suggested Action Footer */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
               <span className="text-[11px] text-slate-500 italic truncate max-w-[70%]">
                 Action: {rec.suggested_next_action}
               </span>
               <button
                 onClick={() => navigate('/reports')}
-                className="text-xs font-bold text-[#123C32] hover:text-emerald-700 flex items-center gap-1 transition-colors"
+                className="text-xs font-medium text-slate-900 hover:text-amber-700 flex items-center gap-1 transition-colors"
               >
-                <span>Include</span>
-                <ChevronRight className="w-3.5 h-3.5" />
+                <span>Include in Report</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
               </button>
             </div>
           </div>
