@@ -1,0 +1,13 @@
+{
+  "Name": "RoofShift-SolarCache-Maintenance-Weekly",
+  "Description": "Weekly trigger to refresh active Indian campus solar irradiance cache summaries",
+  "ScheduleExpression": "cron(0 2 ? * SUN *)",
+  "State": "ENABLED",
+  "Targets": [
+    {
+      "Id": "SolarDataNormalizerTarget",
+      "Arn": "arn:aws:lambda:ap-south-1:123456789012:function:RoofShiftSolarProcessor",
+      "Input": "{\"action\": \"refresh_active_grids\", \"region\": \"India\"}"
+    }
+  ]
+}

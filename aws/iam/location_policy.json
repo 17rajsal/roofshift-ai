@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RoofShiftAmazonLocationAccess",
+      "Effect": "Allow",
+      "Action": [
+        "geo:SearchPlaceIndexForText",
+        "geo:SearchPlaceIndexForPosition"
+      ],
+      "Resource": "arn:aws:geo:ap-south-1:*:place-index/RoofShiftPlaceIndex"
+    }
+  ]
+}
