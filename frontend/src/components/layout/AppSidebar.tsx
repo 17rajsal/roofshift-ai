@@ -188,7 +188,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, m
             {loading ? 'Checking workspace…' : error ? 'Backend unavailable' : 'Workspace ready'}
           </span>
           <span className="text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded text-emerald-300 border border-emerald-800/40">
-            AWS Ready
+            Cloud optional
           </span>
         </div>
         <div className="text-[10px] text-slate-400 text-center mt-2">

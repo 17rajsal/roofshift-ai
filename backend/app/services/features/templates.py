@@ -24,7 +24,8 @@ def project_feature_templates(project, db):
                                    usable_roof_fraction=building.usable_roof_percentage / 100,
                                    shading_loss_pct=analysis.effective_shading_loss_pct,
                                    ghi_kwh_m2_day=analysis.ghi_annual_avg_kwh_m2_day,
-                                   irradiance_source=analysis.irradiance_source, data_basis="climatology"))
+                                   irradiance_source=analysis.irradiance_source,
+                                   data_basis="user_assumption" if "illustrative" in analysis.irradiance_source.lower() else "climatology"))
     first = analyses[0] if analyses else None
     ghi = first.ghi_annual_avg_kwh_m2_day if first else None
     source = f"{first.irradiance_source}; annual-average GHI used uniformly across months" if first else "Enter location-specific irradiance source"
