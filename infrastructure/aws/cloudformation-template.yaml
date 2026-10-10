@@ -98,7 +98,7 @@ Resources:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
-  RoofShiftInstance:
+  RoofShiftAppServer:
     Type: AWS::EC2::Instance
     DependsOn:
       - PublicRoute
@@ -155,10 +155,10 @@ Resources:
 Outputs:
   PublicIP:
     Description: 'Public IP address of the RoofShift AI server'
-    Value: !GetAtt RoofShiftInstance.PublicIp
+    Value: !GetAtt RoofShiftAppServer.PublicIp
   AppURL:
     Description: 'URL of the RoofShift AI Web Application'
-    Value: !Sub 'http://${RoofShiftInstance.PublicIp}'
+    Value: !Sub 'http://${RoofShiftAppServer.PublicIp}'
   ApiHealthURL:
     Description: 'Backend health through the frontend proxy'
-    Value: !Sub 'http://${RoofShiftInstance.PublicIp}/api/v1/health'
+    Value: !Sub 'http://${RoofShiftAppServer.PublicIp}/api/v1/health'
