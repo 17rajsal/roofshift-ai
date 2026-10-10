@@ -148,7 +148,7 @@ export const ReportPage: React.FC = () => {
               <div className="p-3 bg-slate-50 rounded border border-slate-150">
                 <h3 className="font-semibold text-slate-900 mb-0.5">1. Executive Summary & Investment KPIs</h3>
                 <p className="text-slate-600 leading-relaxed text-[11px]">
-                  Synthesizes recommended DC/AC capacity, turnkey capital expenditure, annual utility cost reduction, and discounted payback duration.
+                  Synthesizes recommended DC/AC capacity, turnkey capital expenditure, annual utility cost reduction, and simple capital payback duration.
                 </p>
               </div>
 

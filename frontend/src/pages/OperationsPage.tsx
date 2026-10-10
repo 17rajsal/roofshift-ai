@@ -193,7 +193,7 @@ export const OperationsPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Deterministic thermal panel anomaly diagnostics, recorded inverter telemetry verification, and preventive maintenance workflows.
+            Simulated image inspection, legacy CSV screening and saved maintenance cases. Use Solar Assessments for diagnostics from explicit observed intervals.
           </p>
         </div>
         <button
@@ -268,14 +268,14 @@ export const OperationsPage: React.FC = () => {
               <div className="text-2xl font-semibold text-slate-900 tabular-nums font-mono mt-1">
                 {defectSummary?.total_inspections ?? 0}
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">Visual & thermal sensor passes</div>
+              <div className="text-[11px] text-slate-500 mt-1">Demonstration image records</div>
             </div>
             <div className="bg-white p-4.5 rounded-lg border border-slate-200 shadow-2xs">
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">Healthy Baseline Modules</span>
               <div className="text-2xl font-semibold text-emerald-700 tabular-nums font-mono mt-1">
                 {defectSummary?.healthy_panels ?? 0}
               </div>
-              <div className="text-[11px] text-emerald-700 mt-1 font-medium">Operating within STC tolerances</div>
+              <div className="text-[11px] text-emerald-700 mt-1 font-medium">Simulated normal examples</div>
             </div>
             <div className="bg-white p-4.5 rounded-lg border border-slate-200 shadow-2xs">
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">Detected Anomaly Count</span>
@@ -289,7 +289,7 @@ export const OperationsPage: React.FC = () => {
               <div className="text-2xl font-semibold text-red-600 tabular-nums font-mono mt-1">
                 {defectSummary?.total_estimated_power_loss_pct ?? 0}%
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">Array generation efficiency loss</div>
+              <div className="text-[11px] text-slate-500 mt-1">Simulated loss estimate</div>
             </div>
           </div>
 
