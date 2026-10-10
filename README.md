@@ -33,6 +33,16 @@ Organizations managing multi-building campuses—such as universities, hospital 
 
 **RoofShift AI** bridges this gap by unifying geospatial rooftop assessment, physical solar modeling, operations research algorithms, and post-installation diagnostics into a single workflow. The platform empowers facility executives, sustainability directors, and energy engineers to transition from initial satellite discovery to an investment-ready executive solar proposal backed by mathematical optimization.
 
+### Target Users & Stakeholders
+RoofShift AI is engineered for organizations and professionals managing distributed rooftop assets:
+- **Universities & Educational Institutions:** Optimize multi-building academic campuses, dormitories, and dining halls under strict capital budget limits.
+- **Commercial Property Owners:** Assess retail, logistics, and office parks for rooftop solar leasing and self-consumption.
+- **Campus Facility Managers:** Unify meter data, diurnal demand modeling, and maintenance schedules across facility portfolios.
+- **Sustainability Teams:** Track quantified carbon avoidance using standard Central Electricity Authority (CEA) grid baseline emission factors.
+- **Energy Consultants & EPC Contractors:** Accelerate preliminary site qualification, knapsack capacity allocation, and client proposal compilation.
+- **Multi-Building Portfolio Operators:** Prioritize capital across unshaded rooftops with high daytime coincidence.
+- **Renewable Energy Planners:** Model seasonal variation and tariff scenarios with explainable mathematical proofs.
+
 ---
 
 ## 2. Product Interface
