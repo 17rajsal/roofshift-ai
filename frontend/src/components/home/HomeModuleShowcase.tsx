@@ -27,7 +27,7 @@ export const HomeModuleShowcase: React.FC = () => {
       <p className="mb-5 text-xs font-medium text-slate-500">Illustrative previews below. Open a tool for project calculations or uploaded measurement results.</p>
       {/* 3 Large Showcase Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-        
+
         {/* Card A: Budget Optimization */}
         <div className="bg-white rounded-2xl p-6 sm:p-7 border border-[#E8EDF4] shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
           <div>
@@ -37,7 +37,7 @@ export const HomeModuleShowcase: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-[#0B1739]">Budget Optimization</h3>
             </div>
-            
+
             <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
               Compare supplied capacity choices and modeled energy values under a stated budget. Savings and payback depend on your inputs.
             </p>
@@ -90,7 +90,7 @@ export const HomeModuleShowcase: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-[#0B1739]">Performance Monitoring</h3>
             </div>
-            
+
             <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
               Compare uploaded readings with declared expected output and review performance evidence.
             </p>
@@ -152,7 +152,7 @@ export const HomeModuleShowcase: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-[#0B1739]">Panel Health / Fault Detection</h3>
             </div>
-            
+
             <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
               Review rule-based fault findings from submitted measurements and inspection evidence.
             </p>
@@ -175,7 +175,7 @@ export const HomeModuleShowcase: React.FC = () => {
             />
             {/* Shaded defect highlight overlay */}
             <div className="absolute inset-0 bg-rose-500/10 pointer-events-none" />
-            
+
             {/* Warning pill badge */}
             <div className="absolute bottom-2.5 right-2.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-md border border-rose-200 shadow-sm flex items-center gap-1.5 text-[10px] font-bold text-rose-600">
               <AlertTriangle className="w-3 h-3 text-rose-500" />

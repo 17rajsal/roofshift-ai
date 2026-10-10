@@ -110,7 +110,7 @@ export function App() {
           <Routes>
             {/* 1. Public Master SaaS Landing Page */}
             <Route path="/" element={<HomePage />} />
-            
+
             {/* 2. Operational Workspace Tools */}
             <Route path="/*" element={<ApplicationShell />} />
           </Routes>

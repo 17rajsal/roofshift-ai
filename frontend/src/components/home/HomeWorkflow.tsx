@@ -62,7 +62,7 @@ export const HomeWorkflow: React.FC = () => {
 
           return (
             <div key={step.num} className="relative flex flex-col items-center text-center group">
-              
+
               {/* Step indicator header: Number Pill + Icon */}
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-6 h-6 rounded-full bg-[#FFF4E9] text-[#FF6B16] font-bold text-xs flex items-center justify-center border border-[#FF6B16]/20">

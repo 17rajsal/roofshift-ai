@@ -24,10 +24,10 @@ export const HomeHero: React.FC<HomeHeroProps> = ({ onRequestDemo, onWatchVideo 
     <section className="relative overflow-hidden bg-white pt-6 pb-16 lg:pt-10 lg:pb-24">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-center">
-          
+
           {/* Left Column: 48% (5.8/12 cols) */}
           <div className="lg:col-span-6 xl:col-span-6 space-y-6 lg:pr-4">
-            
+
             {/* Eyebrow Pill */}
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFF4E9] border border-[#FF6B16]/20 text-[12px] font-semibold text-[#FF6B16] tracking-wide uppercase">
               <Sparkles className="w-3.5 h-3.5 text-[#FF6B16]" />
@@ -95,7 +95,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({ onRequestDemo, onWatchVideo 
           {/* Right Column: 52% (6.2/12 cols) — Hero Visual & Floating Analytics */}
           <div className="lg:col-span-6 xl:col-span-6 relative">
             <div className="relative rounded-2xl overflow-hidden border border-[#E8EDF4] shadow-xl aspect-[16/10] sm:aspect-[16/10] bg-slate-100 group">
-              
+
               {/* Photorealistic Campus Solar Installation */}
               <img
                 src="/hero-campus.jpg"

@@ -59,7 +59,7 @@ export const HomeCampusOverview: React.FC = () => {
 
   return (
     <section className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      
+
       {/* Top Header: Section title + Site selector */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
@@ -98,10 +98,10 @@ export const HomeCampusOverview: React.FC = () => {
 
       {/* Main Container: Left Map (55%) + Right Insights (45%) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-        
+
         {/* Left Panel: Geospatial Campus View (55% = 7 cols) */}
         <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E8EDF4] shadow-sm overflow-hidden flex flex-col relative aspect-[4/3] sm:aspect-[16/11]">
-          
+
           {/* Top Campus Map Header */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
             <div className="flex items-center gap-2">
@@ -273,7 +273,7 @@ export const HomeCampusOverview: React.FC = () => {
 
         {/* Right Panel: Example Site Insights (45% = 5 cols) */}
         <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-[#E8EDF4] shadow-sm flex flex-col justify-between">
-          
+
           <div>
             {/* Header: Title + Building Selector */}
             <div className="flex items-center justify-between mb-4">

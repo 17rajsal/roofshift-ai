@@ -121,7 +121,7 @@ export const HomeFeatureGrid: React.FC = () => {
     <section id="features" className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
       {/* Warm off-white rounded wrapper matching screenshot */}
       <div className="bg-[#F8FAFC] rounded-3xl p-6 sm:p-10 lg:p-12 border border-[#E8EDF4]">
-        
+
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1739] tracking-tight">

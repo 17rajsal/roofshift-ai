@@ -33,7 +33,7 @@ export const HomeFAQ: React.FC = () => {
 
   return (
     <section id="faq" className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-      
+
       {/* FAQ Banner / Header matching screenshot */}
       <div className="bg-[#FAFBFD] rounded-3xl p-8 sm:p-12 border border-[#E8EDF4] flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
         <div className="text-center md:text-left">
