@@ -167,3 +167,30 @@ curl -s http://<domain>/api/v1/system/integrations | jq .
 # 3. Check Pre-Seeded Demonstration Project
 curl -s http://<domain>/api/v1/projects | jq .
 ```
+
+---
+
+## 7. Critical Billing Safety & Regional Pricing Policy
+
+### Free Tier Limitations & Zero-Spend Constraints
+1. **12-Month Free Tier Expiration:** Standard Free Tier allowances (750 hours/month of `t2.micro` or `t3.micro`, 30 GB EBS gp3) are only valid for **12 months from AWS account creation**. Accounts older than 12 months transition to standard On-Demand pricing.
+2. **Public IPv4 Charges (Effective Feb 1, 2024):** AWS charges **$0.005/hour (~$3.60 / month)** for every in-use public IPv4 address. While 750 hours/month are included in the Free Tier during the first 12 months, post-Free Tier accounts incur this charge unconditionally.
+3. **Budget Alerts Are Asynchronous:** AWS Budgets alerts (such as the $20 threshold in `aws/budgets/budget_alarm.json`) send email notifications with an 8-to-24 hour reporting lag. **Budgets alerts do NOT automatically shut down EC2 instances or halt billing.**
+4. **Tax Considerations:** For accounts registered under Amazon Internet Services Private Limited (AISPL - India), 18% GST is automatically applied, and promotional credits frequently do not cover government taxes.
+
+### Regional Pricing Breakdown (On-Demand)
+
+| Service Component | `ap-south-1` (Mumbai) | `ap-southeast-2` (Sydney) | Free Tier Allowance |
+|---|---|---|---|
+| **EC2 `t3.micro` (1 vCPU, 1 GB)** | $0.0104 / hr (~$7.50/mo) | $0.0132 / hr (~$9.50/mo) | 750 hours/mo (Yr 1 only) |
+| **EC2 `t3.small` (2 vCPU, 2 GB)** | $0.0208 / hr (~$15.00/mo) | $0.0264 / hr (~$19.00/mo) | Not covered by Free Tier |
+| **EBS Storage (gp3, 30 GB)** | $0.08 / GB-mo (~$2.40/mo) | $0.11 / GB-mo (~$3.30/mo) | 30 GB free (Yr 1 only) |
+| **Public IPv4 Address** | $0.005 / hr (~$3.60/mo) | $0.005 / hr (~$3.60/mo) | 750 hours/mo (Yr 1 only) |
+| **Amazon S3 (< 1 GB proposals)** | $0.023 / GB (<$0.05/mo) | $0.025 / GB (<$0.05/mo) | 5 GB free (Yr 1 only) |
+| **Amazon CloudWatch Logs** | $0.50 / GB (<$0.50/mo) | $0.57 / GB (<$0.55/mo) | 5 GB ingestion free |
+
+### Guaranteed ₹0 Public Demo Alternatives
+For a zero out-of-pocket spending requirement (₹0 budget):
+- **Local Application + Free Public Tunnel:** Run the verified application locally on ports 8000 (backend) and 5173 (frontend) and expose it via Cloudflare Tunnel (`cloudflared tunnel --url http://localhost:80`) for a zero-cost HTTPS URL.
+- **Time-Bounded CloudFormation Lifecycle:** If launching on AWS, only create the stack immediately prior to live evaluation and execute `aws cloudformation delete-stack --stack-name roofshift-ai-production` immediately after the demo concludes to ensure no lingering EBS or IPv4 charges accrue.
+
