@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -12,6 +12,15 @@ class EnergyActivityCreate(BaseModel):
     preferred_hour: int = Field(default=18, ge=0, le=23)
     days_per_week: int = Field(default=5, ge=1, le=7)
     is_shiftable: bool = Field(default=True)
+
+    @model_validator(mode="after")
+    def validate_operating_window(self):
+        if self.latest_hour < (self.earliest_hour + self.duration_hours):
+            raise ValueError(
+                f"latest_hour ({self.latest_hour}) must be at least earliest_hour ({self.earliest_hour}) "
+                f"+ duration_hours ({self.duration_hours})"
+            )
+        return self
 
 class EnergyActivityResponse(EnergyActivityCreate):
     id: str

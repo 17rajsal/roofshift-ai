@@ -102,7 +102,7 @@ def get_system_integrations_status():
             {
                 "service": "AWS IAM",
                 "category": "Security & Access Management",
-                "status": "Configured / Least Privilege Enforced",
+                "status": "Configured / Least Privilege Defined",
                 "active_provider": "IAM Role Policies",
                 "fallback": "Local OS Process Boundaries",
                 "evidence": "aws/iam/ (s3_policy.json, cloudwatch_policy.json, location_policy.json)",

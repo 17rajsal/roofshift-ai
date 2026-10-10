@@ -47,8 +47,10 @@ async def calculate_building_solar_potential(
     if building.max_eligible_kwp and building.max_eligible_kwp > 0:
         max_pv_capacity = min(max_pv_capacity, building.max_eligible_kwp)
 
-    active_capacity = override_capacity_kwp if override_capacity_kwp is not None else max_pv_capacity
-    active_capacity = max(0.0, active_capacity)
+    if override_capacity_kwp is not None:
+        active_capacity = min(max(0.0, float(override_capacity_kwp)), max_pv_capacity)
+    else:
+        active_capacity = max_pv_capacity
 
     # 3. Shading derating
     shading_loss_pct = get_effective_shading_loss(building.shading_category, building.custom_shading_loss)
@@ -91,14 +93,14 @@ async def calculate_building_solar_potential(
     cost_per_kwp = building.cost_per_kwp if building.cost_per_kwp > 0 else settings.DEFAULT_COST_PER_KWP
 
     annual_savings = round((annual_onsite_consumed * tariff) + (annual_exported * export_tariff), 2)
-    installation_cost = round((active_capacity * cost_per_kwp) + (building.fixed_cost or 0.0), 2)
+    installation_cost = round((active_capacity * cost_per_kwp) + (building.fixed_cost or 0.0), 2) if active_capacity > 0.0 else 0.0
 
     payback_years = None
-    if annual_savings > 100.0 and installation_cost > 0.0:
+    if annual_savings > 0.0 and installation_cost > 0.0:
         payback_years = round(installation_cost / annual_savings, 2)
 
     # 6. Environmental impact
-    co2_factor = project.co2_factor if project.co2_factor > 0 else settings.DEFAULT_GRID_EMISSIONS_FACTOR_KG_CO2_PER_KWH
+    co2_factor = project.co2_factor if project.co2_factor is not None else settings.DEFAULT_GRID_EMISSIONS_FACTOR_KG_CO2_PER_KWH
     avoided_co2 = round(annual_generation * co2_factor, 1)
 
     # 7. Update or create SolarAnalysis in DB

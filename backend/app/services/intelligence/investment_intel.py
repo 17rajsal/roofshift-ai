@@ -30,8 +30,16 @@ def solve_with_ortools_knapsack(
         cost_terms = []
         obj_terms = []
 
-        # Scale units to integer (e.g. INR in thousands or integer rupees)
-        scale_cost = 1000 # Cost scaled to thousands of INR
+        if objective == "MAXIMIZE_SAVINGS":
+            metric_key = "savings_inr"
+        elif objective == "MAXIMIZE_ONSITE_UTILIZATION":
+            metric_key = "onsite_kwh"
+        else:
+            metric_key = "annual_gen_kwh"
+
+        # Scale units: cost to integer paise (cents), objective by 1000 to preserve fractional decimals
+        scale_cost = 100
+        scale_obj = 1000
 
         for b_idx, options in enumerate(building_options):
             b_vars = []
@@ -40,23 +48,17 @@ def solve_with_ortools_knapsack(
                 x[(b_idx, o_idx)] = var
                 b_vars.append(var)
 
-                cost_int = int(opt["cost_inr"] / scale_cost)
+                cost_int = int(round(opt["cost_inr"] * scale_cost))
                 cost_terms.append(cost_int * var)
 
-                if objective == "MAXIMIZE_SAVINGS":
-                    val_int = int(opt["savings_inr"])
-                elif objective == "MAXIMIZE_ONSITE_UTILIZATION":
-                    val_int = int(opt["onsite_kwh"])
-                else: # MAXIMIZE_GENERATION
-                    val_int = int(opt["annual_gen_kwh"])
-
+                val_int = int(round(opt.get(metric_key, 0.0) * scale_obj))
                 obj_terms.append(val_int * var)
 
             # At most one capacity option selected per building
             model.Add(sum(b_vars) <= 1)
 
         # Budget constraint
-        max_cost_scaled = int(budget / scale_cost)
+        max_cost_scaled = int(round(budget * scale_cost))
         model.Add(sum(cost_terms) <= max_cost_scaled)
 
         # Objective
@@ -69,11 +71,11 @@ def solve_with_ortools_knapsack(
 
         if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
             chosen = []
-            total_val = solver.ObjectiveValue()
             for b_idx, options in enumerate(building_options):
                 for o_idx, opt in enumerate(options):
                     if solver.Value(x[(b_idx, o_idx)]) == 1:
                         chosen.append(opt)
+            total_val = float(sum(choice.get(metric_key, 0.0) for choice in chosen))
             return chosen, total_val, "Google OR-Tools CP-SAT Solver"
     except Exception as e:
         logger.warning(f"OR-Tools CP-SAT solver fell back to exact DP: {str(e)}")

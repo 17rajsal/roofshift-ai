@@ -14,17 +14,21 @@ import {
   ChevronDown,
   CloudSun,
   ShieldCheck,
-  CheckCircle2
+  CheckCircle2,
+  Wrench,
+  X
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { formatINRShort } from '../../utils/formatters';
 
 interface AppSidebarProps {
   onOpenNewProjectModal: () => void;
+  mobileOpen: boolean;
+  onClose: () => void;
 }
 
-export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal }) => {
-  const { projects, activeProject, setActiveProject, loadDemoProject } = useProject();
+export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, mobileOpen, onClose }) => {
+  const { projects, activeProject, setActiveProject, loadDemoProject, loading, error } = useProject();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -36,13 +40,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal })
     { name: 'Energy Insights', path: '/insights', icon: BarChart3 },
     { name: 'Smart Scheduling', path: '/scheduling', icon: Clock },
     { name: 'Recommendations', path: '/recommendations', icon: Sparkles },
+    { name: 'Operations & Asset Care', path: '/operations', icon: Wrench, badge: 'Care', badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
     { name: 'Final Report', path: '/reports', icon: FileText, badge: 'PDF' },
   ];
 
   return (
-    <aside className="w-64 bg-[#123C32] text-white flex flex-col flex-shrink-0 min-h-screen border-r border-[#0B251F] select-none">
+    <aside id="app-navigation" className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#123C32] text-white flex flex-col flex-shrink-0 h-full overflow-y-auto border-r border-[#0B251F] select-none md:static md:visible md:translate-x-0 ${mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'}`}>
       {/* Brand Header */}
       <div className="p-5 border-b border-emerald-900/60">
+        <button onClick={onClose} aria-label="Close navigation" className="absolute top-2 right-2 p-2 md:hidden"><X className="h-4 w-4" /></button>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-[#F5B942] flex items-center justify-center text-[#123C32] shadow-lg shadow-emerald-950/40 font-bold">
             <Sun className="w-6 h-6 animate-spin-slow text-[#123C32]" />
@@ -71,6 +77,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal })
         </label>
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
+          aria-expanded={dropdownOpen}
+          aria-label="Select planning project"
           className="w-full flex items-center justify-between bg-emerald-950/60 hover:bg-emerald-950 border border-emerald-700/40 rounded-lg p-2.5 text-left transition-colors"
         >
           <div className="truncate">
@@ -93,6 +101,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal })
                   onClick={() => {
                     setActiveProject(p);
                     setDropdownOpen(false);
+                    onClose();
                   }}
                   className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-emerald-900/50 transition-colors ${
                     activeProject?.id === p.id ? 'bg-emerald-800/40 text-emerald-200 font-semibold' : 'text-slate-300'
@@ -141,6 +150,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal })
             <NavLink
               key={item.path}
               to={item.path}
+              onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all group ${
                   isActive
@@ -176,7 +186,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal })
         <div className="flex items-center justify-between text-[11px] text-emerald-300/80 mb-1">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            NASA POWER Connected
+            {loading ? 'Checking workspace…' : error ? 'Backend unavailable' : 'Workspace ready'}
           </span>
           <span className="text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded text-emerald-300 border border-emerald-800/40">
             AWS Ready

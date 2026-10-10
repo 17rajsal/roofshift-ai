@@ -10,10 +10,31 @@ import {
   GeneratedReportSummary,
   GeocodeResult,
   DemandUploadResult,
-  SystemIntegrationsResponse
+  SystemIntegrationsResponse,
+  PanelInspectionResponse,
+  DefectSummaryResponse,
+  SolarMonitoringResponse,
+  MaintenanceCaseResponse
 } from '../types/models';
 
-const API_BASE = '/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
+
+export function resolveReportUrl(url: string): string {
+  return new URL(url, new URL(`${API_BASE}/`, window.location.origin)).href;
+}
+
+async function responseError(res: Response): Promise<Error> {
+  const body = await res.text();
+  let detail: unknown;
+  try {
+    const parsed = JSON.parse(body);
+    detail = parsed.detail || parsed.message;
+  } catch { /* Non-JSON server failures get a readable fallback. */ }
+  if (Array.isArray(detail)) {
+    detail = detail.map(item => `${(item.loc || []).filter((part: string) => part !== 'body').join('.')}: ${item.msg}`).join('; ');
+  }
+  return new Error(typeof detail === 'string' ? detail : `Request failed (${res.status}). Please try again.`);
+}
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
@@ -25,18 +46,11 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    let errorDetail = 'API Request failed';
-    try {
-      const err = await res.json();
-      errorDetail = err.detail || err.message || errorDetail;
-    } catch {
-      errorDetail = await res.text();
-    }
-    throw new Error(errorDetail);
+    throw await responseError(res);
   }
 
   if (res.status === 204) {
-    return {} as T;
+    return undefined as T;
   }
 
   return res.json();
@@ -198,12 +212,7 @@ export const api = {
       body: formData,
     });
     if (!res.ok) {
-      let errorDetail = 'CSV upload failed';
-      try {
-        const err = await res.json();
-        errorDetail = err.detail || err.message || errorDetail;
-      } catch {}
-      throw new Error(errorDetail);
+      throw await responseError(res);
     }
     return res.json();
   },
@@ -211,5 +220,85 @@ export const api = {
   // AWS System Integrations
   async getSystemIntegrations(): Promise<SystemIntegrationsResponse> {
     return fetchJson<SystemIntegrationsResponse>('/system/integrations');
+  },
+
+  // Panel Inspections
+  async uploadPanelInspection(buildingId: string, file: File): Promise<PanelInspectionResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE}/buildings/${buildingId}/panel-inspection`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      throw await responseError(res);
+    }
+    return res.json();
+  },
+
+  async getBuildingInspections(buildingId: string): Promise<PanelInspectionResponse[]> {
+    return fetchJson<PanelInspectionResponse[]>(`/buildings/${buildingId}/panel-inspections`);
+  },
+
+  async getProjectDefectSummary(projectId: string): Promise<DefectSummaryResponse> {
+    return fetchJson<DefectSummaryResponse>(`/projects/${projectId}/defect-summary`);
+  },
+
+  // Inverter Monitoring Telemetry
+  async uploadMonitoringCsv(projectId: string, file: File, buildingId?: string): Promise<SolarMonitoringResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const query = buildingId ? `?building_id=${encodeURIComponent(buildingId)}` : '';
+    const res = await fetch(`${API_BASE}/projects/${projectId}/monitoring-upload${query}`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      throw await responseError(res);
+    }
+    return res.json();
+  },
+
+  async getMonitoringLogs(projectId: string): Promise<SolarMonitoringResponse[]> {
+    return fetchJson<SolarMonitoringResponse[]>(`/projects/${projectId}/monitoring-logs`);
+  },
+
+  // Maintenance Cases
+  async getMaintenanceCases(projectId: string, status?: string): Promise<MaintenanceCaseResponse[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return fetchJson<MaintenanceCaseResponse[]>(`/projects/${projectId}/maintenance-cases${query}`);
+  },
+
+  async createMaintenanceCase(projectId: string, data: {
+    title: string;
+    description: string;
+    category?: string;
+    priority?: string;
+    building_id?: string;
+    estimated_loss_kwh_per_day?: number;
+    assigned_to?: string;
+  }): Promise<MaintenanceCaseResponse> {
+    return fetchJson<MaintenanceCaseResponse>(`/projects/${projectId}/maintenance-cases`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateMaintenanceCase(caseId: string, data: Partial<{
+    title: string;
+    description: string;
+    priority: string;
+    status: string;
+    estimated_loss_kwh_per_day: number;
+    assigned_to: string;
+  }>): Promise<MaintenanceCaseResponse> {
+    return fetchJson<MaintenanceCaseResponse>(`/maintenance-cases/${caseId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteMaintenanceCase(caseId: string): Promise<void> {
+    return fetchJson<void>(`/maintenance-cases/${caseId}`, { method: 'DELETE' });
   }
 };

@@ -57,21 +57,30 @@ async def fetch_solar_irradiance(lat: float, lon: float, db: Session) -> Tuple[D
                 ghi_data = data.get("properties", {}).get("parameter", {}).get("ALLSKY_SFC_SW_DWN", {})
                 
                 monthly_ghi = {}
-                valid_months = 0
+                satellite_count = 0
                 total_ghi = 0.0
-                
+
                 for m in MONTH_KEYS:
                     val = ghi_data.get(m)
-                    if val is not None and val > 0:
+                    if val is not None and float(val) > 0.0:
                         monthly_ghi[m] = round(float(val), 2)
                         total_ghi += float(val)
-                        valid_months += 1
+                        satellite_count += 1
                     else:
                         monthly_ghi[m] = DEFAULT_INDIA_MONTHLY_GHI[m]
                         total_ghi += DEFAULT_INDIA_MONTHLY_GHI[m]
-                        valid_months += 1
 
-                annual_avg = round(total_ghi / valid_months, 2)
+                annual_avg = round(total_ghi / 12.0, 2)
+
+                if satellite_count == 12:
+                    source_str = "NASA POWER Climatology (Satellite/Model v2.0)"
+                    label_str = "Verified Public Dataset (NASA POWER)"
+                elif satellite_count == 0:
+                    source_str = "Regional Indian Solar Database (NISE/IMD)"
+                    label_str = "Regional Climatological Baseline (NISE/IMD Fallback)"
+                else:
+                    source_str = "Composite Solar Model (NASA POWER + Regional Baseline)"
+                    label_str = "Mixed Observation & Regional Fallback"
 
                 # Save to cache
                 new_cache = SolarDataCache(
@@ -79,17 +88,17 @@ async def fetch_solar_irradiance(lat: float, lon: float, db: Session) -> Tuple[D
                     grid_lon=grid_lon,
                     ghi_monthly=monthly_ghi,
                     ghi_annual=annual_avg,
-                    source="NASA POWER Climatology (Satellite/Model v2.0)"
+                    source=source_str
                 )
                 db.add(new_cache)
                 db.commit()
 
-                logger.info(f"Successfully retrieved and cached NASA POWER solar data for ({lat}, {lon})")
+                logger.info(f"Retrieved solar data for ({lat}, {lon}) with {satellite_count}/12 satellite observations.")
                 return (
                     monthly_ghi,
                     annual_avg,
-                    "NASA POWER Climatology (Satellite/Model v2.0)",
-                    "Verified Public Dataset (NASA POWER)"
+                    source_str,
+                    label_str
                 )
             else:
                 logger.warning(f"NASA POWER API returned status {response.status_code}. Using regional fallback.")
@@ -110,6 +119,6 @@ async def fetch_solar_irradiance(lat: float, lon: float, db: Session) -> Tuple[D
     return (
         adjusted_monthly,
         annual_avg,
-        "Regional Solar Climatology (NISE/IMD Baseline)",
-        "Modeled Regional Approximation (Documented Fallback)"
+        "Regional Indian Solar Database (NISE/IMD)",
+        "Regional Climatological Baseline (NISE/IMD Fallback)"
     )

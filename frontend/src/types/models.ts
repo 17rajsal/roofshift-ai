@@ -335,3 +335,60 @@ export interface SystemIntegrationsResponse {
   };
   services: AwsServiceStatus[];
 }
+
+export interface PanelInspectionResponse {
+  id: string;
+  building_id: string;
+  filename: string;
+  image_url: string;
+  defect_type: string;
+  severity: string;
+  confidence_score: number;
+  temperature_delta_c?: number;
+  estimated_power_loss_pct: number;
+  recommended_action: string;
+  model_provenance: string;
+  created_at: string;
+}
+
+export interface DefectSummaryResponse {
+  total_inspections: number;
+  defects_detected: number;
+  healthy_panels: number;
+  critical_alerts: number;
+  total_estimated_power_loss_pct: number;
+  inspections: PanelInspectionResponse[];
+}
+
+export interface SolarMonitoringResponse {
+  id: string;
+  project_id: string;
+  building_id?: string;
+  filename: string;
+  record_count: number;
+  total_measured_generation_kwh: number;
+  expected_generation_kwh: number;
+  performance_ratio_actual: number;
+  expected_performance_ratio: number;
+  generation_delta_pct: number;
+  degradation_annual_pct: number;
+  underperformance_flag: boolean;
+  diagnostic_summary: string;
+  data_mode: string;
+  created_at: string;
+}
+
+export interface MaintenanceCaseResponse {
+  id: string;
+  project_id: string;
+  building_id?: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: string;
+  status: string;
+  estimated_loss_kwh_per_day: number;
+  assigned_to?: string;
+  created_at: string;
+  resolved_at?: string;
+}

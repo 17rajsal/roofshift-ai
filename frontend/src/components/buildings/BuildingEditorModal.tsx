@@ -9,6 +9,8 @@ interface BuildingEditorModalProps {
   building: Building | null;
   projectId: string;
   defaultCoordinates?: [number, number];
+  defaultRoofPolygon?: [number, number][];
+  defaultRoofArea?: number;
   onSaved: (building: Building) => void;
 }
 
@@ -18,6 +20,8 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
   building,
   projectId,
   defaultCoordinates = [28.6139, 77.2090],
+  defaultRoofPolygon,
+  defaultRoofArea,
   onSaved,
 }) => {
   const [name, setName] = useState('');
@@ -49,7 +53,7 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
       setGrossRoofArea(building.gross_roof_area);
       setUsableRoofPct(building.usable_roof_percentage);
       setShadingCategory(building.shading_category);
-      setCustomShadingLoss(building.custom_shading_loss || 5);
+      setCustomShadingLoss(building.custom_shading_loss ?? 5);
       setMonthlyConsumption(building.monthly_consumption_kwh);
       setDaytimePct(building.daytime_consumption_pct);
       setCostPerKwp(building.cost_per_kwp);
@@ -62,7 +66,7 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
       setAddress('');
       setLatitude(defaultCoordinates[0]);
       setLongitude(defaultCoordinates[1]);
-      setGrossRoofArea(300);
+      setGrossRoofArea(defaultRoofArea ?? 300);
       setUsableRoofPct(70);
       setShadingCategory('Low');
       setCustomShadingLoss(5);
@@ -73,7 +77,8 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
       setMaxEligibleKwp(undefined);
       setObstaclesNotes('');
     }
-  }, [building, defaultCoordinates, isOpen]);
+    setError(null);
+  }, [building, defaultCoordinates[0], defaultCoordinates[1], defaultRoofArea, isOpen]);
 
   if (!isOpen) return null;
 
@@ -103,6 +108,7 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
         fixed_cost: fixedCost,
         max_eligible_kwp: maxEligibleKwp || undefined,
         obstacles_notes: obstaclesNotes,
+        roof_polygon: building?.roof_polygon ?? defaultRoofPolygon,
       };
 
       let result: Building;
@@ -125,7 +131,7 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
   const estimatedCapacity = (calculatedUsable / 8.0).toFixed(1);
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-label={building ? `Edit ${building.name}` : 'Add candidate rooftop'} className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 bg-[#123C32] text-white flex items-center justify-between flex-shrink-0">
@@ -135,7 +141,7 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
               {building ? `Edit ${building.name} Profile` : 'Add New Candidate Rooftop'}
             </h2>
           </div>
-          <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded-md transition-colors">
+          <button onClick={onClose} aria-label="Close rooftop form" className="text-slate-300 hover:text-white p-1 rounded-md transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -204,8 +210,8 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
                 <input
                   type="number"
                   required
-                  min="20"
-                  step="10"
+                  min="1"
+                  step="0.01"
                   value={grossRoofArea}
                   onChange={(e) => setGrossRoofArea(Number(e.target.value))}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"

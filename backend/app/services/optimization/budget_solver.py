@@ -65,63 +65,86 @@ def evaluate_capacity_option(
         "savings_inr": round(savings_inr, 2),
     }
 
+from decimal import Decimal
+from itertools import product
+
 def solve_multiple_choice_knapsack(
     building_options: List[List[Dict[str, Any]]],
     budget: float,
     objective: str
 ) -> Tuple[List[Dict[str, Any]], float]:
     """
-    Exact Dynamic Programming Solver for Multiple-Choice Knapsack Problem (MCKP).
-    Selects at most one capacity discrete option per building within the budget.
+    Exact Solver for Multiple-Choice Knapsack Problem (MCKP).
+    Selects exactly one discrete option per building group within the budget constraint.
+    Guarantees mathematical optimality without artificial bucket rounding.
     """
-    # Scale budget to integer discrete buckets (e.g. ₹2,000 granularity for sub-millisecond precision)
-    scale = 2000.0
-    B = int(budget / scale)
-    if B <= 0:
-        B = 1
+    if not building_options:
+        return [], 0.0
 
-    # dp[w] = (max_value, [chosen_options])
-    # Initialize for 0 buildings
-    dp = {0: (0.0, [])}
+    # Determine objective attribute key
+    val_key = "savings_inr"
+    if objective == "MAXIMIZE_GENERATION":
+        val_key = "annual_gen_kwh"
+    elif objective in ("MAXIMIZE_ONSITE_UTILIZATION", "MAXIMIZE_SELF_CONSUMPTION"):
+        val_key = "onsite_kwh"
 
-    for b_idx, options in enumerate(building_options):
+    budget_dec = Decimal(str(budget))
+    if budget_dec < Decimal("0"):
+        return [grp[0] for grp in building_options], 0.0
+
+    # Check total combination space for exhaustive oracle evaluation
+    total_combinations = 1
+    for grp in building_options:
+        total_combinations *= max(1, len(grp))
+        if total_combinations > 50000:
+            break
+
+    if total_combinations <= 50000:
+        best_val = -1.0
+        best_choice = None
+        for choice in product(*building_options):
+            cost_sum = sum(Decimal(str(c["cost_inr"])) for c in choice)
+            if cost_sum <= budget_dec:
+                val_sum = sum(c[val_key] for c in choice)
+                if val_sum > best_val:
+                    best_val = val_sum
+                    best_choice = list(choice)
+        if best_choice is not None and best_val >= 0.0:
+            return best_choice, float(best_val)
+        return [grp[0] for grp in building_options], 0.0
+
+    # Pareto-frontier dynamic programming for larger inputs
+    # dp state: cost_decimal -> (value, choices_list)
+    dp = {Decimal("0"): (0.0, [])}
+    for grp in building_options:
         new_dp = {}
-        for opt in options:
-            opt_cost = opt["cost_inr"]
-            w_scaled = int(math.ceil(opt_cost / scale))
+        for opt in grp:
+            opt_c = Decimal(str(opt["cost_inr"]))
+            opt_v = float(opt[val_key])
+            for prev_c, (prev_v, prev_choices) in dp.items():
+                tot_c = prev_c + opt_c
+                if tot_c <= budget_dec:
+                    tot_v = prev_v + opt_v
+                    if tot_c not in new_dp or tot_v > new_dp[tot_c][0]:
+                        new_dp[tot_c] = (tot_v, prev_choices + [opt])
 
-            # Value based on objective
-            if objective == "MAXIMIZE_SAVINGS":
-                val = opt["savings_inr"]
-            elif objective == "MAXIMIZE_ONSITE_UTILIZATION":
-                val = opt["onsite_kwh"]
-            else: # MAXIMIZE_GENERATION
-                val = opt["annual_gen_kwh"]
+        if not new_dp:
+            return [grp[0] for grp in building_options], 0.0
 
-            for prev_w, (prev_val, prev_choices) in dp.items():
-                total_w = prev_w + w_scaled
-                if total_w <= B and (prev_w * scale + opt_cost) <= budget:
-                    total_val = prev_val + val
-                    if total_w not in new_dp or total_val > new_dp[total_w][0]:
-                        new_dp[total_w] = (total_val, prev_choices + [opt])
+        # Pareto pruning: as cost increases, value must strictly increase
+        sorted_costs = sorted(new_dp.keys())
+        pruned = {}
+        best_v = -1.0
+        for c in sorted_costs:
+            v, choices = new_dp[c]
+            if v > best_v:
+                best_v = v
+                pruned[c] = (v, choices)
+        dp = pruned
 
-        # Prune dominated states
-        if new_dp:
-            dp = new_dp
-        else:
-            # If no option fits, carry zero option
-            pass
-
-    # Find best within budget
-    best_val = -1.0
-    best_solution = []
-    for w, (val, choices) in dp.items():
-        total_actual_cost = sum(c["cost_inr"] for c in choices)
-        if total_actual_cost <= budget and val > best_val:
-            best_val = val
-            best_solution = choices
-
-    return best_solution, best_val
+    best_c = max(dp.keys(), key=lambda c: dp[c][0]) if dp else Decimal("0")
+    val, choices = dp.get(best_c, (0.0, [grp[0] for grp in building_options]))
+    return choices, float(val)
 
 def generate_decision_explanations(
     building: Building,
@@ -133,7 +156,7 @@ def generate_decision_explanations(
     savings_roi_pct: float
 ) -> Tuple[List[str], str, str]:
     """Generates rigorous, calculation-grounded explainable rationales for building recommendation."""
-    cap = opt["capacity_kwp"]
+    cap = opt.get("capacity_kwp", 0.0)
     is_selected = cap > 0.05
     reasons = []
 
@@ -161,13 +184,17 @@ def generate_decision_explanations(
     else:
         demand_summary = f"Building has strong baseline demand ({building.monthly_consumption_kwh:,.0f} kWh/month, {daytime_pct}% daytime)."
 
-    # Solver Decision Rationale
+    # Solver Decision Rationale (QA-08: verify calculated yield before asserting >1400 kWh/kWp)
     if is_selected:
         reasons.append(
-            f"Selected for {cap:.1f} kWp allocation ({cap/max_cap*100:.0f}% of usable roof area)."
+            f"Selected for {cap:.1f} kWp allocation ({cap/max(0.1, max_cap)*100:.0f}% of usable roof area)."
         )
-        if shading_loss <= 8.0:
-            reasons.append("Unobstructed roof profile provides top-tier specific energy yield (>1,400 kWh/kWp).")
+        calculated_specific_yield = (gen_kwh / max(0.001, cap)) if cap > 0 else 0.0
+        if calculated_specific_yield >= 1400.0 and shading_loss <= 8.0:
+            reasons.append(f"Unobstructed roof profile provides top-tier specific energy yield ({calculated_specific_yield:.0f} kWh/kWp).")
+        elif calculated_specific_yield > 0:
+            reasons.append(f"Estimated specific energy yield of {calculated_specific_yield:.0f} kWh/kWp.")
+
         if opt.get("savings_inr", 0) > 0 and opt.get("cost_inr", 0) > 0:
             payback = opt["cost_inr"] / opt["savings_inr"]
             reasons.append(f"Highly favorable capital payback period of ~{payback:.1f} years with ₹{opt['savings_inr']:,.0f}/year bill offset.")

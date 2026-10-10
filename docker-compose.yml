@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   backend:
     build:
@@ -8,20 +6,21 @@ services:
     container_name: roofshift_backend
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./roofshift.db
+      - DATABASE_URL=sqlite:////data/roofshift.db
       - REPORTS_DIR=/app/generated_reports
+      - UPLOADS_DIR=/data/uploaded_demand
       - NASA_POWER_BASE_URL=https://power.larc.nasa.gov/api/temporal/climatology/point
     volumes:
-      - backend_data:/app
+      - backend_data:/data
       - reports_data:/app/generated_reports
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 60s
 
   frontend:
     build:

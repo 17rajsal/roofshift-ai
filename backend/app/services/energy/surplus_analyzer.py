@@ -19,12 +19,12 @@ HOURLY_SOLAR_WEIGHTS = [
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0        # 18:00 - 23:00
 ]
 
-# Typical Indian institutional campus diurnal demand distribution
+# Typical Indian institutional campus diurnal demand distribution (normalized to strictly 1.0)
 HOURLY_DEMAND_WEIGHTS = [
-    0.025, 0.025, 0.025, 0.025, 0.025, 0.030, # 00:00 - 05:00 (Night base load)
-    0.035, 0.045, 0.065, 0.075, 0.080, 0.080, # 06:00 - 11:00 (Campus active morning)
-    0.075, 0.070, 0.070, 0.065, 0.055, 0.045, # 12:00 - 17:00 (Afternoon classes/offices)
-    0.045, 0.050, 0.055, 0.050, 0.035, 0.030  # 18:00 - 23:00 (Evening library/hostels)
+    0.0212, 0.0212, 0.0212, 0.0212, 0.0212, 0.0254, # 00:00 - 05:00 (Night base load)
+    0.0297, 0.0381, 0.0551, 0.0636, 0.0678, 0.0678, # 06:00 - 11:00 (Campus active morning)
+    0.0636, 0.0593, 0.0593, 0.0551, 0.0466, 0.0381, # 12:00 - 17:00 (Afternoon classes/offices)
+    0.0381, 0.0424, 0.0466, 0.0424, 0.0297, 0.0253  # 18:00 - 23:00 (Evening library/hostels)
 ]
 
 def format_hour_label(hour: int) -> str:
@@ -147,12 +147,40 @@ async def analyze_project_energy_surplus(project_id: str, db: Session) -> Energy
         peak_solar_window = "10:00 AM - 03:00 PM (Peak Solar Generation Band)"
 
     # Monthly Trends (12 months)
+    # Collect saved seasonal monthly generation for each building
+    all_b_monthly_gens = []
+    for b in buildings:
+        if b.solar_analysis and b.solar_analysis.monthly_generation_kwh and len(b.solar_analysis.monthly_generation_kwh) == 12:
+            alloc = allocations_map.get(b.id)
+            if alloc and has_active_opt:
+                max_c = b.solar_analysis.max_pv_capacity_kwp
+                cap = alloc.get("recommended_capacity_kwp", 0.0)
+                scale = (cap / max(0.001, max_c)) if max_c else 0.0
+                all_b_monthly_gens.append([round(m_g * scale, 1) for m_g in b.solar_analysis.monthly_generation_kwh])
+            else:
+                all_b_monthly_gens.append(b.solar_analysis.monthly_generation_kwh)
+        else:
+            all_b_monthly_gens.append([round(total_gen_annual * (DAYS_IN_MONTH[m] / 365.0), 1) for m in range(12)])
+
+    monthly_gen_totals = [
+        round(sum(b_m[m_idx] for b_m in all_b_monthly_gens), 1)
+        for m_idx in range(12)
+    ]
+
+    # Distribute total onsite annual energy proportional to monthly generation
+    tot_monthly_gen_sum = sum(monthly_gen_totals)
+    if tot_monthly_gen_sum > 0.0:
+        onsite_m_list = [round(total_onsite_annual * (g / tot_monthly_gen_sum), 1) for g in monthly_gen_totals]
+        diff_onsite = round(total_onsite_annual - sum(onsite_m_list), 1)
+        onsite_m_list[-1] = round(onsite_m_list[-1] + diff_onsite, 1)
+    else:
+        onsite_m_list = [0.0] * 12
+
     monthly_trends: List[MonthlyTrendPoint] = []
     for m_idx, m_name in enumerate(MONTH_NAMES):
-        # Scale generation according to typical solar seasonality
-        gen_m = round(total_gen_annual * (DAYS_IN_MONTH[m_idx] / 365.0), 1)
+        gen_m = monthly_gen_totals[m_idx]
         demand_m = round(total_demand_annual * (DAYS_IN_MONTH[m_idx] / 365.0), 1)
-        onsite_m = round(min(gen_m, demand_m * 0.70), 1)
+        onsite_m = min(gen_m, onsite_m_list[m_idx])
         surplus_m = round(max(0.0, gen_m - onsite_m), 1)
         grid_m = round(max(0.0, demand_m - onsite_m), 1)
 
@@ -167,7 +195,8 @@ async def analyze_project_energy_surplus(project_id: str, db: Session) -> Energy
 
     grid_offset_pct = round((total_onsite_annual / max(1.0, total_demand_annual)) * 100.0, 1)
     payback = round(total_cost / total_savings, 2) if total_savings > 10.0 and total_cost > 0.0 else None
-    avoided_co2 = round(total_gen_annual * project.co2_factor, 1)
+    co2_factor = project.co2_factor if project.co2_factor is not None else 0.716
+    avoided_co2 = round(total_gen_annual * co2_factor, 1)
 
     return EnergyInsightsResponse(
         project_id=project.id,

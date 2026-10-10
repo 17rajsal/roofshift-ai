@@ -1,4 +1,6 @@
 import os
+import uuid
+from html import escape
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from reportlab.lib import colors
@@ -16,6 +18,7 @@ from app.models.optimization import OptimizationRun
 from app.models.scheduling import EnergyActivity
 from app.models.report import GeneratedReport
 from app.core.config import settings
+from app.schemas.scheduling import SchedulingOptimizationResponse
 
 class NumberedCanvas(canvas.Canvas):
     """Adds professional running headers and 'Page X of Y' footers to every page."""
@@ -57,7 +60,11 @@ class NumberedCanvas(canvas.Canvas):
         self.line(54, 46, 612 - 54, 46)
         self.restoreState()
 
-def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[str] = None) -> GeneratedReport:
+def generate_project_pdf_report(
+    project_id: str, db: Session, notes: Optional[str] = None,
+    scheduling_result: Optional[SchedulingOptimizationResponse] = None,
+    include_load_shifting: bool = True,
+) -> GeneratedReport:
     """
     Builds a comprehensive, publication-grade PDF report using ReportLab.
     """
@@ -75,7 +82,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     os.makedirs(settings.REPORTS_DIR, exist_ok=True)
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     clean_name = "".join(c if c.isalnum() else "_" for c in project.name)[:25]
-    filename = f"RoofShift_Report_{clean_name}_{timestamp}.pdf"
+    filename = f"RoofShift_Report_{clean_name}_{timestamp}_{uuid.uuid4().hex[:10]}.pdf"
     file_path = os.path.join(settings.REPORTS_DIR, filename)
 
     doc = SimpleDocTemplate(
@@ -141,8 +148,8 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     story.append(Paragraph("RoofShift AI", style_subtitle))
     story.append(Paragraph("Solar Investment & Energy Optimization Report", style_title))
     story.append(Paragraph(
-        f"<b>Organization:</b> {project.organization_name} &nbsp;|&nbsp; "
-        f"<b>Location:</b> {project.city} &nbsp;|&nbsp; "
+        f"<b>Organization:</b> {escape(project.organization_name)} &nbsp;|&nbsp; "
+        f"<b>Location:</b> {escape(project.city)} &nbsp;|&nbsp; "
         f"<b>Date:</b> {datetime.utcnow().strftime('%B %d, %Y')}",
         style_body
     ))
@@ -154,7 +161,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     if latest_run:
         exec_text = (
             f"This preliminary solar engineering and financial assessment evaluates <b>{len(buildings)} candidate campus rooftops</b> "
-            f"in <b>{project.city}</b> under an institutional capital expenditure ceiling of <b>INR {latest_run.budget_inr:,.0f}</b>. "
+            f"in <b>{escape(project.city)}</b> under an institutional capital expenditure ceiling of <b>INR {latest_run.budget_inr:,.0f}</b>. "
             f"Using satellite-derived climatological solar irradiance from NASA POWER and rigorous multiple-choice knapsack optimization, "
             f"RoofShift AI recommends deploying <b>{latest_run.total_capacity_kwp:.1f} kWp</b> of rooftop solar PV capacity. "
             f"This optimized portfolio generates an estimated <b>{latest_run.total_annual_generation_kwh:,.0f} kWh</b> of clean electricity annually, "
@@ -163,7 +170,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
         )
     else:
         exec_text = (
-            f"Preliminary rooftop solar assessment for <b>{project.name}</b> across <b>{len(buildings)} buildings</b>. "
+            f"Preliminary rooftop solar assessment for <b>{escape(project.name)}</b> across <b>{len(buildings)} buildings</b>. "
             f"Assessment incorporates location-specific solar irradiance and electricity demand models."
         )
     story.append(Paragraph(exec_text, style_body))
@@ -220,7 +227,12 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     ]
     for b in buildings:
         usable = b.gross_roof_area * (b.usable_roof_percentage / 100.0)
-        max_c = round(usable / settings.DEFAULT_AREA_PER_KWP, 1)
+        if b.solar_analysis and b.solar_analysis.max_pv_capacity_kwp is not None:
+            max_c = b.solar_analysis.max_pv_capacity_kwp
+        elif b.max_eligible_kwp is not None:
+            max_c = b.max_eligible_kwp
+        else:
+            max_c = round(usable / settings.DEFAULT_AREA_PER_KWP, 1)
         b_table_data.append([
             b.name,
             b.category,
@@ -228,7 +240,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
             f"{usable:,.0f} m²",
             f"{b.monthly_consumption_kwh:,.0f} kWh",
             b.shading_category,
-            f"{max_c} kWp"
+            f"{max_c:.1f} kWp"
         ])
 
     t_b = Table(b_table_data, colWidths=[110, 74, 60, 60, 75, 55, 70])
@@ -255,14 +267,31 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
             style_body
         ))
 
+        b_map = {b.id: b for b in buildings}
+        b_name_map = {b.name: b for b in buildings}
         alloc_data = [
             ["Building", "Capacity", "Capex", "Annual Gen", "Annual Savings", "Payback", "Status"]
         ]
         for item in latest_run.allocations_json:
             is_sel = item.get("is_selected", False)
+            b_obj = b_map.get(item.get("building_id")) or b_name_map.get(item.get("building_name"))
+            curr_limit = None
+            if b_obj:
+                if b_obj.solar_analysis and b_obj.solar_analysis.max_pv_capacity_kwp is not None:
+                    curr_limit = b_obj.solar_analysis.max_pv_capacity_kwp
+                elif b_obj.max_eligible_kwp is not None:
+                    curr_limit = b_obj.max_eligible_kwp
+                else:
+                    usable = b_obj.gross_roof_area * (b_obj.usable_roof_percentage / 100.0)
+                    curr_limit = round(usable / settings.DEFAULT_AREA_PER_KWP, 1)
+
+            rec_cap = item.get('recommended_capacity_kwp', 0)
+            if curr_limit is not None and rec_cap > curr_limit:
+                rec_cap = curr_limit
+
             alloc_data.append([
                 item.get("building_name", ""),
-                f"{item.get('recommended_capacity_kwp', 0):.1f} kWp",
+                f"{rec_cap:.1f} kWp",
                 f"₹{item.get('estimated_cost_inr', 0):,.0f}",
                 f"{item.get('expected_annual_generation_kwh', 0):,.0f} kWh",
                 f"₹{item.get('expected_annual_savings_inr', 0):,.0f}",
@@ -344,21 +373,23 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
         story.append(Spacer(1, 10))
 
     # ================= 5. SMART LOAD SCHEDULING =================
-    if activities:
+    if activities and include_load_shifting:
         story.append(Paragraph("5. Smart Electricity Scheduling Recommendations", style_h1))
         story.append(Paragraph(
-            "Shiftable campus utility loads can be rescheduled into solar-rich daylight hours (10:00 AM – 3:00 PM) "
-            "to maximize direct on-site solar consumption.",
+            "Operating windows below use the project's scheduling engine results where available. "
+            "Confirm equipment and staffing constraints before changing operations.",
             style_body
         ))
         act_data = [
-            ["Activity Name", "Power Draw", "Current Timing", "Recommended Timing", "Est. Daily Shift"]
+            ["Activity Name", "Power Draw", "Current Timing", "Recommended Timing", "Solar Absorbed"]
         ]
+        shifts = {item.activity_id: item for item in scheduling_result.recommendations} if scheduling_result else {}
         for a in activities:
-            orig_h = f"{a.preferred_hour:02d}:00"
-            rec_h = "11:00 - 14:00"
-            daily_kwh = f"{a.power_kw * a.duration_hours:.1f} kWh"
-            act_data.append([a.name, f"{a.power_kw:.1f} kW", orig_h, rec_h, daily_kwh])
+            shift = shifts.get(a.id)
+            orig_h = shift.original_window if shift else f"{a.preferred_hour:02d}:00"
+            rec_h = shift.recommended_window if shift else "Not calculated"
+            absorbed = f"{shift.additional_solar_absorbed_kwh:.1f} kWh/session" if shift else "Not calculated"
+            act_data.append([Paragraph(escape(a.name), style_body), f"{a.power_kw:.1f} kW", orig_h, rec_h, absorbed])
 
         t_act = Table(act_data, colWidths=[134, 70, 90, 110, 100])
         t_act.setStyle(TableStyle([
@@ -376,9 +407,33 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
 
     # ================= 6. DATA SOURCES, ASSUMPTIONS & DISCLAIMER =================
     story.append(Paragraph("6. Assumptions, Data Sources & Regulatory Disclaimers", style_h1))
+
+    # Determine irradiance provenance from building solar analyses
+    irradiance_source = "NASA POWER Climatological All-Sky Surface Shortwave Irradiance (GHI)"
+    data_quality_label = None
+    for b in buildings:
+        if b.solar_analysis and b.solar_analysis.irradiance_source:
+            irradiance_source = b.solar_analysis.irradiance_source
+            data_quality_label = getattr(b.solar_analysis, "data_quality_label", None)
+            break
+
+    irrad_text = f"<b>Solar Irradiance:</b> {escape(irradiance_source)}."
+    if data_quality_label:
+        irrad_text += f" ({escape(data_quality_label)})"
+
+    # Tariffs from latest run scenario assumptions if present
+    tariff_val = project.tariff_rate
+    export_tariff_val = project.export_tariff
+    if latest_run and isinstance(latest_run.explanations_json, dict):
+        assumptions = latest_run.explanations_json.get("assumptions", {})
+        if assumptions.get("tariff_rate") is not None:
+            tariff_val = assumptions.get("tariff_rate")
+        if assumptions.get("export_tariff") is not None:
+            export_tariff_val = assumptions.get("export_tariff")
+
     notes_list = [
-        "<b>Solar Irradiance:</b> NASA POWER Climatological All-Sky Surface Shortwave Irradiance (GHI).",
-        f"<b>Economic Tariffs:</b> Grid displacement tariff: INR {project.tariff_rate:.2f}/kWh; Export tariff: INR {project.export_tariff:.2f}/kWh.",
+        irrad_text,
+        f"<b>Economic Tariffs:</b> Grid displacement tariff: INR {tariff_val:.2f}/kWh; Export tariff: INR {export_tariff_val:.2f}/kWh.",
         f"<b>Grid Emission Baseline:</b> Central Electricity Authority (CEA) factor of {project.co2_factor} kg CO2/kWh.",
         "<b>System Performance Ratio:</b> 75% standard derate accounting for inverter efficiency, temperature derating, soiling, and cabling.",
         "<b>Disclaimer:</b> This report represents a preliminary decision-support assessment and screening tool. "
@@ -388,6 +443,11 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     ]
     for n in notes_list:
         story.append(Paragraph(f"• {n}", style_body))
+
+    if notes and notes.strip():
+        story.append(Spacer(1, 12))
+        story.append(Paragraph("Project Review Notes", style_h1))
+        story.append(Paragraph(escape(notes.strip()).replace("\n", "<br/>"), style_body))
 
     doc.build(story, canvasmaker=NumberedCanvas)
 

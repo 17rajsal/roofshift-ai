@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -17,15 +17,22 @@ class ProjectCreate(ProjectBase):
     pass
 
 class ProjectUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=150)
     organization_name: Optional[str] = None
     city: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    budget: Optional[float] = None
-    tariff_rate: Optional[float] = None
-    export_tariff: Optional[float] = None
-    co2_factor: Optional[float] = None
+    latitude: Optional[float] = Field(default=None, ge=-90.0, le=90.0)
+    longitude: Optional[float] = Field(default=None, ge=-180.0, le=180.0)
+    budget: Optional[float] = Field(default=None, ge=0.0)
+    tariff_rate: Optional[float] = Field(default=None, ge=0.0)
+    export_tariff: Optional[float] = Field(default=None, ge=0.0)
+    co2_factor: Optional[float] = Field(default=None, ge=0.0)
+
+    @field_validator("budget", mode="before")
+    @classmethod
+    def check_not_null_if_passed(cls, v):
+        if v is None:
+            raise ValueError("budget cannot be null")
+        return v
 
 class ProjectResponse(ProjectBase):
     id: str

@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 
 class ReportGenerateRequest(BaseModel):
     include_scenarios: bool = True
     include_load_shifting: bool = True
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
 class ReportResponse(BaseModel):
     report_id: str

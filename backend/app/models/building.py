@@ -42,3 +42,4 @@ class Building(Base):
     # Relationships
     project = relationship("Project", back_populates="buildings")
     solar_analysis = relationship("SolarAnalysis", back_populates="building", uselist=False, cascade="all, delete-orphan")
+    inspections = relationship("PanelInspection", back_populates="building", cascade="all, delete-orphan")

@@ -29,25 +29,27 @@ import {
 
 export const SolarMapPage: React.FC = () => {
   const navigate = useNavigate();
-  const { activeProject } = useProject();
+  const { activeProject, refreshProjects } = useProject();
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editorTargetBuilding, setEditorTargetBuilding] = useState<Building | null>(null);
   const [newBuildingCoords, setNewBuildingCoords] = useState<[number, number]>([28.6139, 77.2090]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [newRoofOutline, setNewRoofOutline] = useState<[number, number][] | undefined>();
+  const [newRoofArea, setNewRoofArea] = useState<number | undefined>();
 
   const fetchBuildings = async () => {
     if (!activeProject) return;
     try {
       setLoading(true);
+      setError(null);
       const list = await api.getBuildings(activeProject.id);
       setBuildings(list);
-      if (list.length > 0 && !selectedBuilding) {
-        setSelectedBuilding(list[0]);
-      }
+      setSelectedBuilding(current => list.find(b => b.id === current?.id) || list[0] || null);
     } catch (err) {
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not load buildings.');
     } finally {
       setLoading(false);
     }
@@ -55,15 +57,19 @@ export const SolarMapPage: React.FC = () => {
 
   useEffect(() => {
     fetchBuildings();
-  }, [activeProject]);
+  }, [activeProject?.id]);
 
   const handleMapClick = (lat: number, lng: number) => {
     setNewBuildingCoords([lat, lng]);
+    setNewRoofOutline(undefined);
+    setNewRoofArea(undefined);
     setEditorTargetBuilding(null);
     setIsEditorOpen(true);
   };
 
   const handleAddBuildingClick = () => {
+    setNewRoofOutline(undefined);
+    setNewRoofArea(undefined);
     if (activeProject) {
       setNewBuildingCoords([activeProject.latitude, activeProject.longitude]);
     }
@@ -82,8 +88,9 @@ export const SolarMapPage: React.FC = () => {
       await api.deleteBuilding(b.id);
       if (selectedBuilding?.id === b.id) setSelectedBuilding(null);
       await fetchBuildings();
+      await refreshProjects();
     } catch (err) {
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not remove the building.');
     }
   };
 
@@ -91,18 +98,21 @@ export const SolarMapPage: React.FC = () => {
     try {
       await api.duplicateBuilding(b.id);
       await fetchBuildings();
+      await refreshProjects();
     } catch (err) {
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not duplicate the building.');
     }
   };
 
   const handleSavedBuilding = (saved: Building) => {
     setSelectedBuilding(saved);
     fetchBuildings();
+    void refreshProjects();
   };
 
   return (
     <div className="space-y-6">
+      {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#E5EAE7] shadow-xs">
         <div>
@@ -141,6 +151,11 @@ export const SolarMapPage: React.FC = () => {
             selectedBuildingId={selectedBuilding?.id}
             onSelectBuilding={(b) => setSelectedBuilding(b)}
             onAddBuildingAtCoord={handleMapClick}
+            onAddRoofOutline={(points, area) => {
+              handleMapClick(points.reduce((sum, point) => sum + point[0], 0) / points.length, points.reduce((sum, point) => sum + point[1], 0) / points.length);
+              setNewRoofOutline(points);
+              setNewRoofArea(area);
+            }}
             defaultCenter={activeProject ? [activeProject.latitude, activeProject.longitude] : [28.6139, 77.2090]}
           />
         </div>
@@ -323,6 +338,8 @@ export const SolarMapPage: React.FC = () => {
           building={editorTargetBuilding}
           projectId={activeProject.id}
           defaultCoordinates={newBuildingCoords}
+          defaultRoofPolygon={newRoofOutline}
+          defaultRoofArea={newRoofArea}
           onSaved={handleSavedBuilding}
         />
       )}

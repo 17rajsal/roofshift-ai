@@ -51,7 +51,7 @@ async def run_project_optimization(
     scenario_lower = scenario.lower()
 
     # Scenario multiplier adjustments
-    pr_multiplier = request.performance_ratio_multiplier or 1.0
+    pr_multiplier = request.performance_ratio_multiplier if request.performance_ratio_multiplier is not None else 1.0
     cost_override = request.override_cost_per_kwp
     tariff_override = request.override_tariff_rate
     export_override = request.override_export_tariff
@@ -78,7 +78,7 @@ async def run_project_optimization(
     for b in buildings:
         usable_area = b.gross_roof_area * (b.usable_roof_percentage / 100.0)
         max_cap = round(usable_area / settings.DEFAULT_AREA_PER_KWP, 2)
-        if b.max_eligible_kwp and b.max_eligible_kwp > 0:
+        if b.max_eligible_kwp is not None and b.max_eligible_kwp >= 0:
             max_cap = min(max_cap, b.max_eligible_kwp)
 
         # Solar irradiance
@@ -87,9 +87,9 @@ async def run_project_optimization(
         shading_loss = get_effective_shading_loss(b.shading_category, b.custom_shading_loss)
         shading_factor = max(0.0, 1.0 - (shading_loss / 100.0))
 
-        cost_per_kwp = cost_override if cost_override else (b.cost_per_kwp * cost_multiplier)
-        tariff = tariff_override if tariff_override else (b.tariff_inr if b.tariff_inr else project.tariff_rate)
-        export_tariff = export_override if export_override else project.export_tariff
+        cost_per_kwp = cost_override if cost_override is not None else (b.cost_per_kwp * cost_multiplier)
+        tariff = tariff_override if tariff_override is not None else (b.tariff_inr if b.tariff_inr else project.tariff_rate)
+        export_tariff = export_override if export_override is not None else project.export_tariff
         pr = settings.DEFAULT_PERFORMANCE_RATIO * pr_multiplier
 
         options = []
@@ -104,22 +104,30 @@ async def run_project_optimization(
             "savings_inr": 0.0,
         })
 
-        curr_c = step_kwp
-        while curr_c <= (max_cap + 0.01):
-            eval_res = evaluate_capacity_option(
-                capacity_kwp=curr_c,
-                building=b,
-                project=project,
-                monthly_ghi=monthly_ghi_dict,
-                shading_factor=shading_factor,
-                pr=pr,
-                tariff=tariff,
-                export_tariff=export_tariff,
-                cost_per_kwp=cost_per_kwp
-            )
-            eval_res["building_id"] = b.id
-            options.append(eval_res)
-            curr_c += step_kwp
+        if max_cap > 0:
+            candidate_caps = []
+            c = step_kwp
+            while c < max_cap:
+                candidate_caps.append(round(c, 2))
+                c = round(c + step_kwp, 2)
+            if not candidate_caps or candidate_caps[-1] < max_cap:
+                candidate_caps.append(round(max_cap, 2))
+
+            for eval_c in candidate_caps:
+                if eval_c <= max_cap:
+                    eval_res = evaluate_capacity_option(
+                        capacity_kwp=eval_c,
+                        building=b,
+                        project=project,
+                        monthly_ghi=monthly_ghi_dict,
+                        shading_factor=shading_factor,
+                        pr=pr,
+                        tariff=tariff,
+                        export_tariff=export_tariff,
+                        cost_per_kwp=cost_per_kwp
+                    )
+                    eval_res["building_id"] = b.id
+                    options.append(eval_res)
 
         building_options_list.append(options)
         building_options_map[b.id] = options
@@ -157,11 +165,18 @@ async def run_project_optimization(
     total_onsite = sum(c["onsite_kwh"] for c in chosen_solution)
     total_export = sum(c["export_kwh"] for c in chosen_solution)
     overall_payback = round(total_allocated / total_savings, 2) if total_savings > 10.0 else None
-    co2_factor = project.co2_factor if project.co2_factor > 0 else 0.716
+    co2_factor = project.co2_factor if project.co2_factor is not None else 0.716
     avoided_co2 = round(total_generation * co2_factor, 1)
 
     allocations_items: List[BuildingAllocationItem] = []
-    explanations_dict = {}
+    explanations_dict = {
+        "assumptions": {
+            "tariff_rate": tariff_override if tariff_override is not None else project.tariff_rate,
+            "export_tariff": export_override if export_override is not None else project.export_tariff,
+            "pr_multiplier": pr_multiplier,
+            "cost_multiplier": cost_multiplier
+        }
+    }
 
     for b in buildings:
         meta = building_meta[b.id]

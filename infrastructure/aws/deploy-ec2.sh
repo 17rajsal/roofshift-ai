@@ -1,60 +1,37 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# RoofShift AI — AWS EC2 One-Click Deployment Script
-# Team DRX — Environmental Hacks 2026 (WeMakeDevs x AWS)
-# Supported OS: Amazon Linux 2023, Ubuntu 22.04 LTS, Ubuntu 24.04 LTS
-# ==============================================================================
+# Run from a reviewed checkout on Amazon Linux 2023 or Ubuntu 22.04/24.04.
+set -euo pipefail
 
-set -e
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
+if [ ! -f "$PROJECT_DIR/docker-compose.yml" ]; then
+    echo "Cannot find docker-compose.yml in this checkout." >&2
+    exit 1
+fi
 
-echo "=========================================================="
-echo " Starting RoofShift AI Deployment on AWS EC2"
-echo "=========================================================="
+if ! command -v docker >/dev/null 2>&1; then
+    if [ -f /etc/debian_version ]; then
+        sudo apt-get update
+        sudo apt-get install -y docker.io git curl
+    elif [ -f /etc/system-release ]; then
+        sudo dnf install -y docker git curl
+    else
+        echo "Install Docker and the Docker Compose plugin before running this script." >&2
+        exit 1
+    fi
+fi
+sudo systemctl enable --now docker
 
-# 1. Update system packages
-if [ -f /etc/debian_version ]; then
-    echo "--> Detected Debian/Ubuntu system"
-    sudo apt-get update -y
-    sudo apt-get install -y docker.io docker-compose git curl
-elif [ -f /etc/system-release ]; then
-    echo "--> Detected Amazon Linux / RHEL system"
-    sudo dnf update -y
-    sudo dnf install -y docker git
-    # Install docker compose plugin
+if ! sudo docker compose version >/dev/null 2>&1; then
     sudo mkdir -p /usr/local/lib/docker/cli-plugins
-    sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose
+    sudo curl -fSL --retry 3 "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
     sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 fi
 
-# 2. Start and enable Docker service
-sudo systemctl enable --now docker
-sudo usermod -aG docker $USER || true
-
-# 3. Create deployment directory
-DEPLOY_DIR="/opt/roofshift-ai"
-sudo mkdir -p $DEPLOY_DIR
-sudo chown -R $USER:$USER $DEPLOY_DIR
-
-# 4. Copy or clone project files
-echo "--> Setting up application files in $DEPLOY_DIR"
-cd $DEPLOY_DIR
-
-# 5. Build and launch containers
-echo "--> Building and running RoofShift AI containers with Docker Compose..."
-docker compose up -d --build
-
-# 6. Verify health
-echo "--> Verifying application health..."
-sleep 10
-curl -f http://localhost:8000/api/v1/health || {
-    echo "Backend health check failed. Viewing container logs..."
-    docker compose logs backend
-    exit 1
-}
-
-echo "=========================================================="
-echo " RoofShift AI is successfully running on AWS!"
-echo " Frontend Web: http://$(curl -s http://checkip.amazonaws.com)"
-echo " API Docs:     http://$(curl -s http://checkip.amazonaws.com):8000/docs"
-echo " Health Check: http://$(curl -s http://checkip.amazonaws.com):8000/api/v1/health"
-echo "=========================================================="
+cd "$PROJECT_DIR"
+sudo docker compose config --quiet
+sudo docker compose up -d --build --wait --wait-timeout 300
+curl -fsS --retry 10 --retry-delay 5 --retry-connrefused http://localhost/api/v1/health
+echo
+echo "RoofShift AI is running through the frontend proxy on port 80."
+echo "Check service logs with: sudo docker compose logs --tail 100"

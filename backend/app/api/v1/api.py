@@ -10,7 +10,10 @@ from app.api.v1 import (
     recommendations,
     reports,
     geocoding,
-    system
+    system,
+    inspections,
+    monitoring,
+    maintenance
 )
 
 api_router = APIRouter()
@@ -26,3 +29,6 @@ api_router.include_router(scheduling.router, tags=["Smart Electricity Scheduling
 api_router.include_router(recommendations.router, tags=["Smart Recommendations"])
 api_router.include_router(reports.router, tags=["Reports"])
 api_router.include_router(geocoding.router, tags=["Geocoding"])
+api_router.include_router(inspections.router, tags=["Panel Inspection & Diagnostics"])
+api_router.include_router(monitoring.router, tags=["Inverter Telemetry & Degradation"])
+api_router.include_router(maintenance.router, tags=["Maintenance Cases"])
