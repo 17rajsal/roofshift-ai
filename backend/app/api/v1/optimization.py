@@ -56,7 +56,7 @@ def list_optimization_runs(project_id: str, db: Session = Depends(get_db)):
                 "savings_lift_pct": r.savings_lift_pct,
                 "methodology_note": "Evaluated against first-fit greedy allocation under identical constraints."
             },
-            solver_method="Multiple-Choice Knapsack Dynamic Programming (Exact Global Optimum)",
+            solver_method="Recorded optimization; recompute to apply the current exact discrete solver",
             created_at=r.created_at
         ))
     return results

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
 class HourlyPoint(BaseModel):
@@ -50,5 +50,6 @@ class EnergyInsightsResponse(BaseModel):
     hourly_profile: List[HourlyPoint] # Typical day 24-hr breakdown
     monthly_trends: List[MonthlyTrendPoint] # 12 months
     building_comparisons: List[BuildingEnergyMetric]
+    monthly_hourly_surplus_kw: List[List[float]] = Field(default_factory=list, description="12 monthly representative days, each 24 hourly mean exported-kW bins; inputs to conserved scheduling")
     
     data_origin_notice: str

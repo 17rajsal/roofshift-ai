@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional, List, Any
 from datetime import datetime
 
 class BuildingBase(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
     name: str = Field(..., min_length=1, max_length=150)
     category: str = Field(default="Academic")
     address: Optional[str] = None
@@ -10,46 +11,56 @@ class BuildingBase(BaseModel):
     longitude: float = Field(..., ge=-180.0, le=180.0)
     
     # Roof
-    gross_roof_area: float = Field(..., gt=0.0, description="Gross roof area in m^2")
-    usable_roof_percentage: float = Field(default=70.0, ge=5.0, le=100.0)
+    gross_roof_area: float = Field(..., gt=0.0, le=10_000_000, description="Gross roof area in m^2")
+    usable_roof_percentage: float = Field(default=70.0, ge=0.0, le=100.0)
     shading_category: str = Field(default="Low") # Low, Medium, High, Custom
-    custom_shading_loss: Optional[float] = Field(default=5.0, ge=0.0, le=90.0)
+    custom_shading_loss: Optional[float] = Field(default=5.0, ge=0.0, le=100.0)
     roof_polygon: Optional[List[Any]] = None
     obstacles_notes: Optional[str] = None
     
     # Demand
-    monthly_consumption_kwh: float = Field(..., gt=0.0, description="Monthly electricity consumption in kWh")
-    tariff_inr: Optional[float] = None
-    daytime_consumption_pct: float = Field(default=65.0, ge=10.0, le=100.0)
+    monthly_consumption_kwh: float = Field(..., gt=0.0, le=1_000_000_000_000, description="Monthly electricity consumption in kWh")
+    tariff_inr: Optional[float] = Field(default=None, ge=0.0, le=1_000_000)
+    daytime_consumption_pct: float = Field(default=65.0, ge=0.0, le=100.0)
     demand_origin: str = Field(default="Estimated profile")
     
     # Financial parameters
-    cost_per_kwp: float = Field(default=50000.0, gt=0.0)
-    fixed_cost: float = Field(default=0.0, ge=0.0)
-    max_eligible_kwp: Optional[float] = None
+    cost_per_kwp: float = Field(default=50000.0, gt=0.0, le=1_000_000_000)
+    fixed_cost: float = Field(default=0.0, ge=0.0, le=1_000_000_000_000_000)
+    max_eligible_kwp: Optional[float] = Field(default=None, ge=0.0, le=1_000_000)
 
 class BuildingCreate(BuildingBase):
     pass
 
 class BuildingUpdate(BaseModel):
-    name: Optional[str] = None
+    model_config = ConfigDict(allow_inf_nan=False)
+    name: Optional[str] = Field(default=None, min_length=1, max_length=150)
     category: Optional[str] = None
     address: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
-    gross_roof_area: Optional[float] = None
-    usable_roof_percentage: Optional[float] = None
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+    gross_roof_area: Optional[float] = Field(default=None, gt=0, le=10_000_000)
+    usable_roof_percentage: Optional[float] = Field(default=None, ge=0, le=100)
     shading_category: Optional[str] = None
-    custom_shading_loss: Optional[float] = None
+    custom_shading_loss: Optional[float] = Field(default=None, ge=0, le=100)
     roof_polygon: Optional[List[Any]] = None
     obstacles_notes: Optional[str] = None
-    monthly_consumption_kwh: Optional[float] = None
-    tariff_inr: Optional[float] = None
-    daytime_consumption_pct: Optional[float] = None
+    monthly_consumption_kwh: Optional[float] = Field(default=None, gt=0, le=1_000_000_000_000)
+    tariff_inr: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    daytime_consumption_pct: Optional[float] = Field(default=None, ge=0, le=100)
     demand_origin: Optional[str] = None
-    cost_per_kwp: Optional[float] = None
-    fixed_cost: Optional[float] = None
-    max_eligible_kwp: Optional[float] = None
+    cost_per_kwp: Optional[float] = Field(default=None, gt=0, le=1_000_000_000)
+    fixed_cost: Optional[float] = Field(default=None, ge=0, le=1_000_000_000_000_000)
+    max_eligible_kwp: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+
+    @field_validator('name', 'category', 'latitude', 'longitude', 'gross_roof_area',
+                     'usable_roof_percentage', 'shading_category', 'monthly_consumption_kwh',
+                     'daytime_consumption_pct', 'demand_origin', 'cost_per_kwp', 'fixed_cost', mode='before')
+    @classmethod
+    def required_if_supplied(cls, value):
+        if value is None:
+            raise ValueError('Required field cannot be null')
+        return value
 
 class SolarAnalysisSummary(BaseModel):
     id: str
