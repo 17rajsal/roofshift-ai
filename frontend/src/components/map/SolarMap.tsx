@@ -1,11 +1,46 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, CircleMarker, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Tooltip,
+  Polygon,
+  Polyline,
+  CircleMarker,
+  Circle,
+  ZoomControl,
+  useMap,
+  useMapEvents,
+} from 'react-leaflet';
 import L from 'leaflet';
 import { Building, GeocodeResult } from '../../types/models';
 import { api } from '../../services/api';
 import { formatArea, formatEnergy, formatINR, formatPower } from '../../utils/formatters';
-import { Search, MapPin, Plus, Navigation, Eye, AlertCircle, SunMedium } from 'lucide-react';
+import {
+  Search,
+  MapPin,
+  Plus,
+  Flame,
+  Layers,
+  Sparkles,
+  Maximize2,
+  Filter,
+  CheckCircle2,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Sun,
+  Zap,
+} from 'lucide-react';
 import { isSimpleRoofOutline, readRoofOutline, roofAreaSquareMeters, type RoofPoint } from '../../utils/roofGeometry';
+import {
+  computeBuildingSolarMetrics,
+  getBuildingMetricColor,
+  MetricVisualizationMode,
+  SolarSuitabilityMetrics,
+} from '../../utils/solarSuitability';
+import { SolarMapLegend } from './SolarMapLegend';
 
 // Fix Leaflet marker icons in Vite bundling
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -15,43 +50,76 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Custom colored markers based on shading
-const createCustomMarker = (color: string) => {
+// Create custom numeric score badge marker
+const createScoreMarker = (
+  score: number,
+  colorHex: string,
+  isSelected: boolean,
+  isTopCandidate: boolean
+) => {
   return L.divIcon({
-    className: 'custom-solar-marker',
+    className: 'custom-solar-score-badge',
     html: `
       <div style="
-        background-color: ${color};
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 13px;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: ${colorHex};
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 11px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        border: ${isSelected ? '3px solid #0B1739' : '2px solid #ffffff'};
+        box-shadow: ${
+          isSelected
+            ? '0 0 0 4px rgba(255, 107, 22, 0.7), 0 8px 18px rgba(0,0,0,0.45)'
+            : '0 4px 10px rgba(0,0,0,0.3)'
+        };
+        cursor: pointer;
+        transition: transform 0.15s ease;
       ">
-        ☀️
+        ${score}
+        ${
+          isTopCandidate
+            ? `<span style="position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; background: #FF6B16; border-radius: 50%; border: 1.5px solid white;"></span>`
+            : ''
+        }
       </div>
     `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -18],
   });
 };
 
-const markerLowShade = createCustomMarker('#10B981'); // Emerald
-const markerMedShade = createCustomMarker('#F5B942'); // Amber
-const markerHighShade = createCustomMarker('#EF4444'); // Red
-
-function MapController({ center, zoom }: { center: [number, number]; zoom: number }) {
+function MapViewController({
+  center,
+  zoom,
+  fitAllTrigger,
+  buildings,
+}: {
+  center: [number, number];
+  zoom: number;
+  fitAllTrigger: number;
+  buildings: Building[];
+}) {
   const map = useMap();
+
   useEffect(() => {
     map.setView(center, zoom, { animate: false });
   }, [center, zoom, map]);
+
+  useEffect(() => {
+    if (fitAllTrigger > 0 && buildings.length > 0) {
+      const bounds = L.latLngBounds(buildings.map((b) => [b.latitude, b.longitude]));
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 18 });
+    }
+  }, [fitAllTrigger, buildings, map]);
+
   return null;
 }
 
@@ -64,13 +132,27 @@ function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number
   return null;
 }
 
-interface SolarMapProps {
+export interface SolarMapProps {
   buildings: Building[];
   selectedBuildingId?: string | null;
   onSelectBuilding: (building: Building) => void;
   onAddBuildingAtCoord: (lat: number, lng: number) => void;
   onAddRoofOutline: (points: RoofPoint[], area: number) => void;
   defaultCenter?: [number, number];
+  metricMode?: MetricVisualizationMode;
+  onMetricModeChange?: (mode: MetricVisualizationMode) => void;
+  categoryFilter?: string;
+  onCategoryFilterChange?: (cat: string) => void;
+  tierFilter?: string;
+  onTierFilterChange?: (tier: string) => void;
+  tileLayerMode?: 'satellite' | 'street' | 'light';
+  onTileLayerModeChange?: (tile: 'satellite' | 'street' | 'light') => void;
+  showHeatLayer?: boolean;
+  onToggleHeatLayer?: (show: boolean) => void;
+  showPolygons?: boolean;
+  onTogglePolygons?: (show: boolean) => void;
+  showBadges?: boolean;
+  onToggleBadges?: (show: boolean) => void;
 }
 
 export const SolarMap: React.FC<SolarMapProps> = ({
@@ -79,36 +161,94 @@ export const SolarMap: React.FC<SolarMapProps> = ({
   onSelectBuilding,
   onAddBuildingAtCoord,
   onAddRoofOutline,
-  defaultCenter = [28.6139, 77.2090], // Delhi default
+  defaultCenter = [28.6139, 77.209],
+  metricMode = 'suitability',
+  onMetricModeChange,
+  categoryFilter = 'All',
+  onCategoryFilterChange,
+  tierFilter = 'All',
+  onTierFilterChange,
+  tileLayerMode = 'street',
+  onTileLayerModeChange,
+  showHeatLayer = true,
+  onToggleHeatLayer,
+  showPolygons = true,
+  onTogglePolygons,
+  showBadges = true,
+  onToggleBadges,
 }) => {
   const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter);
   const [mapZoom, setMapZoom] = useState<number>(16);
+  const [fitAllTrigger, setFitAllTrigger] = useState(0);
+
+  // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showAddHint, setShowAddHint] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  // Interactive Rooftop Drawing State
   const [drawing, setDrawing] = useState(false);
   const [outline, setOutline] = useState<RoofPoint[]>([]);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [showAddHint, setShowAddHint] = useState(false);
   const [drawError, setDrawError] = useState<string | null>(null);
 
-  const finishOutline = () => {
-    if (!isSimpleRoofOutline(outline)) {
-      setDrawError('Draw at least three distinct corners without crossing edges. The roof must cover at least 1 m².');
-      return;
-    }
-    onAddRoofOutline(outline, Math.round(roofAreaSquareMeters(outline) * 100) / 100);
-    setDrawing(false);
-    setOutline([]);
-    setDrawError(null);
-  };
+  // Internal layer controls fallback if not controlled
+  const [localMetricMode, setLocalMetricMode] = useState<MetricVisualizationMode>(metricMode);
+  const activeMetricMode = onMetricModeChange ? metricMode : localMetricMode;
 
-  useEffect(() => {
-    if (buildings.length > 0 && !selectedBuildingId) {
-      setMapCenter([buildings[0].latitude, buildings[0].longitude]);
-    }
-  }, [buildings]);
+  const [localTileMode, setLocalTileMode] = useState<'satellite' | 'street' | 'light'>(tileLayerMode);
+  const activeTileMode = onTileLayerModeChange ? tileLayerMode : localTileMode;
 
+  const [localShowHeat, setLocalShowHeat] = useState<boolean>(showHeatLayer);
+  const activeShowHeat = onToggleHeatLayer ? showHeatLayer : localShowHeat;
+
+  const [localShowPolygons, setLocalShowPolygons] = useState<boolean>(showPolygons);
+  const activeShowPolygons = onTogglePolygons ? showPolygons : localShowPolygons;
+
+  const [localShowBadges, setLocalShowBadges] = useState<boolean>(showBadges);
+  const activeShowBadges = onToggleBadges ? showBadges : localShowBadges;
+
+  // Precompute metrics for all buildings
+  const buildingsWithMetrics = useMemo(() => {
+    return buildings.map((b) => {
+      const metrics = computeBuildingSolarMetrics(b);
+      const metricColor = getBuildingMetricColor(b, activeMetricMode, metrics);
+      return {
+        building: b,
+        metrics,
+        metricColor,
+      };
+    });
+  }, [buildings, activeMetricMode]);
+
+  // Tier counts for legend
+  const tierCounts = useMemo(() => {
+    const counts = { excellent: 0, good: 0, moderate: 0, low: 0, poor: 0 };
+    buildingsWithMetrics.forEach(({ metrics }) => {
+      if (metrics.tier === 'Excellent') counts.excellent++;
+      else if (metrics.tier === 'Good') counts.good++;
+      else if (metrics.tier === 'Moderate') counts.moderate++;
+      else if (metrics.tier === 'Low') counts.low++;
+      else counts.poor++;
+    });
+    return counts;
+  }, [buildingsWithMetrics]);
+
+  // Filtered buildings
+  const filteredBuildingsWithMetrics = useMemo(() => {
+    return buildingsWithMetrics.filter(({ building, metrics }) => {
+      if (categoryFilter !== 'All' && building.category !== categoryFilter) {
+        return false;
+      }
+      if (tierFilter !== 'All' && metrics.tier !== tierFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [buildingsWithMetrics, categoryFilter, tierFilter]);
+
+  // Center on selection
   useEffect(() => {
     if (selectedBuildingId) {
       const b = buildings.find((x) => x.id === selectedBuildingId);
@@ -141,40 +281,67 @@ export const SolarMap: React.FC<SolarMapProps> = ({
     }
   };
 
-  const getMarkerIcon = (b: Building) => {
-    const shade = (b.shading_category || '').toLowerCase();
-    if (shade === 'high') return markerHighShade;
-    if (shade === 'medium') return markerMedShade;
-    return markerLowShade;
+  const finishOutline = () => {
+    if (!isSimpleRoofOutline(outline)) {
+      setDrawError('Draw at least three distinct corners without crossing edges. The roof must cover at least 1 m².');
+      return;
+    }
+    onAddRoofOutline(outline, Math.round(roofAreaSquareMeters(outline) * 100) / 100);
+    setDrawing(false);
+    setOutline([]);
+    setDrawError(null);
   };
 
+  // Tile layer configuration
+  const tileConfig = {
+    satellite: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attribution:
+        'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      maxZoom: 19,
+    },
+    street: {
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    },
+    light: {
+      url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> Positron',
+      maxZoom: 20,
+    },
+  }[activeTileMode];
+
   return (
-    <div className="relative isolate z-0 w-full h-[600px] rounded-xl overflow-hidden border border-[#E5EAE7] shadow-sm bg-slate-100 flex flex-col">
-      {/* Top Map Control Bar */}
-      <div className="absolute top-4 left-4 right-4 z-[400] flex flex-wrap items-center justify-between gap-3 pointer-events-none">
-        {/* Location Search Bar */}
-        <form onSubmit={handleSearch} className="pointer-events-auto relative w-full sm:w-80">
-          <div className="flex items-center bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-slate-200 overflow-hidden">
-            <Search className="w-4 h-4 text-slate-400 ml-3" />
+    <div className="relative isolate z-0 w-full h-[620px] rounded-xl overflow-hidden border border-slate-200 shadow-xs bg-slate-100 flex flex-col">
+      {/* Top Controls Overlay */}
+      <div className="absolute top-3 left-3 right-3 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+        {/* Search Input */}
+        <form onSubmit={handleSearch} className="pointer-events-auto relative w-full sm:w-72">
+          <div className="flex items-center bg-white/95 backdrop-blur-md rounded-lg shadow-md border border-slate-200/90 overflow-hidden">
+            <Search className="w-3.5 h-3.5 text-slate-400 ml-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search Indian city, campus, or area..."
+              placeholder="Search city, campus or landmark..."
               aria-label="Search map location"
-              className="w-full px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
+              className="w-full px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
             />
             <button
               type="submit"
               disabled={isSearching}
-              className="bg-[#123C32] hover:bg-[#0B251F] text-white px-3 py-2 text-xs font-semibold transition-colors"
+              className="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1.5 text-xs font-semibold transition-colors"
             >
               {isSearching ? '...' : 'Go'}
             </button>
           </div>
-          {searchError && <p role="alert" className="mt-1 rounded-lg bg-white p-2 text-xs text-red-700 shadow">{searchError}</p>}
+          {searchError && (
+            <p role="alert" className="mt-1 rounded-md bg-white p-1.5 text-[11px] text-red-700 shadow border border-red-200">
+              {searchError}
+            </p>
+          )}
 
-          {/* Search suggestions dropdown */}
           {searchResults.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden z-50">
               {searchResults.map((r, idx) => (
@@ -186,7 +353,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
                     setMapZoom(16);
                     setSearchResults([]);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 border-b border-slate-100 last:border-b-0 flex items-center justify-between"
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 border-b border-slate-100 last:border-b-0 flex items-center justify-between"
                 >
                   <span className="truncate text-slate-700">{r.display_name}</span>
                   <span className="text-[10px] text-emerald-600 font-semibold">{r.source}</span>
@@ -196,51 +363,174 @@ export const SolarMap: React.FC<SolarMapProps> = ({
           )}
         </form>
 
-        {/* Legend and Add Building Control */}
-        <div className="pointer-events-auto flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-lg border border-slate-200 text-xs">
-          <div className="hidden xl:flex items-center gap-3 pr-2 border-r border-slate-200">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span className="text-[11px] text-slate-600">Low Shade (&lt;8%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#F5B942]"></span>
-              <span className="text-[11px] text-slate-600">Med Shade (15%)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-              <span className="text-[11px] text-slate-600">High Shade (30%)</span>
-            </div>
+        {/* Quick Toolbar: Drawing, Adding, Layer Toggles */}
+        <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-lg shadow-md border border-slate-200/90 text-xs">
+          {/* Base Tile Layer Switcher */}
+          <div className="flex items-center bg-slate-100 rounded-md p-0.5 border border-slate-200">
+            <button
+              type="button"
+              onClick={() => {
+                setLocalTileMode('street');
+                onTileLayerModeChange?.('street');
+              }}
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-colors ${
+                activeTileMode === 'street' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Street
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setLocalTileMode('satellite');
+                onTileLayerModeChange?.('satellite');
+              }}
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-colors ${
+                activeTileMode === 'satellite' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Satellite HD
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setLocalTileMode('light');
+                onTileLayerModeChange?.('light');
+              }}
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-colors ${
+                activeTileMode === 'light' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Light
+            </button>
           </div>
+
+          <div className="h-4 w-px bg-slate-200" />
+
+          {/* Toggle Heatmap Overlay */}
           <button
-            onClick={() => { setShowAddHint(!showAddHint); setDrawing(false); setOutline([]); setDrawError(null); }}
+            type="button"
+            onClick={() => {
+              const next = !activeShowHeat;
+              setLocalShowHeat(next);
+              onToggleHeatLayer?.(next);
+            }}
+            title="Toggle Solar Heat Intensity Glow"
+            className={`px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1 border transition-colors ${
+              activeShowHeat
+                ? 'bg-amber-50 text-amber-900 border-amber-300 font-semibold'
+                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+            }`}
+          >
+            <Flame className={`w-3 h-3 ${activeShowHeat ? 'text-amber-500' : 'text-slate-400'}`} />
+            <span>Heat Glow</span>
+          </button>
+
+          {/* Fit all buildings */}
+          <button
+            type="button"
+            onClick={() => setFitAllTrigger((prev) => prev + 1)}
+            title="Fit view to all campus rooftops"
+            className="p-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded border border-slate-200 transition-colors"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="h-4 w-px bg-slate-200" />
+
+          {/* Add & Draw Buttons */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddHint(!showAddHint);
+              setDrawing(false);
+              setOutline([]);
+              setDrawError(null);
+            }}
             aria-pressed={showAddHint}
-            className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 transition-colors ${
+            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
               showAddHint ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
             }`}
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Click to Add Roof</span>
+            <Plus className="w-3 h-3" />
+            <span>Click Pin</span>
           </button>
-          <button type="button" aria-pressed={drawing} onClick={() => { setDrawing(!drawing); setShowAddHint(false); setOutline([]); setDrawError(null); }} className={`rounded px-2.5 py-1 font-semibold ${drawing ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>Draw roof boundary</button>
+
+          <button
+            type="button"
+            aria-pressed={drawing}
+            onClick={() => {
+              setDrawing(!drawing);
+              setShowAddHint(false);
+              setOutline([]);
+              setDrawError(null);
+            }}
+            className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+              drawing ? 'bg-amber-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'
+            }`}
+          >
+            Draw Roof Boundary
+          </button>
         </div>
       </div>
 
-      {drawing && <div className="absolute bottom-4 left-4 right-16 z-[400] rounded-xl border border-emerald-200 bg-white p-3 shadow-lg text-xs">
-        <p className="font-semibold text-[#123C32]">Click each rooftop corner in order. {outline.length} corners · {formatArea(roofAreaSquareMeters(outline))}</p>
-        <p className="mt-1 text-slate-500">Map measurements are approximate. Confirm the area before saving.</p>
-        {drawError && <p role="alert" className="mt-1 text-red-700">{drawError}</p>}
-        <div className="mt-2 flex gap-2"><button onClick={finishOutline} disabled={outline.length < 3} className="rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white disabled:opacity-50">Use this roof</button><button disabled={!outline.length} onClick={() => { setOutline(points => points.slice(0, -1)); setDrawError(null); }} className="rounded-lg bg-slate-100 px-3 py-2 disabled:opacity-50">Undo corner</button><button onClick={() => { setDrawing(false); setOutline([]); setDrawError(null); }} className="rounded-lg bg-slate-100 px-3 py-2">Cancel</button></div>
-      </div>}
+      {/* Floating Bottom Left Legend */}
+      <div className="absolute bottom-4 left-4 z-[400] pointer-events-auto">
+        <SolarMapLegend mode={activeMetricMode} tierCounts={tierCounts} />
+      </div>
 
+      {/* Active Roof Boundary Drawing Instruction Box */}
+      {drawing && (
+        <div className="absolute bottom-4 left-4 right-16 sm:left-auto sm:right-16 z-[400] rounded-xl border border-amber-300 bg-white/95 backdrop-blur-md p-3.5 shadow-xl text-xs max-w-md">
+          <p className="font-bold text-slate-900 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>Click each rooftop corner in sequence</span>
+          </p>
+          <p className="mt-1 text-slate-600 text-[11px]">
+            {outline.length} corners placed · Est. Area: <strong className="text-slate-900">{formatArea(roofAreaSquareMeters(outline))}</strong>
+          </p>
+          {drawError && <p role="alert" className="mt-1 text-red-700 text-[11px] font-medium">{drawError}</p>}
+          <div className="mt-2.5 flex items-center gap-2">
+            <button
+              onClick={finishOutline}
+              disabled={outline.length < 3}
+              className="rounded-md bg-amber-600 hover:bg-amber-700 px-3 py-1.5 font-semibold text-white text-xs disabled:opacity-50 transition-colors shadow-2xs"
+            >
+              Use this roof
+            </button>
+            <button
+              disabled={!outline.length}
+              onClick={() => {
+                setOutline((points) => points.slice(0, -1));
+                setDrawError(null);
+              }}
+              className="rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 text-xs disabled:opacity-50"
+            >
+              Undo corner
+            </button>
+            <button
+              onClick={() => {
+                setDrawing(false);
+                setOutline([]);
+                setDrawError(null);
+              }}
+              className="rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1.5 text-xs"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Prompt Banner for Map Pin placement */}
       {showAddHint && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] bg-[#123C32] text-white px-4 py-2 rounded-full shadow-xl text-xs font-medium flex items-center gap-2 border border-emerald-500/40 animate-bounce">
-          <MapPin className="w-4 h-4 text-[#F5B942]" />
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[400] bg-slate-900 text-white px-4 py-2 rounded-full shadow-2xl text-xs font-medium flex items-center gap-2 border border-slate-700 animate-bounce">
+          <MapPin className="w-4 h-4 text-amber-400" />
           <span>Click anywhere on the map to place a candidate rooftop!</span>
         </div>
       )}
 
-      {/* Interactive Leaflet Map */}
+      {/* Leaflet Map Canvas */}
       <MapContainer
         zoomAnimation={false}
         center={mapCenter}
@@ -250,88 +540,199 @@ export const SolarMap: React.FC<SolarMapProps> = ({
         className="w-full h-full"
       >
         <ZoomControl position="bottomright" />
-        <MapController center={mapCenter} zoom={mapZoom} />
-        <MapClickHandler onMapClick={(lat, lng) => {
-          if (drawing) { setOutline(points => [...points, [lat, lng]]); setDrawError(null); }
-          else if (showAddHint) { setShowAddHint(false); onAddBuildingAtCoord(lat, lng); }
-        }} />
-        {outline.length >= 3 ? <Polygon positions={outline} pathOptions={{ color: '#10B981' }} interactive={false} /> : outline.length >= 2 ? <Polyline positions={outline} pathOptions={{ color: '#10B981' }} interactive={false} /> : null}
-        {outline.map((point, index) => <CircleMarker key={index} center={point} radius={4} pathOptions={{ color: '#123C32', fillOpacity: 1 }} interactive={false} />)}
-        {buildings.map(building => {
-          const points = readRoofOutline(building.roof_polygon);
-          return points ? <Polygon key={`roof-${building.id}`} positions={points} pathOptions={{ color: building.id === selectedBuildingId ? '#123C32' : '#10B981', weight: building.id === selectedBuildingId ? 3 : 1, fillOpacity: 0.2 }} eventHandlers={{ click: () => { if (!drawing && !showAddHint) onSelectBuilding(building); } }} bubblingMouseEvents={false} /> : null;
-        })}
+        <MapViewController center={mapCenter} zoom={mapZoom} fitAllTrigger={fitAllTrigger} buildings={buildings} />
 
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          maxZoom={19}
+        <MapClickHandler
+          onMapClick={(lat, lng) => {
+            if (drawing) {
+              setOutline((points) => [...points, [lat, lng]]);
+              setDrawError(null);
+            } else if (showAddHint) {
+              setShowAddHint(false);
+              onAddBuildingAtCoord(lat, lng);
+            }
+          }}
         />
 
-        {buildings.map((b) => (
-          <Marker
-            key={b.id}
-            position={[b.latitude, b.longitude]}
-            icon={getMarkerIcon(b)}
-            eventHandlers={{
-              click: () => onSelectBuilding(b),
-            }}
-          >
-            <Popup className="solar-building-popup">
-              <div className="p-1 min-w-[220px]">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 mb-2">
-                  <h3 className="font-bold text-sm text-[#123C32]">{b.name}</h3>
-                  <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-medium">
-                    {b.category}
-                  </span>
-                </div>
+        {/* Base Tile Layer */}
+        <TileLayer url={tileConfig.url} attribution={tileConfig.attribution} maxZoom={tileConfig.maxZoom} />
 
-                <div className="space-y-1 text-xs text-slate-600">
-                  <div className="flex justify-between">
-                    <span>Gross Roof:</span>
-                    <strong className="text-slate-800">{formatArea(b.gross_roof_area)}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Usable Roof ({b.usable_roof_percentage}%):</span>
-                    <strong className="text-slate-800">{formatArea(b.usable_roof_area)}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Shading Derate:</span>
-                    <strong className={b.shading_category === 'High' ? 'text-red-600' : 'text-slate-800'}>
-                      {b.shading_category} ({b.custom_shading_loss || 5}%)
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Monthly Load:</span>
-                    <strong className="text-slate-800">{formatEnergy(b.monthly_consumption_kwh)}</strong>
-                  </div>
-                  {b.solar_analysis && (
-                    <>
-                      <div className="h-px bg-slate-100 my-1" />
-                      <div className="flex justify-between text-emerald-700">
-                        <span>Potential PV:</span>
-                        <strong>{formatPower(b.solar_analysis.max_pv_capacity_kwp)}</strong>
-                      </div>
-                      <div className="flex justify-between text-emerald-700">
-                        <span>Est. Annual Savings:</span>
-                        <strong>{formatINR(b.solar_analysis.annual_savings_inr)}</strong>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-end">
-                  <button
-                    onClick={() => onSelectBuilding(b)}
-                    className="w-full text-center bg-[#123C32] hover:bg-[#0B251F] text-white py-1 px-2.5 rounded text-xs font-semibold transition-colors"
-                  >
-                    Inspect Profile &rarr;
-                  </button>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
+        {/* In-Progress Drawn Outline */}
+        {outline.length >= 3 ? (
+          <Polygon positions={outline} pathOptions={{ color: '#FF6B16', weight: 2, fillOpacity: 0.25 }} interactive={false} />
+        ) : outline.length >= 2 ? (
+          <Polyline positions={outline} pathOptions={{ color: '#FF6B16', weight: 2 }} interactive={false} />
+        ) : null}
+        {outline.map((point, index) => (
+          <CircleMarker
+            key={index}
+            center={point}
+            radius={4}
+            pathOptions={{ color: '#0B1739', fillColor: '#FF6B16', fillOpacity: 1 }}
+            interactive={false}
+          />
         ))}
+
+        {/* 1. Solar Heat / Radiant Potential Halos (Concentric visual thermal layers) */}
+        {activeShowHeat &&
+          filteredBuildingsWithMetrics.map(({ building, metricColor }) => {
+            const isSelected = building.id === selectedBuildingId;
+            return (
+              <React.Fragment key={`heat-halo-${building.id}`}>
+                {/* Outer diffuse halo */}
+                <Circle
+                  center={[building.latitude, building.longitude]}
+                  radius={isSelected ? 65 : 50}
+                  pathOptions={{
+                    stroke: false,
+                    fillColor: metricColor.colorHex,
+                    fillOpacity: isSelected ? 0.22 : 0.12,
+                  }}
+                  interactive={false}
+                />
+                {/* Mid radiant halo */}
+                <Circle
+                  center={[building.latitude, building.longitude]}
+                  radius={isSelected ? 38 : 28}
+                  pathOptions={{
+                    stroke: false,
+                    fillColor: metricColor.colorHex,
+                    fillOpacity: isSelected ? 0.35 : 0.22,
+                  }}
+                  interactive={false}
+                />
+                {/* Core bright glow */}
+                <Circle
+                  center={[building.latitude, building.longitude]}
+                  radius={isSelected ? 18 : 14}
+                  pathOptions={{
+                    stroke: false,
+                    fillColor: metricColor.colorHex,
+                    fillOpacity: isSelected ? 0.55 : 0.38,
+                  }}
+                  interactive={false}
+                />
+              </React.Fragment>
+            );
+          })}
+
+        {/* 2. Color-Coded Rooftop Polygons */}
+        {activeShowPolygons &&
+          filteredBuildingsWithMetrics.map(({ building, metricColor, metrics }) => {
+            const points = readRoofOutline(building.roof_polygon);
+            if (!points) return null;
+            const isSelected = building.id === selectedBuildingId;
+
+            return (
+              <Polygon
+                key={`roof-polygon-${building.id}`}
+                positions={points}
+                pathOptions={{
+                  color: isSelected ? '#0B1739' : metricColor.colorHex,
+                  weight: isSelected ? 3 : 2,
+                  dashArray: isSelected ? undefined : undefined,
+                  fillColor: metricColor.colorHex,
+                  fillOpacity: isSelected ? 0.6 : 0.4,
+                }}
+                eventHandlers={{
+                  click: () => {
+                    if (!drawing && !showAddHint) onSelectBuilding(building);
+                  },
+                }}
+              >
+                <Tooltip sticky direction="top" className="custom-roof-tooltip">
+                  <div className="p-1 text-xs font-sans">
+                    <strong className="block text-slate-900">{building.name}</strong>
+                    <div className="flex items-center gap-1 text-[11px] mt-0.5" style={{ color: metricColor.colorHex }}>
+                      <span className="font-semibold">{metricColor.label}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">
+                      {formatArea(building.usable_roof_area)} • {metrics.estimatedCapacityKwp} kWp
+                    </div>
+                  </div>
+                </Tooltip>
+              </Polygon>
+            );
+          })}
+
+        {/* 3. Numerical Badge Centroid Markers */}
+        {activeShowBadges &&
+          filteredBuildingsWithMetrics.map(({ building, metricColor, metrics }) => {
+            const isSelected = building.id === selectedBuildingId;
+            const isTopCandidate = metrics.score >= 85;
+
+            return (
+              <Marker
+                key={`marker-${building.id}`}
+                position={[building.latitude, building.longitude]}
+                icon={createScoreMarker(metrics.score, metricColor.colorHex, isSelected, isTopCandidate)}
+                eventHandlers={{
+                  click: () => onSelectBuilding(building),
+                }}
+              >
+                <Popup className="solar-building-popup">
+                  <div className="p-1 min-w-[240px] font-sans">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 mb-2">
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900">{building.name}</h3>
+                        <span className="text-[10px] text-slate-500">{building.category}</span>
+                      </div>
+                      <div
+                        className="px-2 py-0.5 rounded text-[10px] font-bold border"
+                        style={{
+                          backgroundColor: `${metricColor.colorHex}15`,
+                          borderColor: `${metricColor.colorHex}40`,
+                          color: metricColor.colorHex,
+                        }}
+                      >
+                        {metrics.score}/100 • {metrics.tier}
+                      </div>
+                    </div>
+
+                    {/* Metric details */}
+                    <div className="space-y-1 text-xs text-slate-600">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Gross Roof Area:</span>
+                        <strong className="text-slate-800 tabular-nums">{formatArea(building.gross_roof_area)}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Usable Solar Area:</span>
+                        <strong className="text-slate-800 tabular-nums">{formatArea(building.usable_roof_area)}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Shading Derate:</span>
+                        <strong className={metrics.shadingLossPct > 20 ? 'text-red-600' : 'text-slate-800'}>
+                          {building.shading_category} ({metrics.shadingLossPct}%)
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Est. PV Capacity:</span>
+                        <strong className="text-slate-900 tabular-nums">{formatPower(metrics.estimatedCapacityKwp)}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">Est. Annual Generation:</span>
+                        <strong className="text-slate-900 tabular-nums">{formatEnergy(metrics.estimatedAnnualGenKwh)}</strong>
+                      </div>
+                      <div className="flex justify-between text-emerald-700 font-semibold">
+                        <span>Est. Annual Savings:</span>
+                        <strong className="tabular-nums">{formatINR(metrics.estimatedAnnualSavingsInr)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => onSelectBuilding(building)}
+                        className="w-full text-center bg-slate-900 hover:bg-slate-800 text-white py-1.5 px-3 rounded text-xs font-semibold transition-colors shadow-2xs"
+                      >
+                        Inspect Facility in Panel &rarr;
+                      </button>
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
       </MapContainer>
     </div>
   );
