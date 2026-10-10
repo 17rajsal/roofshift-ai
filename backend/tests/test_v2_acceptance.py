@@ -340,7 +340,7 @@ def test_acceptance_11_delhi_demo_campus_workflow():
 
     assert "Delhi College Campus" in demo["name"]
     assert demo["building_count"] == 5
-    assert demo["budget"] == 1000000.0  # ₹10 Lakh
+    assert demo["budget"] == 1500000.0  # Latest Antigravity demo: ₹15 Lakh
 
     # Verify building solar analyses exist
     b_res = client.get(f"/api/v1/projects/{demo['id']}/buildings")
@@ -355,7 +355,7 @@ def test_acceptance_11_delhi_demo_campus_workflow():
     opt_res = client.get(f"/api/v1/projects/{demo['id']}/optimizations")
     opts = opt_res.json()
     assert len(opts) >= 1
-    assert opts[0]["total_allocated_inr"] <= 1000000.0
+    assert opts[0]["total_allocated_inr"] <= opts[0]["budget_inr"]
 
 
 # =====================================================================
