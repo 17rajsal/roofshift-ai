@@ -13,7 +13,8 @@ from app.api.v1 import (
     system,
     inspections,
     monitoring,
-    maintenance
+    maintenance,
+    thermal
 )
 
 api_router = APIRouter()
@@ -35,3 +36,4 @@ api_router.include_router(geocoding.router, tags=["Geocoding"])
 api_router.include_router(inspections.router, tags=["Panel Inspection & Diagnostics"])
 api_router.include_router(monitoring.router, tags=["Inverter Telemetry & Degradation"])
 api_router.include_router(maintenance.router, tags=["Maintenance Cases"])
+api_router.include_router(thermal.router, tags=["Solar Thermal Intelligence & Hotspots"])

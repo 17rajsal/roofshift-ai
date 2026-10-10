@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SolarMap } from '../components/map/SolarMap';
 import { BuildingEditorModal } from '../components/buildings/BuildingEditorModal';
+import { ThermalInspectionViewerModal } from '../components/map/ThermalInspectionViewerModal';
+import { ThermalUploadModal } from '../components/map/ThermalUploadModal';
 import { Building } from '../types/models';
 import { useProject } from '../context/ProjectContext';
 import { api } from '../services/api';
@@ -17,6 +19,17 @@ import {
   computeBuildingSolarMetrics,
   MetricVisualizationMode,
 } from '../utils/solarSuitability';
+import {
+  ThermalMode,
+  ThermalDataProvenance,
+  PanelGroupThermalData,
+  ThermalDataset,
+  SAMPLE_DELHI_CAMPUS_THERMAL_DATASET,
+  computeThermalFleetSummary,
+  computeTemperatureHistogram,
+  getDiagnosticStatusBadge,
+  ELECTRICAL_SAFETY_NOTICE,
+} from '../utils/thermalIntelligence';
 import {
   MapPin,
   Building2,
@@ -39,6 +52,11 @@ import {
   BarChart3,
   Leaf,
   ShieldCheck,
+  Camera,
+  Upload,
+  Clock,
+  History,
+  Wrench,
 } from 'lucide-react';
 
 export const SolarMapPage: React.FC = () => {
@@ -55,11 +73,19 @@ export const SolarMapPage: React.FC = () => {
   const [newRoofOutline, setNewRoofOutline] = useState<[number, number][] | undefined>();
   const [newRoofArea, setNewRoofArea] = useState<number | undefined>();
 
+  // Thermal Intelligence State
+  const [thermalMode, setThermalMode] = useState<ThermalMode>('thermal');
+  const [thermalDataset, setThermalDataset] = useState<ThermalDataset>(SAMPLE_DELHI_CAMPUS_THERMAL_DATASET);
+  const [selectedPanelGroup, setSelectedPanelGroup] = useState<PanelGroupThermalData | null>(null);
+  const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [maintenanceSuccessMsg, setMaintenanceSuccessMsg] = useState<string | null>(null);
+
   // Filter and display states
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [tierFilter, setTierFilter] = useState<string>('All');
   const [metricMode, setMetricMode] = useState<MetricVisualizationMode>('suitability');
-  const [tileLayerMode, setTileLayerMode] = useState<'satellite' | 'street' | 'light'>('street');
+  const [tileLayerMode, setTileLayerMode] = useState<'satellite' | 'street' | 'light'>('satellite');
   const [showHeatLayer, setShowHeatLayer] = useState<boolean>(true);
   const [showPolygons, setShowPolygons] = useState<boolean>(true);
   const [showBadges, setShowBadges] = useState<boolean>(true);
@@ -188,6 +214,15 @@ export const SolarMapPage: React.FC = () => {
     };
   }, [analyzedBuildings]);
 
+  // Thermal Fleet Summary & Temperature Histogram
+  const thermalFleetSummary = useMemo(() => {
+    return computeThermalFleetSummary(thermalDataset);
+  }, [thermalDataset]);
+
+  const temperatureHistogram = useMemo(() => {
+    return computeTemperatureHistogram(thermalDataset.panelGroups);
+  }, [thermalDataset]);
+
   // Selected building computed metrics
   const selectedMetrics = useMemo(() => {
     if (!selectedBuilding) return null;
@@ -207,6 +242,27 @@ export const SolarMapPage: React.FC = () => {
     return Array.from(set);
   }, [buildings]);
 
+  // Handler for creating maintenance case from thermal hotspot
+  const handleCreateThermalMaintenance = async (group: PanelGroupThermalData) => {
+    if (!activeProject) return;
+    try {
+      const res = await api.createThermalMaintenanceTicket(activeProject.id, {
+        panel_id: group.stringIdentifier,
+        surface_temp_c: group.surfaceTempC || 42.0,
+        delta_temp_c: group.deltaTempC,
+        suspected_cause: group.suspectedCause,
+        priority: group.priority,
+        notes: `Created from Solar Thermal Intelligence workspace for ${group.name}`,
+      });
+      setMaintenanceSuccessMsg(
+        `Created Maintenance Work Order #${res.maintenance_case_id.slice(0, 8)} (${res.title})`
+      );
+      setTimeout(() => setMaintenanceSuccessMsg(null), 4000);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not create maintenance ticket.');
+    }
+  };
+
   return (
     <div className="space-y-5 max-w-7xl mx-auto">
       {error && (
@@ -216,49 +272,69 @@ export const SolarMapPage: React.FC = () => {
         </div>
       )}
 
+      {maintenanceSuccessMsg && (
+        <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-3.5 text-xs text-emerald-900 flex items-center gap-2 shadow-sm animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+          <span className="font-medium">{maintenanceSuccessMsg}</span>
+        </div>
+      )}
+
       {/* 1. Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200/60">
-              <Sun className="w-4 h-4 text-amber-600" />
+            <span className="p-1.5 rounded-lg bg-orange-50 text-orange-600 border border-orange-200/60">
+              <Flame className="w-5 h-5 text-orange-500" />
             </span>
             <h2 className="text-base font-bold text-slate-900">
-              Campus GIS Solar Explorer & Heat Map
+              Solar Thermal Intelligence &amp; Hotspot Analysis
             </h2>
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+              {thermalDataset.provenance === 'SAMPLE' ? 'Sample Demo Mode' : thermalDataset.provenance}
+            </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Geospatial rooftop boundary digitization, solar irradiance profiling, and thermal suitability heat mapping.
+            Explore rooftop solar installations, visualize surface thermal conditions, detect potential hotspots, and prioritize maintenance.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleAddBuildingClick}
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+            onClick={() => setIsUploadModalOpen(true)}
+            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-200"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Rooftop</span>
+            <Upload className="w-3.5 h-3.5 text-slate-600" />
+            <span>Upload Readings</span>
           </button>
+
+          <button
+            onClick={() => setIsViewerModalOpen(true)}
+            className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+          >
+            <Camera className="w-3.5 h-3.5 text-orange-400" />
+            <span>Thermal Viewer</span>
+          </button>
+
           <button
             onClick={() => navigate('/optimize')}
-            className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+            className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
           >
-            <span>Proceed to Optimizer</span>
+            <span>Optimizer</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* 2. Portfolio Summary Metric Cards Above Map */}
+      {/* 2. Top 5 KPI Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
         <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-[11px]">
-            <span>Portfolio Roofs</span>
+            <span>Monitored Roofs</span>
             <Building2 className="w-3.5 h-3.5 text-slate-400" />
           </div>
           <div className="text-lg font-bold text-slate-900 mt-1 tabular-nums">
-            {portfolioStats.totalBuildings} <span className="text-xs font-normal text-slate-500">Buildings</span>
+            {thermalFleetSummary.buildingsMonitored}{' '}
+            <span className="text-xs font-normal text-slate-500">Facilities</span>
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5 truncate">
             {activeProject?.name || 'Active Campus'}
@@ -267,69 +343,94 @@ export const SolarMapPage: React.FC = () => {
 
         <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-[11px]">
-            <span>Avg. Solar Score</span>
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>Strings Monitored</span>
+            <Layers className="w-3.5 h-3.5 text-blue-500" />
           </div>
           <div className="text-lg font-bold text-slate-900 mt-1 tabular-nums flex items-baseline gap-1">
-            <span>{portfolioStats.avgScore}</span>
-            <span className="text-xs font-normal text-slate-500">/ 100</span>
-          </div>
-          <div className="text-[10px] text-emerald-600 font-semibold mt-0.5">
-            {portfolioStats.avgScore >= 75 ? 'Optimal Solar Resource' : 'Moderate Shading Profile'}
-          </div>
-        </div>
-
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 text-[11px]">
-            <span>Prime Candidates</span>
-            <Flame className="w-3.5 h-3.5 text-emerald-600" />
-          </div>
-          <div className="text-lg font-bold text-emerald-700 mt-1 tabular-nums">
-            {portfolioStats.highPotentialCount}{' '}
+            <span>{thermalFleetSummary.panelGroupsCount}</span>
             <span className="text-xs font-normal text-slate-500">
-              of {portfolioStats.totalBuildings}
+              ({thermalFleetSummary.totalPanelsCount} modules)
             </span>
           </div>
-          <div className="text-[10px] text-slate-500 mt-0.5">
-            Score &ge; 70 pts (Low shade)
-          </div>
+          <div className="text-[10px] text-slate-500 mt-0.5">18 Modules / String</div>
         </div>
 
         <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-[11px]">
-            <span>Est. Solar Yield</span>
-            <Zap className="w-3.5 h-3.5 text-amber-500" />
+            <span>Fleet Mean Temp</span>
+            <Flame className="w-3.5 h-3.5 text-orange-500" />
           </div>
-          <div className="text-lg font-bold text-slate-900 mt-1 tabular-nums">
-            {formatEnergy(portfolioStats.totalEstimatedGenKwh)}
+          <div className="text-lg font-bold text-slate-900 mt-1 tabular-nums flex items-baseline gap-1">
+            <span>{thermalFleetSummary.fleetAvgTempC.toFixed(1)}°C</span>
+            <span className="text-xs font-normal text-slate-500">
+              (Max {thermalFleetSummary.fleetMaxTempC.toFixed(1)}°C)
+            </span>
           </div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
-            Annual Clean Energy
+          <div className="text-[10px] text-slate-500 mt-0.5">Baseline: 42.0°C NOCT</div>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 text-[11px]">
+            <span>Thermal Hotspots</span>
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+          </div>
+          <div className="text-lg font-bold text-rose-600 mt-1 tabular-nums">
+            {thermalFleetSummary.anomaliesCount}{' '}
+            <span className="text-xs font-normal text-slate-500">
+              ({thermalFleetSummary.criticalCount} Critical)
+            </span>
+          </div>
+          <div className="text-[10px] text-rose-600 font-semibold mt-0.5">
+            ΔT &ge; 5°C above baseline
           </div>
         </div>
 
         <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs col-span-2 sm:col-span-1">
           <div className="flex items-center justify-between text-slate-500 text-[11px]">
-            <span>Total Usable Area</span>
-            <Layers className="w-3.5 h-3.5 text-blue-500" />
+            <span>Thermal Power Loss</span>
+            <Zap className="w-3.5 h-3.5 text-amber-500" />
           </div>
           <div className="text-lg font-bold text-slate-900 mt-1 tabular-nums">
-            {formatArea(portfolioStats.totalUsableArea)}
+            {thermalFleetSummary.fleetPowerLossPct.toFixed(1)}%
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">
-            Digitized Solar Surface
+            -0.4%/°C Si Temp Derating
           </div>
         </div>
       </div>
 
-      {/* 3. Filter & Heat Map Visualization Controls Bar */}
-      <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-        {/* Left Filters: Category & Potential */}
+      {/* 3. Filter Controls Bar */}
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 text-slate-500 text-xs font-semibold mr-1">
             <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
             <span>Filters:</span>
           </div>
+
+          {/* Facility Selector */}
+          <select
+            value={selectedBuilding?.id || 'all'}
+            onChange={(e) => {
+              if (e.target.value === 'all') {
+                setSelectedBuilding(null);
+                setSelectedPanelGroup(null);
+              } else {
+                const b = buildings.find((x) => x.id === e.target.value);
+                if (b) {
+                  setSelectedBuilding(b);
+                  setSelectedPanelGroup(null);
+                }
+              }
+            }}
+            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-xs font-medium focus:outline-none focus:border-slate-400"
+          >
+            <option value="all">All Campus Facilities ({buildings.length})</option>
+            {buildings.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.category})
+              </option>
+            ))}
+          </select>
 
           {/* Category Filter */}
           <select
@@ -337,7 +438,7 @@ export const SolarMapPage: React.FC = () => {
             onChange={(e) => setCategoryFilter(e.target.value)}
             className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-xs font-medium focus:outline-none focus:border-slate-400"
           >
-            <option value="All">All Categories ({buildings.length})</option>
+            <option value="All">All Categories</option>
             {categories.map((cat) => (
               <option key={cat} value={cat}>
                 {cat} ({buildings.filter((b) => b.category === cat).length})
@@ -345,87 +446,43 @@ export const SolarMapPage: React.FC = () => {
             ))}
           </select>
 
-          {/* Potential Tier Filter */}
-          <select
-            value={tierFilter}
-            onChange={(e) => setTierFilter(e.target.value)}
-            className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 text-xs font-medium focus:outline-none focus:border-slate-400"
+          <button
+            onClick={() => {
+              setCategoryFilter('All');
+              setTierFilter('All');
+              setSelectedBuilding(null);
+              setSelectedPanelGroup(null);
+            }}
+            className="text-[11px] text-slate-500 hover:text-slate-800 underline underline-offset-2 ml-1"
           >
-            <option value="All">All Potential Tiers</option>
-            <option value="Excellent">Excellent (&ge;85 pts)</option>
-            <option value="Good">Good (70-84 pts)</option>
-            <option value="Moderate">Moderate (50-69 pts)</option>
-            <option value="Low">Low (&lt;50 pts)</option>
-          </select>
+            Reset Filters
+          </button>
         </div>
 
-        {/* Right Controls: Metric Mode & Display Toggles */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Metric Selector */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg">
-            <span className="text-[11px] text-slate-500 font-medium">Color Metric:</span>
-            <select
-              value={metricMode}
-              onChange={(e) => setMetricMode(e.target.value as MetricVisualizationMode)}
-              className="bg-transparent text-slate-800 text-xs font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="suitability">Solar Suitability Score</option>
-              <option value="generation">Annual Generation (kWh)</option>
-              <option value="yield">Specific Yield (kWh/kWp)</option>
-              <option value="savings">Annual Savings (₹)</option>
-              <option value="co2">CO₂ Avoided (tCO₂)</option>
-            </select>
-          </div>
-
-          {/* Quick Display Toggles */}
-          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setShowHeatLayer(!showHeatLayer)}
-              title="Toggle Heat Glow Layer"
-              className={`px-2 py-1 text-[11px] rounded font-semibold flex items-center gap-1 transition-colors ${
-                showHeatLayer ? 'bg-amber-500 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Flame className="w-3 h-3" />
-              <span className="hidden sm:inline">Heat</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowPolygons(!showPolygons)}
-              title="Toggle Rooftop Polygons"
-              className={`px-2 py-1 text-[11px] rounded font-semibold flex items-center gap-1 transition-colors ${
-                showPolygons ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Layers className="w-3 h-3" />
-              <span className="hidden sm:inline">Roofs</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setShowBadges(!showBadges)}
-              title="Toggle Centroid Score Badges"
-              className={`px-2 py-1 text-[11px] rounded font-semibold flex items-center gap-1 transition-colors ${
-                showBadges ? 'bg-emerald-700 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Sparkles className="w-3 h-3" />
-              <span className="hidden sm:inline">Badges</span>
-            </button>
-          </div>
+        {/* Provenance Indicator */}
+        <div className="flex items-center gap-2 text-slate-500 text-[11px]">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Observation: Latest (Calibrated)</span>
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="text-slate-600 font-mono">
+            Irradiance: {SAMPLE_DELHI_CAMPUS_THERMAL_DATASET.irradianceWm2} W/m²
+          </span>
         </div>
       </div>
 
-      {/* 4. Main Workspace Layout: Map + Inspection Details Panel */}
+      {/* 4. Main Workspace Layout: 65% Interactive Map + 35% Inspection Drawer */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Leaflet Solar Map Component */}
-        <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-1.5 shadow-xs">
+        <div className="lg:col-span-2 bg-slate-900 rounded-2xl border border-slate-800 p-1.5 shadow-md">
           <SolarMap
             buildings={buildings}
             selectedBuildingId={selectedBuilding?.id}
-            onSelectBuilding={(b) => setSelectedBuilding(b)}
+            onSelectBuilding={(b) => {
+              setSelectedBuilding(b);
+              setSelectedPanelGroup(null);
+            }}
             onAddBuildingAtCoord={handleMapClick}
             onAddRoofOutline={(points, area) => {
               handleMapClick(
@@ -438,6 +495,18 @@ export const SolarMapPage: React.FC = () => {
             defaultCenter={activeProject ? [activeProject.latitude, activeProject.longitude] : [28.6139, 77.209]}
             metricMode={metricMode}
             onMetricModeChange={setMetricMode}
+            thermalMode={thermalMode}
+            onThermalModeChange={setThermalMode}
+            panelGroups={thermalDataset.panelGroups}
+            selectedPanelGroupId={selectedPanelGroup?.id}
+            onSelectPanelGroup={(group) => {
+              setSelectedPanelGroup(group);
+              const b = buildings.find((x) => x.id === group.buildingId || x.name === group.buildingName);
+              if (b) setSelectedBuilding(b);
+            }}
+            minTempC={thermalDataset.minTempC}
+            maxTempC={thermalDataset.maxTempC}
+            provenance={thermalDataset.provenance}
             categoryFilter={categoryFilter}
             onCategoryFilterChange={setCategoryFilter}
             tierFilter={tierFilter}
@@ -453,11 +522,144 @@ export const SolarMapPage: React.FC = () => {
           />
         </div>
 
-        {/* Right Col: Selected Building Details Drawer + Catalog */}
+        {/* Right Col: Inspection Details Drawer */}
         <div className="space-y-4">
-          {selectedBuilding && selectedMetrics ? (
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-              {/* Header with Title and Quick Actions */}
+          {/* A. If a specific panel group / string is selected -> Hotspot Inspection Drawer */}
+          {selectedPanelGroup ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 animate-in fade-in">
+              {/* Header */}
+              <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                      String {selectedPanelGroup.stringIdentifier}
+                    </span>
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                        getDiagnosticStatusBadge(selectedPanelGroup.diagnosticStatus).badgeClass
+                      }`}
+                    >
+                      {getDiagnosticStatusBadge(selectedPanelGroup.diagnosticStatus).label}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 mt-1.5">
+                    {selectedPanelGroup.name}
+                  </h3>
+                  <div className="text-xs text-slate-500">{selectedPanelGroup.buildingName}</div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedPanelGroup(null)}
+                  className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1 rounded bg-slate-50 border border-slate-200"
+                >
+                  Close
+                </button>
+              </div>
+
+              {/* Thermal Temperature Readouts Grid */}
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-orange-50/70 p-3 rounded-xl border border-orange-200/80">
+                  <span className="text-orange-700 block text-[10px] font-semibold">Surface Temp</span>
+                  <strong className="text-orange-950 text-base font-mono tabular-nums">
+                    {selectedPanelGroup.surfaceTempC !== null
+                      ? `${selectedPanelGroup.surfaceTempC.toFixed(1)}°C`
+                      : 'N/A'}
+                  </strong>
+                </div>
+
+                <div
+                  className={`p-3 rounded-xl border ${
+                    selectedPanelGroup.deltaTempC >= 15
+                      ? 'bg-rose-50 border-rose-200 text-rose-900'
+                      : 'bg-slate-50 border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <span className="block text-[10px] font-semibold">Baseline Difference (ΔT)</span>
+                  <strong className="text-base font-mono tabular-nums">
+                    {selectedPanelGroup.deltaTempC >= 0
+                      ? `+${selectedPanelGroup.deltaTempC.toFixed(1)}°C`
+                      : `${selectedPanelGroup.deltaTempC.toFixed(1)}°C`}
+                  </strong>
+                </div>
+
+                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <span className="text-slate-500 block text-[10px]">Nominal Baseline</span>
+                  <strong className="text-slate-800 text-xs font-mono">
+                    {selectedPanelGroup.baselineTempC.toFixed(1)}°C
+                  </strong>
+                </div>
+
+                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <span className="text-slate-500 block text-[10px]">Ambient Air</span>
+                  <strong className="text-slate-800 text-xs font-mono">
+                    {selectedPanelGroup.ambientTempC.toFixed(1)}°C
+                  </strong>
+                </div>
+              </div>
+
+              {/* Diagnostics & Suspected Defect */}
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+                <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+                  <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Deterministic Diagnostic Finding</span>
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500">
+                    Conf: {Math.round(selectedPanelGroup.confidenceScore * 100)}%
+                  </span>
+                </div>
+
+                <p className="text-slate-700 leading-relaxed text-[11px]">
+                  <strong>Suspected Factor:</strong> {selectedPanelGroup.suspectedCause}
+                </p>
+
+                {selectedPanelGroup.estimatedPowerLossPct > 0 && (
+                  <div className="flex items-center justify-between text-rose-700 font-semibold pt-1 border-t border-slate-200/40">
+                    <span>Est. String Generation Loss:</span>
+                    <span className="tabular-nums">-{selectedPanelGroup.estimatedPowerLossPct.toFixed(1)}%</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Recommended Field Action */}
+              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs space-y-1">
+                <span className="font-bold text-amber-900 block flex items-center gap-1">
+                  <Wrench className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Evidence-Based Recommendation</span>
+                </span>
+                <p className="text-amber-800 text-[11px] leading-snug">
+                  {selectedPanelGroup.recommendedAction}
+                </p>
+              </div>
+
+              {/* Electrical Safety Notice */}
+              <div className="rounded-xl bg-slate-900 p-3 text-[10px] text-slate-300 leading-tight border border-slate-800">
+                <strong className="text-amber-400 block mb-0.5">Electrical Safety Advisory:</strong>
+                {ELECTRICAL_SAFETY_NOTICE}
+              </div>
+
+              {/* Actions */}
+              <div className="pt-1 space-y-2">
+                <button
+                  onClick={() => handleCreateThermalMaintenance(selectedPanelGroup)}
+                  className="w-full py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                >
+                  <Wrench className="w-3.5 h-3.5" />
+                  <span>Create Maintenance Ticket</span>
+                </button>
+
+                <button
+                  onClick={() => setIsViewerModalOpen(true)}
+                  className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition-colors flex items-center justify-center gap-1 border border-slate-200"
+                >
+                  <Camera className="w-3.5 h-3.5 text-orange-600" />
+                  <span>Inspect in Infrared Viewer</span>
+                </button>
+              </div>
+            </div>
+          ) : selectedBuilding && selectedMetrics ? (
+            /* B. If a building is selected -> Building Climatology & Suitability Card */
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
               <div className="flex items-start justify-between border-b border-slate-100 pb-3">
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -494,7 +696,7 @@ export const SolarMapPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Visual Solar Suitability Score Gauge */}
+              {/* Solar Suitability Score Gauge */}
               <div
                 className="p-3.5 rounded-xl border space-y-2"
                 style={{
@@ -518,7 +720,6 @@ export const SolarMapPage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Score Progress Bar */}
                 <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
@@ -552,68 +753,50 @@ export const SolarMapPage: React.FC = () => {
                   </strong>
                 </div>
                 <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                  <span className="text-slate-500 block text-[10px]">Monthly Demand</span>
+                  <span className="text-slate-500 block text-[10px]">Eligible Capacity</span>
                   <strong className="text-slate-900 text-xs tabular-nums">
-                    {formatEnergy(selectedBuilding.monthly_consumption_kwh)}
+                    {formatPower(selectedMetrics.estimatedCapacityKwp)}
                   </strong>
                 </div>
                 <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                  <span className="text-slate-500 block text-[10px]">Daytime Share</span>
+                  <span className="text-slate-500 block text-[10px]">Annual Generation</span>
                   <strong className="text-slate-900 text-xs tabular-nums">
-                    {selectedBuilding.daytime_consumption_pct}% load
+                    {formatEnergy(selectedMetrics.estimatedAnnualGenKwh)}
                   </strong>
                 </div>
               </div>
 
-              {/* Detailed Solar & Financial Yield Box */}
-              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg space-y-2 text-xs">
-                <div className="flex items-center justify-between text-xs text-slate-800 font-semibold border-b border-slate-200/60 pb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <Sun className="w-3.5 h-3.5 text-amber-500" />
-                    Solar Climatology Estimates
-                  </span>
-                  <span className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.2 rounded text-slate-600 font-mono">
-                    NASA POWER
-                  </span>
-                </div>
-
-                <div className="space-y-1.5 text-slate-700">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Eligible PV Capacity:</span>
-                    <strong className="text-slate-900 tabular-nums">
-                      {formatPower(selectedMetrics.estimatedCapacityKwp)}
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Annual Solar Generation:</span>
-                    <strong className="text-slate-900 tabular-nums">
-                      {formatEnergy(selectedMetrics.estimatedAnnualGenKwh)}
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Specific Solar Yield:</span>
-                    <strong className="tabular-nums text-slate-900">
-                      {selectedMetrics.specificYieldKwhPerKwp} kWh/kWp/yr
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Net Annual Bill Savings:</span>
-                    <strong className="text-emerald-700 font-semibold tabular-nums">
-                      {formatINR(selectedMetrics.estimatedAnnualSavingsInr)}
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Simple Capital Payback:</span>
-                    <strong className="tabular-nums text-slate-900">
-                      {selectedMetrics.paybackYears ? `${selectedMetrics.paybackYears} Years` : '—'}
-                    </strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Avoided Grid Emissions:</span>
-                    <strong className="tabular-nums text-slate-800">
-                      {formatCO2(selectedMetrics.avoidedCo2KgAnnual)}
-                    </strong>
-                  </div>
+              {/* Strings on this Building */}
+              <div>
+                <span className="text-[11px] font-bold text-slate-700 block mb-1.5 uppercase tracking-wider">
+                  Panel Strings on this Rooftop
+                </span>
+                <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                  {thermalDataset.panelGroups
+                    .filter((pg) => pg.buildingId === selectedBuilding.id || pg.buildingName === selectedBuilding.name)
+                    .map((pg) => {
+                      const badge = getDiagnosticStatusBadge(pg.diagnosticStatus);
+                      return (
+                        <div
+                          key={pg.id}
+                          onClick={() => setSelectedPanelGroup(pg)}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 cursor-pointer flex items-center justify-between text-xs transition-colors"
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: badge.fillColor }} />
+                            <span className="font-semibold text-slate-800 truncate">{pg.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-mono text-slate-700">{pg.surfaceTempC?.toFixed(1)}°C</span>
+                            <span
+                              className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${badge.badgeClass}`}
+                            >
+                              {badge.label}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </div>
 
@@ -621,88 +804,212 @@ export const SolarMapPage: React.FC = () => {
               <div className="pt-1 space-y-2">
                 <button
                   onClick={() => navigate('/optimize')}
-                  className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-md text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                  className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg text-xs transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
                 >
                   <span>Include in Knapsack Optimizer</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleEditBuilding(selectedBuilding)}
-                    className="py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-md text-xs transition-colors"
-                  >
-                    Edit Profile
-                  </button>
-                  <button
-                    onClick={() => navigate('/buildings')}
-                    className="py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-md text-xs transition-colors flex items-center justify-center gap-1 shadow-2xs"
-                  >
-                    <span>Facility Details</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => handleEditBuilding(selectedBuilding)}
+                  className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs transition-colors"
+                >
+                  Edit Profile
+                </button>
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-500 shadow-xs">
-              <Building2 className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-              <h3 className="font-semibold text-xs text-slate-700 mb-1">No Rooftop Selected</h3>
+            /* C. Default State: No Selection */
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500 shadow-xs">
+              <Flame className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+              <h3 className="font-semibold text-xs text-slate-800 mb-1">Select a Panel String or Facility</h3>
               <p className="text-[11px] text-slate-500 mb-3">
-                Click any building polygon or score badge on the map to inspect solar heat and generation metrics.
+                Click any solar panel polygon on the map to inspect module temperatures, baseline deviations, and diagnostics.
               </p>
               <button
                 onClick={handleAddBuildingClick}
-                className="px-3 py-1.5 bg-slate-900 text-white rounded-md text-xs font-semibold inline-flex items-center gap-1.5"
+                className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold inline-flex items-center gap-1.5"
               >
-                <Plus className="w-3.5 h-3.5" /> Add Rooftop
+                <Plus className="w-3.5 h-3.5" /> Add Facility
               </button>
             </div>
           )}
 
-          {/* Portfolio Catalog List with Score Pills */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-xs">
+          {/* Quick Hotspot Alerts List */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
             <div className="flex items-center justify-between mb-2">
-              <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                Portfolio Catalog ({buildings.length})
+              <h4 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <Flame className="w-3.5 h-3.5 text-orange-500" />
+                <span>Flagged Hotspots ({thermalFleetSummary.anomaliesCount})</span>
               </h4>
-              <span className="text-[10px] text-slate-400">Ranked by potential</span>
+              <span className="text-[10px] text-slate-400">ΔT &ge; 5°C</span>
             </div>
 
-            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-              {analyzedBuildings
-                .sort((a, b) => b.metrics.score - a.metrics.score)
-                .map(({ building: b, metrics }) => (
-                  <div
-                    key={b.id}
-                    onClick={() => setSelectedBuilding(b)}
-                    className={`p-2 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-colors ${
-                      selectedBuilding?.id === b.id
-                        ? 'bg-slate-100 border-slate-300 text-slate-900 font-medium'
-                        : 'bg-slate-50/60 border-slate-200/60 hover:bg-slate-100 text-slate-600'
-                    }`}
-                  >
-                    <div className="min-w-0 pr-2">
-                      <div className="text-xs text-slate-800 font-semibold truncate">{b.name}</div>
-                      <div className="text-[10px] text-slate-400 font-normal">
-                        {formatArea(b.usable_roof_area)} • {b.shading_category} shade
+            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+              {thermalDataset.panelGroups
+                .filter((pg) => pg.diagnosticStatus !== 'NORMAL')
+                .sort((a, b) => b.deltaTempC - a.deltaTempC)
+                .map((pg) => {
+                  const badge = getDiagnosticStatusBadge(pg.diagnosticStatus);
+                  return (
+                    <div
+                      key={pg.id}
+                      onClick={() => setSelectedPanelGroup(pg)}
+                      className={`p-2 rounded-lg border text-xs cursor-pointer flex items-center justify-between transition-colors ${
+                        selectedPanelGroup?.id === pg.id
+                          ? 'bg-orange-50 border-orange-300 font-semibold'
+                          : 'bg-slate-50/70 border-slate-200/60 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="text-xs text-slate-800 font-semibold truncate">{pg.name}</div>
+                        <div className="text-[10px] text-slate-500 truncate">{pg.suspectedCause}</div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-mono text-xs font-bold text-rose-600">
+                          +{pg.deltaTempC.toFixed(1)}°C
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
                       </div>
                     </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span
-                        className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold"
-                        style={{
-                          backgroundColor: `${metrics.colorHex}15`,
-                          color: metrics.colorHex,
-                        }}
-                      >
-                        {metrics.score}
-                      </span>
-                      <ChevronRight className="w-3 h-3 text-slate-400" />
-                    </div>
+      {/* 5. Lower Analytics Panels (Below the Map) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* A. Temperature Distribution Histogram */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <BarChart3 className="w-4 h-4 text-orange-500" />
+              <span>Surface Temperature Distribution</span>
+            </h4>
+            <span className="text-[10px] text-slate-400">Fleet Modules</span>
+          </div>
+
+          <div className="space-y-2 pt-1 text-xs">
+            {temperatureHistogram.map((bin) => {
+              const pct =
+                thermalFleetSummary.panelGroupsCount > 0
+                  ? Math.round((bin.count / thermalFleetSummary.panelGroupsCount) * 100)
+                  : 0;
+              return (
+                <div key={bin.range} className="space-y-1">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="font-semibold text-slate-700">{bin.range}</span>
+                    <span className="text-slate-500 font-mono">
+                      {bin.count} strings ({pct}%) · {bin.status}
+                    </span>
                   </div>
-                ))}
+                  <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%`, backgroundColor: bin.color }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* B. Before & After Maintenance Case Study Comparison */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <History className="w-4 h-4 text-blue-600" />
+              <span>Before &amp; After Maintenance Scan</span>
+            </h4>
+            <span className="text-[10px] bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded font-semibold border border-emerald-200">
+              Resolved Case
+            </span>
+          </div>
+
+          <p className="text-[11px] text-slate-500 leading-snug">
+            Academic Block — String A-07 (Bypass Diode Replacement &amp; Array Wash)
+          </p>
+
+          <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+            <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200">
+              <span className="text-[10px] font-bold text-rose-700 block">Pre-Service (Alert)</span>
+              <div className="text-base font-mono font-bold text-rose-900 mt-0.5">67.5°C</div>
+              <div className="text-[10px] text-rose-700 mt-1">ΔT +25.5°C · Loss -18.5%</div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+              <span className="text-[10px] font-bold text-emerald-700 block">Post-Service</span>
+              <div className="text-base font-mono font-bold text-emerald-900 mt-0.5">42.8°C</div>
+              <div className="text-[10px] text-emerald-700 mt-1">ΔT +0.8°C · Nominal</div>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-slate-50 p-2.5 text-[10px] text-slate-600 border border-slate-100">
+            <strong>Maintenance Impact:</strong> +18.5% string generation restored. Module backsheet hotspot temperature normalized below STC thermal runaway threshold.
+          </div>
+        </div>
+
+        {/* C. Maintenance Priority Action Queue */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+              <Wrench className="w-4 h-4 text-rose-500" />
+              <span>Prioritized Service Queue</span>
+            </h4>
+            <span className="text-[10px] text-slate-400">By Severity</span>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            <div className="p-2 rounded-lg bg-rose-50/60 border border-rose-200 flex items-center justify-between">
+              <div>
+                <strong className="text-rose-900 text-xs block">String A-07 · Academic Block</strong>
+                <span className="text-[10px] text-rose-700">Critical Diode Check (ΔT +25.5°C)</span>
+              </div>
+              <button
+                onClick={() => {
+                  const target = thermalDataset.panelGroups.find((pg) => pg.stringIdentifier === 'A-07');
+                  if (target) handleCreateThermalMaintenance(target);
+                }}
+                className="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[10px] font-semibold transition-colors"
+              >
+                Log Ticket
+              </button>
+            </div>
+
+            <div className="p-2 rounded-lg bg-amber-50/60 border border-amber-200 flex items-center justify-between">
+              <div>
+                <strong className="text-amber-900 text-xs block">String L-02 · Library</strong>
+                <span className="text-[10px] text-amber-700">Targeted Soiling Clean (ΔT +14.2°C)</span>
+              </div>
+              <button
+                onClick={() => {
+                  const target = thermalDataset.panelGroups.find((pg) => pg.stringIdentifier === 'L-02');
+                  if (target) handleCreateThermalMaintenance(target);
+                }}
+                className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-semibold transition-colors"
+              >
+                Log Ticket
+              </button>
+            </div>
+
+            <div className="p-2 rounded-lg bg-yellow-50/60 border border-yellow-200 flex items-center justify-between">
+              <div>
+                <strong className="text-yellow-900 text-xs block">String A-03 · Academic Block</strong>
+                <span className="text-[10px] text-yellow-700">Scheduled Wash (ΔT +7.5°C)</span>
+              </div>
+              <button
+                onClick={() => {
+                  const target = thermalDataset.panelGroups.find((pg) => pg.stringIdentifier === 'A-03');
+                  if (target) handleCreateThermalMaintenance(target);
+                }}
+                className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-[10px] font-semibold transition-colors"
+              >
+                Log Ticket
+              </button>
             </div>
           </div>
         </div>
@@ -719,6 +1026,25 @@ export const SolarMapPage: React.FC = () => {
           defaultRoofPolygon={newRoofOutline}
           defaultRoofArea={newRoofArea}
           onSaved={handleSavedBuilding}
+        />
+      )}
+
+      {/* Thermal Inspection Image Viewer Modal */}
+      <ThermalInspectionViewerModal
+        isOpen={isViewerModalOpen}
+        onClose={() => setIsViewerModalOpen(false)}
+        moduleTitle={selectedPanelGroup?.name || 'Academic Block — String A-07 Hotspot Inspection'}
+      />
+
+      {/* Thermal CSV Upload Modal */}
+      {activeProject && (
+        <ThermalUploadModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          projectId={activeProject.id}
+          onSuccess={(obs) => {
+            alert(`Successfully ingested ${obs.length} thermal readings.`);
+          }}
         />
       )}
     </div>

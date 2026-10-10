@@ -32,6 +32,8 @@ import {
   EyeOff,
   Sun,
   Zap,
+  ShieldCheck,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { isSimpleRoofOutline, readRoofOutline, roofAreaSquareMeters, type RoofPoint } from '../../utils/roofGeometry';
 import {
@@ -40,7 +42,15 @@ import {
   MetricVisualizationMode,
   SolarSuitabilityMetrics,
 } from '../../utils/solarSuitability';
+import {
+  ThermalMode,
+  ThermalDataProvenance,
+  PanelGroupThermalData,
+  getThermalColor,
+  getDiagnosticStatusBadge,
+} from '../../utils/thermalIntelligence';
 import { SolarMapLegend } from './SolarMapLegend';
+import { ThermalMapLegend } from './ThermalMapLegend';
 
 // Fix Leaflet marker icons in Vite bundling
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -141,6 +151,14 @@ export interface SolarMapProps {
   defaultCenter?: [number, number];
   metricMode?: MetricVisualizationMode;
   onMetricModeChange?: (mode: MetricVisualizationMode) => void;
+  thermalMode?: ThermalMode;
+  onThermalModeChange?: (mode: ThermalMode) => void;
+  panelGroups?: PanelGroupThermalData[];
+  selectedPanelGroupId?: string | null;
+  onSelectPanelGroup?: (panelGroup: PanelGroupThermalData) => void;
+  minTempC?: number;
+  maxTempC?: number;
+  provenance?: ThermalDataProvenance;
   categoryFilter?: string;
   onCategoryFilterChange?: (cat: string) => void;
   tierFilter?: string;
@@ -164,11 +182,19 @@ export const SolarMap: React.FC<SolarMapProps> = ({
   defaultCenter = [28.6139, 77.209],
   metricMode = 'suitability',
   onMetricModeChange,
+  thermalMode = 'thermal',
+  onThermalModeChange,
+  panelGroups = [],
+  selectedPanelGroupId,
+  onSelectPanelGroup,
+  minTempC = 38.0,
+  maxTempC = 68.0,
+  provenance = 'SAMPLE',
   categoryFilter = 'All',
   onCategoryFilterChange,
   tierFilter = 'All',
   onTierFilterChange,
-  tileLayerMode = 'street',
+  tileLayerMode = 'satellite',
   onTileLayerModeChange,
   showHeatLayer = true,
   onToggleHeatLayer,
@@ -178,7 +204,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
   onToggleBadges,
 }) => {
   const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter);
-  const [mapZoom, setMapZoom] = useState<number>(16);
+  const [mapZoom, setMapZoom] = useState<number>(17);
   const [fitAllTrigger, setFitAllTrigger] = useState(0);
 
   // Search state
@@ -197,6 +223,9 @@ export const SolarMap: React.FC<SolarMapProps> = ({
   const [localMetricMode, setLocalMetricMode] = useState<MetricVisualizationMode>(metricMode);
   const activeMetricMode = onMetricModeChange ? metricMode : localMetricMode;
 
+  const [localThermalMode, setLocalThermalMode] = useState<ThermalMode>(thermalMode);
+  const activeThermalMode = onThermalModeChange ? thermalMode : localThermalMode;
+
   const [localTileMode, setLocalTileMode] = useState<'satellite' | 'street' | 'light'>(tileLayerMode);
   const activeTileMode = onTileLayerModeChange ? tileLayerMode : localTileMode;
 
@@ -208,6 +237,9 @@ export const SolarMap: React.FC<SolarMapProps> = ({
 
   const [localShowBadges, setLocalShowBadges] = useState<boolean>(showBadges);
   const activeShowBadges = onToggleBadges ? showBadges : localShowBadges;
+
+  // Thermal Overlay Opacity (slider control)
+  const [thermalOpacity, setThermalOpacity] = useState<number>(0.75);
 
   // Precompute metrics for all buildings
   const buildingsWithMetrics = useMemo(() => {
@@ -313,18 +345,18 @@ export const SolarMap: React.FC<SolarMapProps> = ({
   }[activeTileMode];
 
   return (
-    <div className="relative isolate z-0 w-full h-[620px] rounded-xl overflow-hidden border border-slate-200 shadow-xs bg-slate-100 flex flex-col">
+    <div className="relative isolate z-0 w-full h-[650px] rounded-2xl overflow-hidden border border-slate-200/90 shadow-lg bg-slate-950 flex flex-col">
       {/* Top Controls Overlay */}
       <div className="absolute top-3 left-3 right-3 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         {/* Search Input */}
-        <form onSubmit={handleSearch} className="pointer-events-auto relative w-full sm:w-72">
+        <form onSubmit={handleSearch} className="pointer-events-auto relative w-full sm:w-64">
           <div className="flex items-center bg-white/95 backdrop-blur-md rounded-lg shadow-md border border-slate-200/90 overflow-hidden">
             <Search className="w-3.5 h-3.5 text-slate-400 ml-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search city, campus or landmark..."
+              placeholder="Search campus or city..."
               aria-label="Search map location"
               className="w-full px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
             />
@@ -363,29 +395,84 @@ export const SolarMap: React.FC<SolarMapProps> = ({
           )}
         </form>
 
-        {/* Quick Toolbar: Drawing, Adding, Layer Toggles */}
-        <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-lg shadow-md border border-slate-200/90 text-xs">
+        {/* 4 Map Modes Segmented Switcher (Center-Right) */}
+        <div className="pointer-events-auto flex items-center bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-700 shadow-xl text-xs">
+          <button
+            type="button"
+            onClick={() => {
+              setLocalThermalMode('satellite');
+              onThermalModeChange?.('satellite');
+            }}
+            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+              activeThermalMode === 'satellite'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Satellite</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLocalThermalMode('potential');
+              onThermalModeChange?.('potential');
+            }}
+            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+              activeThermalMode === 'potential'
+                ? 'bg-amber-500 text-white shadow-md'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5" />
+            <span>Solar Potential</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLocalThermalMode('thermal');
+              onThermalModeChange?.('thermal');
+            }}
+            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+              activeThermalMode === 'thermal'
+                ? 'bg-orange-600 text-white shadow-md'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5" />
+            <span>Thermal Heatmap</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLocalThermalMode('health');
+              onThermalModeChange?.('health');
+            }}
+            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+              activeThermalMode === 'health'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Fault &amp; Health</span>
+          </button>
+        </div>
+
+        {/* Quick Toolbar: Tiles, Opacity, Drawing */}
+        <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-md border border-slate-200/90 text-xs">
           {/* Base Tile Layer Switcher */}
-          <div className="flex items-center bg-slate-100 rounded-md p-0.5 border border-slate-200">
-            <button
-              type="button"
-              onClick={() => {
-                setLocalTileMode('street');
-                onTileLayerModeChange?.('street');
-              }}
-              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-colors ${
-                activeTileMode === 'street' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              Street
-            </button>
+          <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
             <button
               type="button"
               onClick={() => {
                 setLocalTileMode('satellite');
                 onTileLayerModeChange?.('satellite');
               }}
-              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-colors ${
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-colors ${
                 activeTileMode === 'satellite' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
@@ -394,10 +481,22 @@ export const SolarMap: React.FC<SolarMapProps> = ({
             <button
               type="button"
               onClick={() => {
+                setLocalTileMode('street');
+                onTileLayerModeChange?.('street');
+              }}
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-colors ${
+                activeTileMode === 'street' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Street
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 setLocalTileMode('light');
                 onTileLayerModeChange?.('light');
               }}
-              className={`px-2 py-0.5 text-[10px] font-semibold rounded transition-colors ${
+              className={`px-2 py-0.5 text-[10px] font-semibold rounded-md transition-colors ${
                 activeTileMode === 'light' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
@@ -405,33 +504,30 @@ export const SolarMap: React.FC<SolarMapProps> = ({
             </button>
           </div>
 
-          <div className="h-4 w-px bg-slate-200" />
-
-          {/* Toggle Heatmap Overlay */}
-          <button
-            type="button"
-            onClick={() => {
-              const next = !activeShowHeat;
-              setLocalShowHeat(next);
-              onToggleHeatLayer?.(next);
-            }}
-            title="Toggle Solar Heat Intensity Glow"
-            className={`px-2 py-1 rounded text-[11px] font-medium flex items-center gap-1 border transition-colors ${
-              activeShowHeat
-                ? 'bg-amber-50 text-amber-900 border-amber-300 font-semibold'
-                : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-            }`}
-          >
-            <Flame className={`w-3 h-3 ${activeShowHeat ? 'text-amber-500' : 'text-slate-400'}`} />
-            <span>Heat Glow</span>
-          </button>
+          {/* Opacity Slider for Thermal Heatmap Mode */}
+          {activeThermalMode === 'thermal' && (
+            <div className="flex items-center gap-1.5 bg-slate-100 rounded-lg px-2 py-0.5 border border-slate-200">
+              <SlidersHorizontal className="w-3 h-3 text-slate-500" />
+              <input
+                type="range"
+                min="0.3"
+                max="0.95"
+                step="0.05"
+                value={thermalOpacity}
+                onChange={(e) => setThermalOpacity(parseFloat(e.target.value))}
+                className="w-16 accent-orange-500 h-1"
+                title="Thermal Heatmap Opacity"
+              />
+              <span className="text-[10px] font-mono text-slate-600">{Math.round(thermalOpacity * 100)}%</span>
+            </div>
+          )}
 
           {/* Fit all buildings */}
           <button
             type="button"
             onClick={() => setFitAllTrigger((prev) => prev + 1)}
             title="Fit view to all campus rooftops"
-            className="p-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded border border-slate-200 transition-colors"
+            className="p-1 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200 transition-colors"
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>
@@ -448,12 +544,12 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               setDrawError(null);
             }}
             aria-pressed={showAddHint}
-            className={`px-2.5 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+            className={`px-2 py-1 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-colors ${
               showAddHint ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
             }`}
           >
             <Plus className="w-3 h-3" />
-            <span>Click Pin</span>
+            <span>Pin Roof</span>
           </button>
 
           <button
@@ -465,18 +561,27 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               setOutline([]);
               setDrawError(null);
             }}
-            className={`rounded px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+            className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ${
               drawing ? 'bg-amber-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'
             }`}
           >
-            Draw Roof Boundary
+            Draw Roof
           </button>
         </div>
       </div>
 
       {/* Floating Bottom Left Legend */}
       <div className="absolute bottom-4 left-4 z-[400] pointer-events-auto">
-        <SolarMapLegend mode={activeMetricMode} tierCounts={tierCounts} />
+        {activeThermalMode === 'potential' ? (
+          <SolarMapLegend mode={activeMetricMode} tierCounts={tierCounts} />
+        ) : (
+          <ThermalMapLegend
+            mode={activeThermalMode}
+            minTempC={minTempC}
+            maxTempC={maxTempC}
+            provenance={provenance}
+          />
+        )}
       </div>
 
       {/* Active Roof Boundary Drawing Instruction Box */}
@@ -573,13 +678,13 @@ export const SolarMap: React.FC<SolarMapProps> = ({
           />
         ))}
 
-        {/* 1. Solar Heat / Radiant Potential Halos (Concentric visual thermal layers) */}
-        {activeShowHeat &&
+        {/* 1. Solar Heat / Radiant Potential Halos (ONLY shown in Solar Potential mode) */}
+        {activeThermalMode === 'potential' &&
+          activeShowHeat &&
           filteredBuildingsWithMetrics.map(({ building, metricColor }) => {
             const isSelected = building.id === selectedBuildingId;
             return (
               <React.Fragment key={`heat-halo-${building.id}`}>
-                {/* Outer diffuse halo */}
                 <Circle
                   center={[building.latitude, building.longitude]}
                   radius={isSelected ? 65 : 50}
@@ -590,7 +695,6 @@ export const SolarMap: React.FC<SolarMapProps> = ({
                   }}
                   interactive={false}
                 />
-                {/* Mid radiant halo */}
                 <Circle
                   center={[building.latitude, building.longitude]}
                   radius={isSelected ? 38 : 28}
@@ -601,7 +705,6 @@ export const SolarMap: React.FC<SolarMapProps> = ({
                   }}
                   interactive={false}
                 />
-                {/* Core bright glow */}
                 <Circle
                   center={[building.latitude, building.longitude]}
                   radius={isSelected ? 18 : 14}
@@ -616,23 +719,34 @@ export const SolarMap: React.FC<SolarMapProps> = ({
             );
           })}
 
-        {/* 2. Color-Coded Rooftop Polygons */}
+        {/* 2. Building Rooftop Base Polygons */}
         {activeShowPolygons &&
           filteredBuildingsWithMetrics.map(({ building, metricColor, metrics }) => {
             const points = readRoofOutline(building.roof_polygon);
             if (!points) return null;
             const isSelected = building.id === selectedBuildingId;
 
+            // In Satellite or Thermal mode, keep building outlines subtle
+            const outlineColor =
+              activeThermalMode === 'potential'
+                ? metricColor.colorHex
+                : isSelected
+                ? '#FF6B16'
+                : '#38BDF8';
+            const fillCol =
+              activeThermalMode === 'potential' ? metricColor.colorHex : '#0F172A';
+            const fillOp = activeThermalMode === 'potential' ? (isSelected ? 0.6 : 0.35) : 0.15;
+
             return (
               <Polygon
                 key={`roof-polygon-${building.id}`}
                 positions={points}
                 pathOptions={{
-                  color: isSelected ? '#0B1739' : metricColor.colorHex,
-                  weight: isSelected ? 3 : 2,
-                  dashArray: isSelected ? undefined : undefined,
-                  fillColor: metricColor.colorHex,
-                  fillOpacity: isSelected ? 0.6 : 0.4,
+                  color: outlineColor,
+                  weight: isSelected ? 3 : 1.5,
+                  fillColor: fillCol,
+                  fillOpacity: fillOp,
+                  dashArray: activeThermalMode !== 'potential' ? '3, 3' : undefined,
                 }}
                 eventHandlers={{
                   click: () => {
@@ -643,9 +757,6 @@ export const SolarMap: React.FC<SolarMapProps> = ({
                 <Tooltip sticky direction="top" className="custom-roof-tooltip">
                   <div className="p-1 text-xs font-sans">
                     <strong className="block text-slate-900">{building.name}</strong>
-                    <div className="flex items-center gap-1 text-[11px] mt-0.5" style={{ color: metricColor.colorHex }}>
-                      <span className="font-semibold">{metricColor.label}</span>
-                    </div>
                     <div className="text-[10px] text-slate-500 mt-0.5">
                       {formatArea(building.usable_roof_area)} • {metrics.estimatedCapacityKwp} kWp
                     </div>
@@ -655,8 +766,130 @@ export const SolarMap: React.FC<SolarMapProps> = ({
             );
           })}
 
-        {/* 3. Numerical Badge Centroid Markers */}
-        {activeShowBadges &&
+        {/* 3. Panel Group Strings: Thermal Overlay & Health Status Polygons */}
+        {panelGroups.map((group) => {
+          const isSelected = group.id === selectedPanelGroupId;
+          const statusBadge = getDiagnosticStatusBadge(group.diagnosticStatus);
+
+          // Determine polygon fill color based on active mode
+          let polygonFillColor = '#38BDF8';
+          let polygonStrokeColor = '#0B1739';
+          let polygonFillOpacity = 0.25;
+
+          if (activeThermalMode === 'thermal') {
+            polygonFillColor = getThermalColor(group.surfaceTempC, minTempC, maxTempC);
+            polygonStrokeColor = isSelected ? '#FFFFFF' : '#0B1739';
+            polygonFillOpacity = thermalOpacity;
+          } else if (activeThermalMode === 'health') {
+            polygonFillColor = statusBadge.fillColor;
+            polygonStrokeColor = isSelected ? '#FFFFFF' : statusBadge.strokeColor;
+            polygonFillOpacity = 0.8;
+          } else if (activeThermalMode === 'satellite') {
+            polygonFillColor = '#0284C7';
+            polygonStrokeColor = '#FFFFFF';
+            polygonFillOpacity = 0.25;
+          } else {
+            // Potential mode
+            polygonFillColor = '#FBBF24';
+            polygonStrokeColor = '#D97706';
+            polygonFillOpacity = 0.4;
+          }
+
+          const isCriticalHotspot = group.deltaTempC >= 15.0;
+
+          return (
+            <React.Fragment key={`panel-group-${group.id}`}>
+              {/* Critical Hotspot Pulsing Radial Halo (in Thermal or Health mode) */}
+              {(activeThermalMode === 'thermal' || activeThermalMode === 'health') &&
+                isCriticalHotspot && (
+                  <>
+                    <Circle
+                      center={group.center}
+                      radius={16}
+                      pathOptions={{
+                        stroke: false,
+                        fillColor: '#EF4444',
+                        fillOpacity: 0.35,
+                      }}
+                      interactive={false}
+                    />
+                    <Circle
+                      center={group.center}
+                      radius={8}
+                      pathOptions={{
+                        stroke: false,
+                        fillColor: '#EF4444',
+                        fillOpacity: 0.65,
+                      }}
+                      interactive={false}
+                    />
+                  </>
+                )}
+
+              {/* Geo-referenced Panel String Polygon */}
+              <Polygon
+                positions={group.coordinates}
+                pathOptions={{
+                  color: polygonStrokeColor,
+                  weight: isSelected ? 3 : 1.5,
+                  fillColor: polygonFillColor,
+                  fillOpacity: polygonFillOpacity,
+                }}
+                eventHandlers={{
+                  click: () => {
+                    onSelectPanelGroup?.(group);
+                  },
+                }}
+              >
+                <Tooltip sticky direction="top" className="custom-panel-tooltip">
+                  <div className="p-1.5 text-xs font-sans min-w-[180px]">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-1 mb-1">
+                      <strong className="text-slate-900">{group.name}</strong>
+                      <span
+                        className="text-[9px] font-bold px-1.5 py-0.2 rounded"
+                        style={{
+                          backgroundColor: `${statusBadge.fillColor}20`,
+                          color: statusBadge.fillColor,
+                        }}
+                      >
+                        {statusBadge.label}
+                      </span>
+                    </div>
+
+                    <div className="space-y-0.5 text-[11px] text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Surface Temp:</span>
+                        <strong className="text-slate-900 font-mono">
+                          {group.surfaceTempC !== null ? `${group.surfaceTempC.toFixed(1)}°C` : 'N/A'}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Baseline ΔT:</span>
+                        <strong
+                          className={`font-mono ${
+                            group.deltaTempC >= 10 ? 'text-rose-600' : 'text-slate-700'
+                          }`}
+                        >
+                          {group.deltaTempC >= 0 ? `+${group.deltaTempC.toFixed(1)}°C` : `${group.deltaTempC.toFixed(1)}°C`}
+                        </strong>
+                      </div>
+                      {group.estimatedPowerLossPct > 0 && (
+                        <div className="flex justify-between text-rose-600 font-semibold">
+                          <span>Est. Loss:</span>
+                          <span>{group.estimatedPowerLossPct.toFixed(1)}%</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Tooltip>
+              </Polygon>
+            </React.Fragment>
+          );
+        })}
+
+        {/* 4. Building Numerical Score Badges (Shown in Solar Potential Mode) */}
+        {activeThermalMode === 'potential' &&
+          activeShowBadges &&
           filteredBuildingsWithMetrics.map(({ building, metricColor, metrics }) => {
             const isSelected = building.id === selectedBuildingId;
             const isTopCandidate = metrics.score >= 85;
@@ -672,7 +905,6 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               >
                 <Popup className="solar-building-popup">
                   <div className="p-1 min-w-[240px] font-sans">
-                    {/* Header */}
                     <div className="flex items-center justify-between border-b border-slate-200 pb-1.5 mb-2">
                       <div>
                         <h3 className="font-bold text-sm text-slate-900">{building.name}</h3>
@@ -690,7 +922,6 @@ export const SolarMap: React.FC<SolarMapProps> = ({
                       </div>
                     </div>
 
-                    {/* Metric details */}
                     <div className="space-y-1 text-xs text-slate-600">
                       <div className="flex justify-between">
                         <span className="text-slate-500">Gross Roof Area:</span>
@@ -701,22 +932,12 @@ export const SolarMap: React.FC<SolarMapProps> = ({
                         <strong className="text-slate-800 tabular-nums">{formatArea(building.usable_roof_area)}</strong>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-500">Shading Derate:</span>
-                        <strong className={metrics.shadingLossPct > 20 ? 'text-red-600' : 'text-slate-800'}>
-                          {building.shading_category} ({metrics.shadingLossPct}%)
-                        </strong>
-                      </div>
-                      <div className="flex justify-between">
                         <span className="text-slate-500">Est. PV Capacity:</span>
                         <strong className="text-slate-900 tabular-nums">{formatPower(metrics.estimatedCapacityKwp)}</strong>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Est. Annual Generation:</span>
                         <strong className="text-slate-900 tabular-nums">{formatEnergy(metrics.estimatedAnnualGenKwh)}</strong>
-                      </div>
-                      <div className="flex justify-between text-emerald-700 font-semibold">
-                        <span>Est. Annual Savings:</span>
-                        <strong className="tabular-nums">{formatINR(metrics.estimatedAnnualSavingsInr)}</strong>
                       </div>
                     </div>
 
@@ -725,7 +946,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
                         onClick={() => onSelectBuilding(building)}
                         className="w-full text-center bg-slate-900 hover:bg-slate-800 text-white py-1.5 px-3 rounded text-xs font-semibold transition-colors shadow-2xs"
                       >
-                        Inspect Facility in Panel &rarr;
+                        Inspect Facility &rarr;
                       </button>
                     </div>
                   </div>
