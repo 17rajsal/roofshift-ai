@@ -132,51 +132,52 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
 
   return (
     <div role="dialog" aria-modal="true" aria-label={building ? `Edit ${building.name}` : 'Add candidate rooftop'} className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-lg max-w-2xl w-full shadow-xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-[#123C32] text-white flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-2.5">
-            <Building2 className="w-5 h-5 text-[#F5B942]" />
-            <h2 className="text-base font-bold text-white">
-              {building ? `Edit ${building.name} Profile` : 'Add New Candidate Rooftop'}
+        <div className="px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-amber-600" />
+            <h2 className="text-sm font-semibold text-slate-900">
+              {building ? `Edit ${building.name} Profile` : 'Register Candidate Rooftop Asset'}
             </h2>
           </div>
-          <button onClick={onClose} aria-label="Close rooftop form" className="text-slate-300 hover:text-white p-1 rounded-md transition-colors">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} aria-label="Close rooftop form" className="text-slate-400 hover:text-slate-700 p-1 rounded transition-colors">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+            <div className="p-3 bg-red-50 border border-red-200/80 rounded-md text-xs text-red-800">
               {error}
             </div>
           )}
 
           {/* Section 1: Identity */}
           <div>
-            <h3 className="text-xs font-bold text-[#123C32] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-emerald-600" /> Building Identity & Location
+            <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-slate-500" />
+              <span>Building Identity & Location</span>
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Building Name *</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Building Name *</label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Science Complex Block A"
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Facility Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 >
                   <option value="Academic">Academic Block</option>
                   <option value="Residential">Hostel / Residential</option>
@@ -187,13 +188,13 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Address / Wing Notes</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Campus Location / Address Notes</label>
                 <input
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. North Quadrangle, Near Central Garden"
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  placeholder="e.g. North Quadrangle, Near Central Substation"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
             </div>
@@ -201,12 +202,13 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
 
           {/* Section 2: Roof Geometry & Shading */}
           <div className="border-t border-slate-100 pt-4">
-            <h3 className="text-xs font-bold text-[#123C32] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Sun className="w-3.5 h-3.5 text-emerald-600" /> Rooftop Geometry & Shading Characteristics
+            <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <Sun className="w-3.5 h-3.5 text-amber-600" />
+              <span>Rooftop Geometry & Shading Profile</span>
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Gross Roof Area (m²) *</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Gross Roof Area (m²) *</label>
                 <input
                   type="number"
                   required
@@ -214,11 +216,11 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
                   step="0.01"
                   value={grossRoofArea}
                   onChange={(e) => setGrossRoofArea(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Usable Area Fraction (%) *</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Usable Area Fraction (%) *</label>
                 <input
                   type="number"
                   required
@@ -226,15 +228,15 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
                   max="100"
                   value={usableRoofPct}
                   onChange={(e) => setUsableRoofPct(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Shading Profile</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Shading Profile</label>
                 <select
                   value={shadingCategory}
                   onChange={(e) => setShadingCategory(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md bg-white focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 >
                   <option value="Low">Low (&lt;5% loss)</option>
                   <option value="Medium">Medium (15% loss)</option>
@@ -246,33 +248,34 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
 
             {shadingCategory === 'Custom' && (
               <div className="mt-3">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Custom Shading Derate (%)</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Custom Shading Derate (%)</label>
                 <input
                   type="number"
                   min="0"
                   max="80"
                   value={customShadingLoss}
                   onChange={(e) => setCustomShadingLoss(Number(e.target.value))}
-                  className="w-48 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-48 px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
             )}
 
             {/* Derived preview badge */}
-            <div className="mt-2.5 p-2.5 bg-emerald-50/70 border border-emerald-100 rounded-lg text-xs text-emerald-900 flex items-center justify-between">
-              <span>Usable Area: <strong>{calculatedUsable} m²</strong></span>
-              <span>Theoretical Max PV Capacity: <strong>~{estimatedCapacity} kWp</strong> (at 8 m²/kWp)</span>
+            <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 flex items-center justify-between font-mono">
+              <span>Usable Area: <strong className="text-slate-900">{calculatedUsable} m²</strong></span>
+              <span>Theoretical Max PV: <strong className="text-emerald-700">~{estimatedCapacity} kWp</strong> (at 8 m²/kWp)</span>
             </div>
           </div>
 
           {/* Section 3: Electricity Demand & Financials */}
           <div className="border-t border-slate-100 pt-4">
-            <h3 className="text-xs font-bold text-[#123C32] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-emerald-600" /> Electricity Consumption & Capex
+            <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 text-amber-600" />
+              <span>Electricity Demand & Turnkey Capex</span>
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Monthly Demand (kWh) *</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Monthly Demand (kWh) *</label>
                 <input
                   type="number"
                   required
@@ -280,11 +283,11 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
                   step="100"
                   value={monthlyConsumption}
                   onChange={(e) => setMonthlyConsumption(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Daytime Load Share (%)</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Daytime Load Share (%)</label>
                 <input
                   type="number"
                   required
@@ -292,11 +295,11 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
                   max="100"
                   value={daytimePct}
                   onChange={(e) => setDaytimePct(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Capex Benchmark (₹/kWp)</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Capex Benchmark (₹/kWp)</label>
                 <input
                   type="number"
                   required
@@ -304,7 +307,7 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
                   step="1000"
                   value={costPerKwp}
                   onChange={(e) => setCostPerKwp(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  className="w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
                 />
               </div>
             </div>
@@ -315,17 +318,17 @@ export const BuildingEditorModal: React.FC<BuildingEditorModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 text-xs font-bold text-white bg-[#123C32] hover:bg-[#0B251F] rounded-lg shadow-sm transition-colors disabled:opacity-50 flex items-center gap-1.5"
+              className="px-4 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md shadow-2xs transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
-              <Check className="w-3.5 h-3.5" />
-              <span>{loading ? 'Saving & Modeling...' : 'Save & Calculate Solar'}</span>
+              <Check className="w-3.5 h-3.5 text-slate-400" />
+              <span>{loading ? 'Solving Solar Model...' : 'Save & Calculate Solar'}</span>
             </button>
           </div>
         </form>

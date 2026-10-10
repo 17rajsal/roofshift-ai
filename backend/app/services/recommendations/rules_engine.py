@@ -160,7 +160,7 @@ def generate_smart_recommendations(project_id: str, db: Session) -> List[Dict[st
             "Distribution licensees (DISCOMs) typically cap rooftop solar interconnection at 80% to 100% "
             "of the sanctioned contractual maximum demand or distribution transformer capacity."
         ),
-        "supporting_calculation": f"Modeled campus solar capacity: ~{latest_run.total_capacity_kwp if latest_run else 50.0:.1f} kWp",
+        "supporting_calculation": f"Modeled campus solar capacity: ~{latest_run.total_capacity_kwp:.1f} kWp" if latest_run else "Pending portfolio optimization run",
         "expected_benefit": "Ensures statutory compliance and avoids export tripping penalties",
         "confidence_label": "Regulatory Advisory",
         "suggested_next_action": "Check institutional sanction letter with local DISCOM (e.g. BSES/TPDDL in Delhi) for transformer loading limits."

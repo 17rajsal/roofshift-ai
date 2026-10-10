@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  Sun,
-  MapPin,
-  Building2,
-  Cpu,
-  BarChart3,
-  Clock,
+  LayoutDashboard,
+  Compass,
+  Building,
+  SlidersHorizontal,
+  Activity,
+  CalendarClock,
   Sparkles,
-  FileText,
-  Home,
-  Plus,
+  FileCheck2,
+  Wrench,
   ChevronDown,
-  CloudSun,
-  ShieldCheck,
-  CheckCircle2,
-  X
+  Check,
+  Plus,
+  RefreshCw,
+  X,
+  Server,
+  Layers
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { formatINRShort } from '../../utils/formatters';
@@ -26,74 +27,121 @@ interface AppSidebarProps {
   onClose: () => void;
 }
 
+interface NavItem {
+  name: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  badgeColor?: string;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
 export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, mobileOpen, onClose }) => {
   const { projects, activeProject, setActiveProject, loadDemoProject, loading, error } = useProject();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
-  const navItems = [
-    { name: 'Overview Home', path: '/', icon: Home },
-    { name: 'Solar Map', path: '/map', icon: MapPin, badge: activeProject ? `${activeProject.building_count} roofs` : undefined },
-    { name: 'Building Analysis', path: '/buildings', icon: Building2 },
-    { name: 'Budget Optimizer', path: '/optimize', icon: Cpu, badge: 'Solver', badgeColor: 'bg-amber-100 text-amber-800 border-amber-300' },
-    { name: 'Energy Insights', path: '/insights', icon: BarChart3 },
-    { name: 'Smart Scheduling', path: '/scheduling', icon: Clock },
-    { name: 'Recommendations', path: '/recommendations', icon: Sparkles },
-    { name: 'Solar Assessments', path: '/solar-features', icon: Sun },
-    { name: 'Final Report', path: '/reports', icon: FileText, badge: 'PDF' },
+  const navigationSections: NavSection[] = [
+    {
+      title: 'Portfolio & GIS',
+      items: [
+        { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+        { name: 'Solar Explorer', path: '/map', icon: Compass, badge: activeProject ? `${activeProject.building_count} roofs` : undefined },
+        { name: 'Building Analysis', path: '/buildings', icon: Building },
+      ]
+    },
+    {
+      title: 'Optimization & Dispatch',
+      items: [
+        { name: 'Budget Optimizer', path: '/optimize', icon: SlidersHorizontal, badge: 'Exact DP', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+        { name: 'Energy Analytics', path: '/insights', icon: Activity },
+        { name: 'Smart Scheduling', path: '/scheduling', icon: CalendarClock },
+      ]
+    },
+    {
+      title: 'Operations & Asset Care',
+      items: [
+        { name: 'Solar Assessments', path: '/solar-features', icon: Activity },
+        { name: 'Operations & Health', path: '/operations', icon: Wrench, badge: 'Diagnostics', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+      ]
+    },
+    {
+      title: 'Governance & Reports',
+      items: [
+        { name: 'Advisory Insights', path: '/recommendations', icon: Sparkles },
+        { name: 'Executive Reports', path: '/reports', icon: FileCheck2, badge: 'PDF' },
+      ]
+    }
   ];
 
   return (
-    <aside id="app-navigation" className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#123C32] text-white flex flex-col flex-shrink-0 h-full overflow-y-auto border-r border-[#0B251F] select-none md:static md:visible md:translate-x-0 ${mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'}`}>
+    <aside
+      id="app-navigation"
+      className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0F172A] text-slate-100 flex flex-col flex-shrink-0 h-full overflow-hidden border-r border-slate-800/80 select-none md:static md:visible md:translate-x-0 transition-transform duration-200 ease-in-out ${
+        mobileOpen ? 'visible translate-x-0' : 'invisible -translate-x-full'
+      }`}
+    >
       {/* Brand Header */}
-      <div className="p-5 border-b border-emerald-900/60">
-        <button onClick={onClose} aria-label="Close navigation" className="absolute top-2 right-2 p-2 md:hidden"><X className="h-4 w-4" /></button>
+      <div className="h-16 px-5 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-[#F5B942] flex items-center justify-center text-[#123C32] shadow-lg shadow-emerald-950/40 font-bold">
-            <Sun className="w-6 h-6 animate-spin-slow text-[#123C32]" />
+          {/* Geometric Solar & Rooftop Grid Mark */}
+          <div className="w-8 h-8 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 shadow-xs">
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+              <line x1="9" y1="5" x2="15" y2="5" />
+            </svg>
           </div>
           <div>
-            <div className="text-xl font-extrabold tracking-tight text-white flex items-center gap-1.5">
-              RoofShift <span className="text-[#F5B942]">AI</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm font-semibold tracking-tight text-white">RoofShift</span>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400/10 text-amber-400 border border-amber-400/20">
+                AI
+              </span>
             </div>
-            <div className="text-[10px] tracking-wider uppercase text-emerald-300/80 font-medium">
-              Solar & Energy Optimizer
+            <div className="text-[10px] text-slate-400 tracking-normal font-normal">
+              Commercial Solar Optimizer
             </div>
           </div>
         </div>
-
-        {/* Hackathon Badge */}
-        <div className="mt-3 py-1 px-2.5 rounded-md bg-emerald-950/70 border border-emerald-500/20 text-[11px] text-emerald-200/90 flex items-center justify-between">
-          <span>Env Hacks 2026</span>
-          <span className="font-semibold text-[#F5B942]">AWS × WeMakeDevs</span>
-        </div>
+        <button
+          onClick={onClose}
+          aria-label="Close navigation"
+          className="p-1.5 text-slate-400 hover:text-white rounded md:hidden hover:bg-slate-800"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
 
-      {/* Project Selector */}
-      <div className="p-4 border-b border-emerald-900/40 relative">
-        <label className="text-[11px] font-semibold text-emerald-300/70 uppercase tracking-wider block mb-1.5">
-          Active Planning Project
-        </label>
+      {/* Project Selector Box */}
+      <div className="p-3 border-b border-slate-800/80 bg-slate-900/40 relative">
+        <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-1 mb-1.5">
+          Active Portfolio
+        </div>
         <button
           onClick={() => setDropdownOpen(!dropdownOpen)}
           aria-expanded={dropdownOpen}
           aria-label="Select planning project"
-          className="w-full flex items-center justify-between bg-emerald-950/60 hover:bg-emerald-950 border border-emerald-700/40 rounded-lg p-2.5 text-left transition-colors"
+          className="w-full flex items-center justify-between bg-slate-800/70 hover:bg-slate-800 border border-slate-700/60 rounded-md px-2.5 py-2 text-left transition-colors"
         >
-          <div className="truncate">
-            <div className="text-sm font-semibold text-white truncate">
+          <div className="min-w-0 pr-2">
+            <div className="text-xs font-semibold text-white truncate">
               {activeProject ? activeProject.name : 'Select Project'}
             </div>
-            <div className="text-xs text-emerald-300/80">
-              {activeProject ? `${activeProject.city} • ${formatINRShort(activeProject.budget)}` : 'No active project'}
+            <div className="text-[10px] text-slate-400 truncate mt-0.5">
+              {activeProject ? `${activeProject.city} • ${formatINRShort(activeProject.budget)}` : 'No portfolio active'}
             </div>
           </div>
-          <ChevronDown className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 flex-shrink-0 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {dropdownOpen && (
-          <div className="absolute top-full left-4 right-4 z-50 bg-[#0B251F] border border-emerald-600/30 rounded-lg shadow-2xl mt-1 overflow-hidden">
-            <div className="max-h-48 overflow-y-auto py-1">
+          <div className="absolute top-full left-3 right-3 z-50 bg-[#1E293B] border border-slate-700 rounded-md shadow-xl mt-1 overflow-hidden">
+            <div className="max-h-52 overflow-y-auto py-1 divide-y divide-slate-800">
               {projects.map((p) => (
                 <button
                   key={p.id}
@@ -102,99 +150,105 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, m
                     setDropdownOpen(false);
                     onClose();
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-emerald-900/50 transition-colors ${
-                    activeProject?.id === p.id ? 'bg-emerald-800/40 text-emerald-200 font-semibold' : 'text-slate-300'
+                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-700/50 transition-colors ${
+                    activeProject?.id === p.id ? 'bg-slate-700/30 text-amber-300 font-semibold' : 'text-slate-300'
                   }`}
                 >
-                  <div className="truncate">
-                    <div className="truncate">{p.name}</div>
-                    <div className="text-[10px] text-emerald-400/80">{p.city} • {formatINRShort(p.budget)}</div>
+                  <div className="min-w-0 pr-2">
+                    <div className="truncate text-xs">{p.name}</div>
+                    <div className="text-[10px] text-slate-400">{p.city} • {formatINRShort(p.budget)}</div>
                   </div>
-                  {activeProject?.id === p.id && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                  {activeProject?.id === p.id && <Check className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />}
                 </button>
               ))}
             </div>
-            <div className="border-t border-emerald-800/60 p-2 flex flex-col gap-1.5 bg-[#081C17]">
+            <div className="p-1.5 bg-slate-900 border-t border-slate-800 flex flex-col gap-1">
               <button
                 onClick={() => {
                   setDropdownOpen(false);
                   onOpenNewProjectModal();
                 }}
-                className="w-full text-left px-2 py-1.5 text-xs text-emerald-300 hover:text-white flex items-center gap-1.5 hover:bg-emerald-900/40 rounded transition-colors"
+                className="w-full text-left px-2 py-1.5 text-[11px] text-slate-300 hover:text-white flex items-center gap-2 hover:bg-slate-800 rounded transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" /> Create New Project
+                <Plus className="w-3.5 h-3.5 text-slate-400" /> Create New Portfolio
               </button>
               <button
                 onClick={() => {
                   setDropdownOpen(false);
                   loadDemoProject();
                 }}
-                className="w-full text-left px-2 py-1.5 text-xs text-amber-300 hover:text-amber-200 flex items-center gap-1.5 hover:bg-amber-950/40 rounded transition-colors"
+                className="w-full text-left px-2 py-1.5 text-[11px] text-amber-300 hover:text-amber-200 flex items-center gap-2 hover:bg-slate-800 rounded transition-colors"
               >
-                <CloudSun className="w-3.5 h-3.5" /> Reload Delhi Campus Demo
+                <RefreshCw className="w-3.5 h-3.5 text-amber-400" /> Reload Delhi Campus Demo
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Navigation Links */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-emerald-400/60 uppercase tracking-widest">
-          Planning Workflow
-        </div>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all group ${
-                  isActive
-                    ? 'bg-emerald-500 text-[#123C32] font-semibold shadow-md shadow-emerald-900/30'
-                    : 'text-emerald-100/80 hover:bg-emerald-900/40 hover:text-white'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <div className="flex items-center gap-2.5">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-[#123C32]' : 'text-emerald-400 group-hover:text-emerald-300'}`} />
-                    <span>{item.name}</span>
-                  </div>
-                  {item.badge && (
-                    <span
-                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                        item.badgeColor || (isActive ? 'bg-[#123C32]/20 text-[#123C32] border-transparent' : 'bg-emerald-950/70 text-emerald-300 border-emerald-700/40')
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
+      {/* Structured Nav Links */}
+      <nav className="flex-1 px-2.5 py-3 space-y-4 overflow-y-auto">
+        {navigationSections.map((section) => (
+          <div key={section.title} className="space-y-0.5">
+            <div className="px-2 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              {section.title}
+            </div>
+            {section.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  onClick={onClose}
+                  className={({ isActive }) =>
+                    `flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors group ${
+                      isActive
+                        ? 'bg-slate-800 text-white font-semibold border-l-2 border-amber-400 pl-2'
+                        : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className="flex items-center gap-2.5">
+                        <Icon className={`w-4 h-4 ${isActive ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-200'}`} />
+                        <span>{item.name}</span>
+                      </div>
+                      {item.badge && (
+                        <span
+                          className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
+                            item.badgeColor || (isActive ? 'bg-slate-700 text-slate-200 border-slate-600' : 'bg-slate-800 text-slate-400 border-slate-700/60')
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </NavLink>
-          );
-        })}
+                </NavLink>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       {/* Footer / System Status */}
-      <div className="p-4 border-t border-emerald-900/60 bg-[#0E2F27]">
-        <div className="flex items-center justify-between text-[11px] text-emerald-300/80 mb-1">
+      <div className="p-3 border-t border-slate-800 bg-[#0B132B]/60">
+        <div className="flex items-center justify-between text-[11px] text-slate-400">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            {loading ? 'Checking workspace…' : error ? 'Backend unavailable' : 'Workspace ready'}
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span className="text-[11px]">{loading ? 'Syncing...' : error ? 'Offline' : 'System Ready'}</span>
           </span>
-          <span className="text-[10px] bg-emerald-950 px-1.5 py-0.5 rounded text-emerald-300 border border-emerald-800/40">
+          <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700">
             Cloud optional
           </span>
         </div>
-        <div className="text-[10px] text-slate-400 text-center mt-2">
-          Team DRX • Preliminary Decision Tool
+        <div className="text-[10px] text-slate-400 mt-2 flex items-center justify-between">
+          <span>TEAM DRX</span>
+          <span>v2.4 Enterprise</span>
         </div>
       </div>
     </aside>
   );
 };
+

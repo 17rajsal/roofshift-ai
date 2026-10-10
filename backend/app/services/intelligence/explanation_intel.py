@@ -45,8 +45,9 @@ def explain_building_allocation(
         if expected_savings_inr > 0 and allocated_cost_inr > 0:
             payback = allocated_cost_inr / expected_savings_inr
             reasons.append(f"Delivers attractive simple payback of ~{payback:.1f} years with ₹{expected_savings_inr:,.0f}/year bill offset.")
-        if shading_loss_pct <= 10.0:
-            reasons.append("Low rooftop obstruction profile ensures high specific energy yield (>1,400 kWh/kWp).")
+        specific_yield = annual_gen_kwh / max(0.001, recommended_capacity_kwp)
+        if shading_loss_pct <= 10.0 and specific_yield >= 1400.0:
+            reasons.append(f"Low rooftop obstruction profile ensures high specific energy yield ({specific_yield:,.0f} kWh/kWp).")
         if self_cons_pct >= 70.0:
             reasons.append("High daytime demand coincidence maximizes direct grid displacement over lower-tariff export.")
     else:

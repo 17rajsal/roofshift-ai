@@ -28,6 +28,39 @@ class BuildingBase(BaseModel):
     cost_per_kwp: float = Field(default=50000.0, gt=0.0, le=1_000_000_000)
     fixed_cost: float = Field(default=0.0, ge=0.0, le=1_000_000_000_000_000)
     max_eligible_kwp: Optional[float] = Field(default=None, ge=0.0, le=1_000_000)
+    @field_validator("roof_polygon")
+    @classmethod
+    def validate_roof_polygon(cls, v):
+        if v is None:
+            return v
+        if not isinstance(v, list) or len(v) == 0:
+            raise ValueError("Roof polygon cannot be empty")
+        if len(v) < 3:
+            raise ValueError("Roof polygon must have at least 3 distinct vertices")
+        
+        parsed_pts = []
+        for pt in v:
+            if not isinstance(pt, (list, tuple)) or len(pt) != 2:
+                raise ValueError("Each polygon vertex must be a [latitude, longitude] pair")
+            try:
+                lat, lon = float(pt[0]), float(pt[1])
+            except (ValueError, TypeError):
+                raise ValueError("Coordinates must be numeric")
+            if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+                raise ValueError("Polygon coordinates must be valid latitude [-90, 90] and longitude [-180, 180]")
+            parsed_pts.append((lat, lon))
+
+        # Check for zero area via Shoelace formula
+        n = len(parsed_pts)
+        area2 = 0.0
+        for i in range(n):
+            j = (i + 1) % n
+            area2 += parsed_pts[i][0] * parsed_pts[j][1] - parsed_pts[j][0] * parsed_pts[i][1]
+        
+        if abs(area2) < 1e-10:
+            raise ValueError("Roof polygon must enclose a non-zero area")
+        
+        return v
 
 class BuildingCreate(BuildingBase):
     pass
@@ -52,6 +85,13 @@ class BuildingUpdate(BaseModel):
     cost_per_kwp: Optional[float] = Field(default=None, gt=0, le=1_000_000_000)
     fixed_cost: Optional[float] = Field(default=None, ge=0, le=1_000_000_000_000_000)
     max_eligible_kwp: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+
+    @field_validator("roof_polygon")
+    @classmethod
+    def validate_roof_polygon_update(cls, v):
+        if v is None:
+            return v
+        return BuildingBase.validate_roof_polygon(v)
 
     @field_validator('name', 'category', 'latitude', 'longitude', 'gross_roof_area',
                      'usable_roof_percentage', 'shading_category', 'monthly_consumption_kwh',

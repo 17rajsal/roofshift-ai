@@ -10,7 +10,11 @@ import {
   GeneratedReportSummary,
   GeocodeResult,
   DemandUploadResult,
-  SystemIntegrationsResponse
+  SystemIntegrationsResponse,
+  PanelInspectionResponse,
+  DefectSummaryResponse,
+  SolarMonitoringResponse,
+  MaintenanceCaseResponse
 } from '../types/models';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
@@ -216,5 +220,85 @@ export const api = {
   // AWS System Integrations
   async getSystemIntegrations(): Promise<SystemIntegrationsResponse> {
     return fetchJson<SystemIntegrationsResponse>('/system/integrations');
+  },
+
+  // Panel Inspections
+  async uploadPanelInspection(buildingId: string, file: File): Promise<PanelInspectionResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE}/buildings/${buildingId}/panel-inspection`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      throw await responseError(res);
+    }
+    return res.json();
+  },
+
+  async getBuildingInspections(buildingId: string): Promise<PanelInspectionResponse[]> {
+    return fetchJson<PanelInspectionResponse[]>(`/buildings/${buildingId}/panel-inspections`);
+  },
+
+  async getProjectDefectSummary(projectId: string): Promise<DefectSummaryResponse> {
+    return fetchJson<DefectSummaryResponse>(`/projects/${projectId}/defect-summary`);
+  },
+
+  // Inverter Monitoring Telemetry
+  async uploadMonitoringCsv(projectId: string, file: File, buildingId?: string): Promise<SolarMonitoringResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const query = buildingId ? `?building_id=${encodeURIComponent(buildingId)}` : '';
+    const res = await fetch(`${API_BASE}/projects/${projectId}/monitoring-upload${query}`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      throw await responseError(res);
+    }
+    return res.json();
+  },
+
+  async getMonitoringLogs(projectId: string): Promise<SolarMonitoringResponse[]> {
+    return fetchJson<SolarMonitoringResponse[]>(`/projects/${projectId}/monitoring-logs`);
+  },
+
+  // Maintenance Cases
+  async getMaintenanceCases(projectId: string, status?: string): Promise<MaintenanceCaseResponse[]> {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return fetchJson<MaintenanceCaseResponse[]>(`/projects/${projectId}/maintenance-cases${query}`);
+  },
+
+  async createMaintenanceCase(projectId: string, data: {
+    title: string;
+    description: string;
+    category?: string;
+    priority?: string;
+    building_id?: string;
+    estimated_loss_kwh_per_day?: number;
+    assigned_to?: string;
+  }): Promise<MaintenanceCaseResponse> {
+    return fetchJson<MaintenanceCaseResponse>(`/projects/${projectId}/maintenance-cases`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateMaintenanceCase(caseId: string, data: Partial<{
+    title: string;
+    description: string;
+    priority: string;
+    status: string;
+    estimated_loss_kwh_per_day: number;
+    assigned_to: string;
+  }>): Promise<MaintenanceCaseResponse> {
+    return fetchJson<MaintenanceCaseResponse>(`/maintenance-cases/${caseId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteMaintenanceCase(caseId: string): Promise<void> {
+    return fetchJson<void>(`/maintenance-cases/${caseId}`, { method: 'DELETE' });
   }
 };

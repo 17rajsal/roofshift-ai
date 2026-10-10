@@ -27,7 +27,7 @@ async def seed_demo_project_if_needed(db: Session) -> Project:
         city="New Delhi",
         latitude=28.6139,
         longitude=77.2090,
-        budget=1000000.0, # ₹10,00,000 (10 Lakh)
+        budget=1500000.0, # ₹15,00,000 (15 Lakh)
         tariff_rate=8.5,  # INR 8.5/kWh
         export_tariff=3.5,# INR 3.5/kWh
         co2_factor=0.716, # kg CO2/kWh
@@ -188,7 +188,7 @@ async def seed_demo_project_if_needed(db: Session) -> Project:
 
     # Run real optimization run for ₹10 Lakhs
     opt_req = OptimizeRequest(
-        budget_inr=1000000.0,
+        budget_inr=1500000.0,
         objective="MAXIMIZE_SAVINGS",
         scenario_name="Base Scenario",
         capacity_step_kwp=0.5

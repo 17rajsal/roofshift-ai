@@ -231,7 +231,7 @@ def generate_project_pdf_report(
     ]
     for b in buildings:
         usable = b.gross_roof_area * (b.usable_roof_percentage / 100.0)
-        max_c = round(usable / settings.DEFAULT_AREA_PER_KWP, 1)
+        max_c = b.solar_analysis.max_pv_capacity_kwp if b.solar_analysis else min(usable / settings.DEFAULT_AREA_PER_KWP, b.max_eligible_kwp) if b.max_eligible_kwp is not None else usable / settings.DEFAULT_AREA_PER_KWP
         b_table_data.append([
             Paragraph(escape(b.name), style_body),
             Paragraph(escape(b.category), style_body),
@@ -239,7 +239,7 @@ def generate_project_pdf_report(
             f"{usable:,.0f} m²",
             f"{b.monthly_consumption_kwh:,.0f} kWh",
             b.shading_category,
-            f"{max_c} kWp"
+            f"{max_c:.1f} kWp"
         ])
 
     t_b = Table(b_table_data, colWidths=[110, 74, 60, 60, 75, 55, 70])
@@ -389,9 +389,14 @@ def generate_project_pdf_report(
 
     # ================= 6. DATA SOURCES, ASSUMPTIONS & DISCLAIMER =================
     story.append(Paragraph("6. Assumptions, Data Sources & Regulatory Disclaimers", style_h1))
+    sources = sorted({b.solar_analysis.irradiance_source for b in buildings if b.solar_analysis and b.solar_analysis.irradiance_source})
+    irradiance_text = escape("; ".join(sources)) if sources else "No saved irradiance analysis"
+    assumptions = latest_run.explanations_json.get("assumptions", {}) if latest_run and isinstance(latest_run.explanations_json, dict) else {}
+    tariff_val = assumptions.get("tariff_rate", project.tariff_rate)
+    export_tariff_val = assumptions.get("export_tariff", project.export_tariff)
     notes_list = [
-        "<b>Solar Irradiance:</b> NASA POWER Climatological All-Sky Surface Shortwave Irradiance (GHI).",
-        f"<b>Economic Tariffs:</b> Grid displacement tariff: INR {project.tariff_rate:.2f}/kWh; Export tariff: INR {project.export_tariff:.2f}/kWh.",
+        f"<b>Solar Irradiance:</b> {irradiance_text}.",
+        f"<b>Economic Tariffs:</b> Grid displacement tariff: INR {tariff_val:.2f}/kWh; Export tariff: INR {export_tariff_val:.2f}/kWh.",
         f"<b>Grid Emission Baseline:</b> Central Electricity Authority (CEA) factor of {project.co2_factor} kg CO2/kWh.",
         "<b>System Performance Ratio:</b> 75% standard derate accounting for inverter efficiency, temperature derating, soiling, and cabling.",
         "<b>Disclaimer:</b> This report represents a preliminary decision-support assessment and screening tool. "

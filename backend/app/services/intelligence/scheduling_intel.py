@@ -31,7 +31,7 @@ def calculate_activity_shift_benefit(
         min_start = earliest_hour
         max_start = min_start
 
-    best_start = preferred_hour
+    best_start = min(max_start, max(min_start, preferred_hour))
     best_absorbed = 0.0
 
     for start_h in range(min_start, max_start + 1):
@@ -46,7 +46,7 @@ def calculate_activity_shift_benefit(
             best_start = start_h
 
     # Value: grid avoidance (tariff) minus lost export credit
-    marginal_value = max(1.0, tariff_inr - export_tariff_inr)
+    marginal_value = max(0.0, tariff_inr - export_tariff_inr)
     annual_gain_inr = best_absorbed * 260.0 * marginal_value # 260 operating days
 
     return {

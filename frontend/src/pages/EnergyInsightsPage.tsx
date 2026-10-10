@@ -11,6 +11,7 @@ import {
   formatCO2,
 } from '../utils/formatters';
 import {
+  Activity,
   BarChart3,
   Sun,
   Zap,
@@ -105,83 +106,91 @@ export const EnergyInsightsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8 pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#E5EAE7] shadow-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
         <div>
-          <h2 className="text-lg font-bold text-[#17231F] flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-emerald-600" />
-            <span>Solar Surplus & Diurnal Energy Insights</span>
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-slate-700" />
+              <span>Solar Surplus & Diurnal Energy Balance</span>
+            </h2>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+              uploadResult
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                : 'bg-slate-100 text-slate-700 border-slate-200'
+            }`}>
+              {uploadResult ? 'Mode A: Ingested Meter Data' : 'Mode B: Archetype Synthesis'}
+            </span>
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Analyze hourly generation-demand coincidence and detect surplus windows for smart scheduling.
+            Hourly generation-demand coincidence analysis, peak surplus windows, and 12-month facility self-consumption.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowUploadModal(true)}
-            className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-xs transition-colors"
+            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
-            <UploadCloud className="w-4 h-4 text-emerald-600" />
-            <span>Upload Demand CSV (Mode A)</span>
+            <UploadCloud className="w-3.5 h-3.5 text-slate-500" />
+            <span>Upload Demand CSV</span>
           </button>
           <button
             onClick={() => navigate('/scheduling')}
-            className="px-4 py-2 bg-[#123C32] hover:bg-[#0B251F] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors"
+            className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
           >
-            <span>Configure Load Shifting</span>
-            <ArrowRight className="w-4 h-4" />
+            <span>Proceed to Scheduling</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
       {loading && (
-        <div className="p-12 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
-          <Sun className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-2" />
-          <div className="text-xs font-semibold">Modeling diurnal solar curves and campus load curves...</div>
+        <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200 text-xs">
+          Modeling diurnal solar curves and campus load curves…
         </div>
       )}
 
       {insights && !loading && (
         <>
-          {/* Top KPI Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-            <div className="bg-white p-4 rounded-2xl border border-[#E5EAE7] shadow-xs">
+          {/* Top 5 Metrics Strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <span className="text-[11px] text-slate-500 block">Annual Solar Output</span>
-              <strong className="text-base font-extrabold text-[#123C32]">
+              <strong className="text-base font-bold text-slate-900 tabular-nums">
                 {formatEnergy(insights.total_annual_generation_kwh)}
               </strong>
-              <div className="text-[10px] text-emerald-600 mt-0.5">From {formatPower(insights.total_capacity_kwp)} PV</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">From {formatPower(insights.total_capacity_kwp)} array</div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-[#E5EAE7] shadow-xs">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <span className="text-[11px] text-slate-500 block">Campus Demand Offset</span>
-              <strong className="text-base font-extrabold text-emerald-700">
+              <strong className="text-base font-bold text-emerald-700 tabular-nums">
                 {formatPct(insights.grid_offset_pct)}
               </strong>
               <div className="text-[10px] text-slate-500 mt-0.5">Direct grid displacement</div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-[#E5EAE7] shadow-xs">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <span className="text-[11px] text-slate-500 block">Annual Bill Reduction</span>
-              <strong className="text-base font-extrabold text-emerald-700">
+              <strong className="text-base font-bold text-emerald-700 tabular-nums">
                 {formatINR(insights.total_annual_savings_inr)}
               </strong>
               <div className="text-[10px] text-slate-500 mt-0.5">Displaced tariff savings</div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-[#E5EAE7] shadow-xs">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
               <span className="text-[11px] text-slate-500 block">Potential Solar Surplus</span>
-              <strong className="text-base font-extrabold text-amber-600">
+              <strong className="text-base font-bold text-amber-700 tabular-nums">
                 {formatEnergy(insights.total_surplus_kwh)}
               </strong>
-              <div className="text-[10px] text-slate-500 mt-0.5">Export / shiftable load</div>
+              <div className="text-[10px] text-slate-500 mt-0.5">Export / flexible load</div>
             </div>
 
-            <div className="bg-white p-4 rounded-2xl border border-[#E5EAE7] shadow-xs col-span-2 sm:col-span-1">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs col-span-2 sm:col-span-1">
               <span className="text-[11px] text-slate-500 block">Avoided Emissions</span>
-              <strong className="text-base font-extrabold text-[#123C32]">
+              <strong className="text-base font-bold text-slate-900 tabular-nums">
                 {formatCO2(insights.avoided_co2_kg_annual)}
               </strong>
               <div className="text-[10px] text-slate-500 mt-0.5">CEA grid factor</div>
@@ -189,12 +198,12 @@ export const EnergyInsightsPage: React.FC = () => {
           </div>
 
           {/* Diurnal 24-Hour Solar Generation vs Campus Demand Area Chart */}
-          <div className="bg-white rounded-2xl border border-[#E5EAE7] p-6 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-sm font-bold text-[#123C32] flex items-center gap-2">
-                  <Sun className="w-4 h-4 text-emerald-600" />
-                  <span>Diurnal Solar Generation vs Campus Load Profile (Typical Day)</span>
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Sun className="w-4 h-4 text-amber-500" />
+                  <span>Diurnal Solar Generation vs Campus Demand (Typical Day)</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Illustrates the coincidence between midday solar production and institutional operations.
@@ -202,49 +211,49 @@ export const EnergyInsightsPage: React.FC = () => {
               </div>
 
               {/* Peak solar window badge */}
-              <div className="flex items-center gap-2 bg-amber-50 border border-amber-200/80 px-3 py-1.5 rounded-xl text-xs text-amber-900 font-semibold">
-                <Clock className="w-4 h-4 text-amber-600" />
-                <span>Peak Surplus Window: {insights.peak_solar_window}</span>
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-md text-xs text-slate-700">
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <span>Peak Surplus Window: <strong className="text-slate-900">{insights.peak_solar_window}</strong></span>
               </div>
             </div>
 
             <div className="h-80 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={insights.hourly_profile} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="time_label" tick={{ fontSize: 10 }} interval={2} />
-                  <YAxis tick={{ fontSize: 11 }} label={{ value: 'kW Power', angle: -90, position: 'insideLeft', fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="2 2" stroke="#F1F5F9" vertical={false} />
+                  <XAxis dataKey="time_label" tick={{ fontSize: 10, fill: '#64748B' }} stroke="#CBD5E1" interval={2} />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} stroke="#CBD5E1" label={{ value: 'kW Power', angle: -90, position: 'insideLeft', fontSize: 11, fill: '#64748B' }} />
                   <Tooltip
                     formatter={(val: any) => [`${val} kW`]}
-                    contentStyle={{ fontSize: '12px', borderRadius: '8px' }}
+                    contentStyle={{ fontSize: '12px', borderRadius: '6px', border: '1px solid #E2E8F0' }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                   <Area
                     type="monotone"
                     dataKey="solar_generation_kw"
                     name="Solar Generation (kW)"
-                    stroke="#10B981"
-                    fill="#10B981"
-                    fillOpacity={0.25}
-                    strokeWidth={2}
+                    stroke="#059669"
+                    fill="#059669"
+                    fillOpacity={0.15}
+                    strokeWidth={1.5}
                   />
                   <Area
                     type="monotone"
                     dataKey="electricity_demand_kw"
                     name="Campus Demand (kW)"
-                    stroke="#64748B"
-                    fill="#64748B"
-                    fillOpacity={0.15}
-                    strokeWidth={2}
+                    stroke="#475569"
+                    fill="#475569"
+                    fillOpacity={0.1}
+                    strokeWidth={1.5}
                   />
                   <Area
                     type="monotone"
                     dataKey="solar_surplus_kw"
                     name="Solar Surplus (kW)"
-                    stroke="#F5B942"
-                    fill="#F5B942"
-                    fillOpacity={0.35}
-                    strokeWidth={2}
+                    stroke="#D97706"
+                    fill="#D97706"
+                    fillOpacity={0.2}
+                    strokeWidth={1.5}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -252,34 +261,34 @@ export const EnergyInsightsPage: React.FC = () => {
           </div>
 
           {/* 12-Month Seasonal Demand vs Generation */}
-          <div className="bg-white rounded-2xl border border-[#E5EAE7] p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-[#123C32] flex items-center gap-2 border-b border-slate-100 pb-3">
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
+              <TrendingUp className="w-4 h-4 text-slate-500" />
               <span>12-Month Seasonal Energy Balance (kWh / Month)</span>
             </h3>
 
             <div className="h-72 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={insights.monthly_trends} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="2 2" stroke="#F1F5F9" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748B' }} stroke="#CBD5E1" />
+                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} stroke="#CBD5E1" />
                   <Tooltip
                     formatter={(val: any) => [`${Number(val).toLocaleString()} kWh`]}
-                    contentStyle={{ fontSize: '12px', borderRadius: '8px' }}
+                    contentStyle={{ fontSize: '12px', borderRadius: '6px', border: '1px solid #E2E8F0' }}
                   />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="solar_generation_kwh" name="Solar Gen (kWh)" fill="#10B981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="electricity_demand_kwh" name="Campus Demand (kWh)" fill="#475569" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="onsite_solar_kwh" name="Self-Consumed (kWh)" fill="#059669" radius={[4, 4, 0, 0]} />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Bar dataKey="solar_generation_kwh" name="Solar Output (kWh)" fill="#059669" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="electricity_demand_kwh" name="Facility Demand (kWh)" fill="#475569" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="onsite_solar_kwh" name="Self-Consumed (kWh)" fill="#0D9488" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Building-by-Building Portfolio Energy Table */}
-          <div className="bg-white rounded-2xl border border-[#E5EAE7] p-6 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-[#123C32] border-b border-slate-100 pb-3">
+          <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
               Facility-by-Facility Solar Energy Balance
             </h3>
 
@@ -287,7 +296,7 @@ export const EnergyInsightsPage: React.FC = () => {
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200">
                   <tr>
-                    <th className="py-2.5 px-3">Building Name</th>
+                    <th className="py-2.5 px-3">Facility Name</th>
                     <th className="py-2.5 px-3">Category</th>
                     <th className="py-2.5 px-3 text-right">Solar Cap</th>
                     <th className="py-2.5 px-3 text-right">Annual Gen</th>
@@ -299,21 +308,21 @@ export const EnergyInsightsPage: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {insights.building_comparisons.map((b) => (
                     <tr key={b.building_id} className="hover:bg-slate-50/60">
-                      <td className="py-2.5 px-3 font-bold text-[#123C32]">{b.building_name}</td>
+                      <td className="py-2.5 px-3 font-semibold text-slate-900">{b.building_name}</td>
                       <td className="py-2.5 px-3 text-slate-500">{b.category}</td>
-                      <td className="py-2.5 px-3 text-right font-medium text-emerald-700">
+                      <td className="py-2.5 px-3 text-right text-slate-900 tabular-nums">
                         {formatPower(b.allocated_capacity_kwp)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-medium text-slate-800">
+                      <td className="py-2.5 px-3 text-right text-slate-900 tabular-nums">
                         {formatEnergy(b.annual_generation_kwh)}
                       </td>
-                      <td className="py-2.5 px-3 text-right text-slate-600">
+                      <td className="py-2.5 px-3 text-right text-slate-600 tabular-nums">
                         {formatEnergy(b.annual_demand_kwh)}
                       </td>
-                      <td className="py-2.5 px-3 text-right font-semibold text-emerald-800">
+                      <td className="py-2.5 px-3 text-right font-semibold text-emerald-800 tabular-nums">
                         {b.solar_fraction_pct.toFixed(1)}%
                       </td>
-                      <td className="py-2.5 px-3 text-right font-bold text-emerald-700">
+                      <td className="py-2.5 px-3 text-right font-bold text-emerald-700 tabular-nums">
                         {formatINR(b.annual_savings_inr)}
                       </td>
                     </tr>
@@ -324,10 +333,10 @@ export const EnergyInsightsPage: React.FC = () => {
           </div>
 
           {/* Scientific Notice */}
-          <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-start gap-2.5">
-            <Info className="w-4 h-4 text-slate-500 flex-shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <strong>Data Provenance Disclosure:</strong>
+          <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-600 flex items-start gap-2.5">
+            <Info className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <strong className="text-slate-800 font-semibold">Data Provenance Disclosure:</strong>
               <p className="text-[11px] leading-relaxed">
                 {insights.data_origin_notice}
               </p>

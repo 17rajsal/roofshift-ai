@@ -120,20 +120,24 @@ async def update_building(building_id: str, data: BuildingUpdate, db: Session = 
     if not b:
         raise HTTPException(status_code=404, detail="Building not found")
 
-    update_dict = data.model_dump(exclude_unset=True)
-    for key, value in update_dict.items():
-        setattr(b, key, value)
+    try:
+        update_dict = data.model_dump(exclude_unset=True)
+        for key, value in update_dict.items():
+            setattr(b, key, value)
 
-    db.commit()
-    db.refresh(b)
-
-    # Re-calculate solar potential
-    project = db.query(Project).filter(Project.id == b.project_id).first()
-    if project:
-        await calculate_building_solar_potential(b, project, db)
+        db.commit()
         db.refresh(b)
 
-    return build_building_response(b)
+        # Re-calculate solar potential
+        project = db.query(Project).filter(Project.id == b.project_id).first()
+        if project:
+            await calculate_building_solar_potential(b, project, db)
+            db.refresh(b)
+
+        return build_building_response(b)
+    except Exception:
+        db.rollback()
+        raise
 
 @router.delete("/buildings/{building_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_building(building_id: str, db: Session = Depends(get_db)):
@@ -152,13 +156,18 @@ async def duplicate_building(building_id: str, db: Session = Depends(get_db)):
 
     project = db.query(Project).filter(Project.id == src.project_id).first()
 
+    new_lat = src.latitude + 0.0003 if src.latitude <= 89.999 else src.latitude - 0.0003
+    new_lon = src.longitude + 0.0003 if src.longitude <= 179.999 else src.longitude - 0.0003
+    new_lat = max(-90.0, min(90.0, new_lat))
+    new_lon = max(-180.0, min(180.0, new_lon))
+
     clone_b = Building(
         project_id=src.project_id,
         name=f"{src.name} (Copy)",
         category=src.category,
         address=src.address,
-        latitude=src.latitude + 0.0003, # slight offset on map
-        longitude=src.longitude + 0.0003,
+        latitude=new_lat,
+        longitude=new_lon,
         gross_roof_area=src.gross_roof_area,
         usable_roof_percentage=src.usable_roof_percentage,
         shading_category=src.shading_category,
