@@ -13,7 +13,24 @@ import {
   SystemIntegrationsResponse
 } from '../types/models';
 
-const API_BASE = '/api/v1';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
+
+export function resolveReportUrl(url: string): string {
+  return new URL(url, new URL(`${API_BASE}/`, window.location.origin)).href;
+}
+
+async function responseError(res: Response): Promise<Error> {
+  const body = await res.text();
+  let detail: unknown;
+  try {
+    const parsed = JSON.parse(body);
+    detail = parsed.detail || parsed.message;
+  } catch { /* Non-JSON server failures get a readable fallback. */ }
+  if (Array.isArray(detail)) {
+    detail = detail.map(item => `${(item.loc || []).filter((part: string) => part !== 'body').join('.')}: ${item.msg}`).join('; ');
+  }
+  return new Error(typeof detail === 'string' ? detail : `Request failed (${res.status}). Please try again.`);
+}
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
@@ -25,18 +42,11 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    let errorDetail = 'API Request failed';
-    try {
-      const err = await res.json();
-      errorDetail = err.detail || err.message || errorDetail;
-    } catch {
-      errorDetail = await res.text();
-    }
-    throw new Error(errorDetail);
+    throw await responseError(res);
   }
 
   if (res.status === 204) {
-    return {} as T;
+    return undefined as T;
   }
 
   return res.json();
@@ -198,12 +208,7 @@ export const api = {
       body: formData,
     });
     if (!res.ok) {
-      let errorDetail = 'CSV upload failed';
-      try {
-        const err = await res.json();
-        errorDetail = err.detail || err.message || errorDetail;
-      } catch {}
-      throw new Error(errorDetail);
+      throw await responseError(res);
     }
     return res.json();
   },

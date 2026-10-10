@@ -46,12 +46,14 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
     try {
       setLoading(true);
       setError(null);
+      const matches = await api.searchLocation(city.trim());
+      if (!matches.length) throw new Error('Choose a city that can be located on the map.');
       await createProject({
-        name,
-        organization_name: organization || name,
+        name: name.trim(),
+        organization_name: organization.trim() || name.trim(),
         city,
-        latitude,
-        longitude,
+        latitude: matches[0].lat,
+        longitude: matches[0].lon,
         budget,
         tariff_rate: tariff,
         export_tariff: exportTariff,
@@ -66,14 +68,14 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div role="dialog" aria-modal="true" aria-label="Create new solar planning project" className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-lg max-h-[90vh] overflow-y-auto w-full shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
         <div className="px-6 py-4 bg-[#123C32] text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Building2 className="w-5 h-5 text-[#F5B942]" />
             <h2 className="text-base font-bold text-white">Create New Solar Planning Project</h2>
           </div>
-          <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded-md transition-colors">
+          <button onClick={onClose} aria-label="Close new project form" className="text-slate-300 hover:text-white p-1 rounded-md transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -133,7 +135,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
               <input
                 type="number"
                 min="10000"
-                step="50000"
+                step="1000"
                 required
                 value={budget}
                 onChange={(e) => setBudget(Number(e.target.value))}
@@ -144,7 +146,7 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
               <label className="block text-xs font-semibold text-slate-700 mb-1">Grid Tariff (₹ / kWh) *</label>
               <input
                 type="number"
-                step="0.1"
+                step="0.01"
                 min="1.0"
                 required
                 value={tariff}

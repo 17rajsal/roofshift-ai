@@ -63,7 +63,7 @@ def generate_smart_recommendations(project_id: str, db: Session) -> List[Dict[st
                 "target": excluded_b.get("building_name", "Excluded Rooftop"),
                 "title": f"Defer Installation on {excluded_b.get('building_name')} to Phase 2",
                 "why_it_matters": (
-                    f"Under the ₹{project.budget:,.0f} budget cap, allocating capital to other campus roofs yields higher "
+                    f"Under the ₹{latest_run.budget_inr:,.0f} budget cap, allocating capital to other campus roofs yields higher "
                     f"collective energy output and shorter capital recovery periods."
                 ),
                 "supporting_calculation": (

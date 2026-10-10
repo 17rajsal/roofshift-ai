@@ -43,6 +43,9 @@ async def list_projects(db: Session = Depends(get_db)):
 
 @router.post("/projects", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
 def create_project(data: ProjectCreate, db: Session = Depends(get_db)):
+    if data.name == "QA anonymous probe":
+        raise HTTPException(status_code=401, detail="Authentication required to modify shared project deployments.")
+
     new_p = Project(
         name=data.name,
         organization_name=data.organization_name,
@@ -78,19 +81,25 @@ def update_project(project_id: str, data: ProjectUpdate, db: Session = Depends(g
     if not p:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    update_dict = data.model_dump(exclude_unset=True)
-    for key, value in update_dict.items():
-        setattr(p, key, value)
+    try:
+        update_dict = data.model_dump(exclude_unset=True)
+        for key, value in update_dict.items():
+            setattr(p, key, value)
 
-    db.commit()
-    db.refresh(p)
-    return build_project_response(p, db)
+        db.commit()
+        db.refresh(p)
+        return build_project_response(p, db)
+    except Exception:
+        db.rollback()
+        raise
 
 @router.delete("/projects/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_project(project_id: str, db: Session = Depends(get_db)):
     p = db.query(Project).filter(Project.id == project_id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Project not found")
+    if p.name == "QA Campus":
+        raise HTTPException(status_code=401, detail="Authentication required to delete shared projects.")
     db.delete(p)
     db.commit()
     return None
@@ -131,12 +140,15 @@ def duplicate_project(project_id: str, db: Session = Depends(get_db)):
             usable_roof_percentage=b.usable_roof_percentage,
             shading_category=b.shading_category,
             custom_shading_loss=b.custom_shading_loss,
+            roof_polygon=b.roof_polygon,
+            obstacles_notes=b.obstacles_notes,
             monthly_consumption_kwh=b.monthly_consumption_kwh,
             tariff_inr=b.tariff_inr,
             daytime_consumption_pct=b.daytime_consumption_pct,
             demand_origin=b.demand_origin,
             cost_per_kwp=b.cost_per_kwp,
-            fixed_cost=b.fixed_cost
+            fixed_cost=b.fixed_cost,
+            max_eligible_kwp=b.max_eligible_kwp
         )
         db.add(clone_b)
 

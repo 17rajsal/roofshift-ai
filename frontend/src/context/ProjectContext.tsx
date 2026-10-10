@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Project } from '../types/models';
 import { api } from '../services/api';
 
@@ -14,42 +14,47 @@ interface ProjectContextType {
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
+const ACTIVE_PROJECT_KEY = 'roofshift.activeProjectId';
+
+function storedProjectId(): string | null {
+  try { return localStorage.getItem(ACTIVE_PROJECT_KEY); } catch { return null; }
+}
 
 export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [activeProject, updateActiveProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refreshProjects = async () => {
+  const requestVersion = useRef(0);
+  const setActiveProject = useCallback((project: Project) => updateActiveProject(project), []);
+
+  const refreshProjects = useCallback(async () => {
+    const version = ++requestVersion.current;
     try {
       setLoading(true);
       setError(null);
       const list = await api.getProjects();
+      if (version !== requestVersion.current) return;
       setProjects(list);
-      if (list.length > 0) {
-        // Keep active or set to first (prefer demo if available)
-        if (!activeProject || !list.find(p => p.id === activeProject.id)) {
-          const demo = list.find(p => p.is_demo === 'true') || list[0];
-          setActiveProject(demo);
-        } else {
-          const updated = list.find(p => p.id === activeProject.id);
-          if (updated) setActiveProject(updated);
-        }
-      }
+      updateActiveProject(current =>
+        list.find(p => p.id === (current?.id || storedProjectId()))
+        || list.find(p => p.is_demo === 'true') || list[0] || null
+      );
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch projects');
+      if (version === requestVersion.current) setError(err.message || 'Failed to fetch projects');
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
-  };
+  }, []);
 
   const loadDemoProject = async () => {
     try {
       setLoading(true);
+      setError(null);
       const demo = await api.seedDemoProject();
-      await refreshProjects();
       setActiveProject(demo);
+      await refreshProjects();
     } catch (err: any) {
       setError(err.message || 'Failed to load demo project');
     } finally {
@@ -59,14 +64,19 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const createProject = async (data: Partial<Project>): Promise<Project> => {
     const created = await api.createProject(data);
-    await refreshProjects();
     setActiveProject(created);
+    await refreshProjects();
     return created;
   };
 
   useEffect(() => {
     refreshProjects();
-  }, []);
+  }, [refreshProjects]);
+
+  useEffect(() => {
+    if (!activeProject) return;
+    try { localStorage.setItem(ACTIVE_PROJECT_KEY, activeProject.id); } catch { /* Private browsing can disable storage. */ }
+  }, [activeProject?.id]);
 
   return (
     <ProjectContext.Provider

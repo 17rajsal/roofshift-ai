@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { Building, SolarAnalysisFull } from '../types/models';
@@ -41,7 +41,7 @@ import {
 
 export const BuildingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { activeProject } = useProject();
+  const { activeProject, refreshProjects } = useProject();
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
   const [detailedAnalysis, setDetailedAnalysis] = useState<SolarAnalysisFull | null>(null);
@@ -49,37 +49,45 @@ export const BuildingsPage: React.FC = () => {
   const [editingBuilding, setEditingBuilding] = useState<Building | null>(null);
   const [loading, setLoading] = useState(false);
   const [recalculatingId, setRecalculatingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const analysisRequest = useRef(0);
 
   const fetchBuildings = async () => {
     if (!activeProject) return;
     try {
       setLoading(true);
+      setError(null);
       const list = await api.getBuildings(activeProject.id);
       setBuildings(list);
       if (list.length > 0) {
-        const targetId = selectedBuildingId || list[0].id;
+        const targetId = list.find(building => building.id === selectedBuildingId)?.id || list[0].id;
         setSelectedBuildingId(targetId);
         loadBuildingAnalysis(targetId);
+      } else {
+        setSelectedBuildingId(null);
+        setDetailedAnalysis(null);
       }
     } catch (err) {
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not load buildings.');
     } finally {
       setLoading(false);
     }
   };
 
   const loadBuildingAnalysis = async (buildingId: string) => {
+    const version = ++analysisRequest.current;
+    setDetailedAnalysis(null);
     try {
       const data = await api.getSolarAnalysis(buildingId);
-      setDetailedAnalysis(data);
+      if (version === analysisRequest.current) setDetailedAnalysis(data);
     } catch (err) {
-      console.error(err);
+      if (version === analysisRequest.current) setError(err instanceof Error ? err.message : 'Could not load solar analysis.');
     }
   };
 
   useEffect(() => {
     fetchBuildings();
-  }, [activeProject]);
+  }, [activeProject?.id]);
 
   const handleSelectBuilding = (id: string) => {
     setSelectedBuildingId(id);
@@ -109,6 +117,7 @@ export const BuildingsPage: React.FC = () => {
       await api.deleteBuilding(b.id);
       if (selectedBuildingId === b.id) setSelectedBuildingId(null);
       await fetchBuildings();
+      await refreshProjects();
     } catch (err) {
       console.error(err);
     }
@@ -119,6 +128,7 @@ export const BuildingsPage: React.FC = () => {
     try {
       await api.duplicateBuilding(b.id);
       await fetchBuildings();
+      await refreshProjects();
     } catch (err) {
       console.error(err);
     }
@@ -128,6 +138,7 @@ export const BuildingsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div>}
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#E5EAE7] shadow-xs">
         <div>
@@ -357,6 +368,7 @@ export const BuildingsPage: React.FC = () => {
           building={editingBuilding}
           projectId={activeProject.id}
           onSaved={() => {
+            void refreshProjects();
             fetchBuildings();
           }}
         />

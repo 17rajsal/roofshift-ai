@@ -1,20 +1,23 @@
 # RoofShift AI — API Contracts & Integration Guide
-**Version:** 2.0.0-PROD  
-**Team:** TEAM DRX  
-**Primary Application Branch:** `antigravity/core-app`  
-**Parallel QA/CI Branch:** `codex/qa-ci`  
+**Version:** 2.0.0-PROD
+**Team:** TEAM DRX
+**Primary Application Branch:** `antigravity/core-app`
+**Advanced Engines Branch:** `codex/advanced-engines`
+**Solar Feature Expansion Branch:** `codex/solar-feature-expansion`
 
 ---
 
 ## 1. Parallel Development Protocols & Ownership Matrix
 
-To ensure clean, non-conflicting parallel development between Antigravity (App Developer) and Codex (Independent QA / CI):
+The team update of 10 October 2026 assigns complex backend engines to Codex. Application work continues on the current branch, with engine delivery reviewed from an isolated `codex/advanced-engines` checkout. See [ENGINE_HANDOFF.md](ENGINE_HANDOFF.md) for integration and verification requirements.
 
 | Area | Primary Owner | Branch | Boundary Rules |
 |------|---------------|--------|----------------|
-| **Core Application Code** (`frontend/src/`, `backend/app/`, `infrastructure/`) | **Antigravity** | `antigravity/core-app` | Codex should treat app interfaces as the source of truth to test against. |
-| **Independent QA & CI** (`.github/workflows/`, performance checks, audit docs) | **Codex** | `codex/qa-ci` | Antigravity will NOT modify or overwrite Codex workflows or QA scripts. |
-| **Shared Contracts** (`API_CONTRACTS.md`, `requirements.txt`, `package.json`) | **Coordinated** | PR-based | Maintained to guarantee stable API interfaces for automated tests. |
+| **Application** (`frontend/`, backend API routes, persistence, report presentation, geospatial/storage adapters, `infrastructure/`, AWS configuration) | **App developer** | `antigravity/core-app` | Preserve working features; call engines through the contracts below. |
+| **Advanced Engines** (`backend/app/services/{optimization,energy,scheduling,solar,intelligence}/`, future finance/panel intelligence services, `aws/lambda/solar_processor.py`) | **Codex** | `codex/advanced-engines` | Application work must not edit these modules while engine work is in progress. |
+| **Engine Tests** (existing optimizer/solar acceptance tests and new engine tests) | **Codex** | `codex/advanced-engines` | Deliver tested changes and identify numerical behavior changes. |
+| **Nine Solar Features and Expanded PDFs** (location finder, prediction, faults, monitoring, demand, costs/savings, environmental impact, maintenance, expanded reports) | **Codex** | `codex/solar-feature-expansion` | Freeze independent rewrites of overlapping feature modules until tested branch review. Preserve existing budget, surplus, and scheduling behavior. |
+| **Shared Contracts** (this document, Pydantic schemas, ORM models, dependencies) | **Coordinated** | Review before integration | Keep current fields/units compatible; propose additive schema changes explicitly. |
 
 ---
 
@@ -227,10 +230,10 @@ To ensure clean, non-conflicting parallel development between Antigravity (App D
 
 ---
 
-### 3.4 Budget Optimization (OR-Tools & Knapsack)
+### 3.4 Budget Optimization
 
 #### `POST /api/v1/projects/{project_id}/optimize`
-- **Description:** Runs Multiple-Choice Knapsack & OR-Tools CP-SAT optimization across candidate buildings under budget constraint.
+- **Description:** Runs the project optimization service under the budget constraint. The response reports the actual `solver_method`; callers must not assume a specific solver implementation.
 - **Request Body:**
 ```json
 {
@@ -246,35 +249,50 @@ To ensure clean, non-conflicting parallel development between Antigravity (App D
 - **Response `200 OK`:**
 ```json
 {
-  "id": "opt-uuid",
+  "run_id": "opt-uuid",
   "project_id": "proj-uuid",
   "scenario_name": "Optimal Plan - ₹10L",
   "budget_inr": 1000000.0,
   "objective": "MAXIMIZE_SAVINGS",
   "total_allocated_inr": 950000.0,
-  "unallocated_budget_inr": 50000.0,
+  "remaining_budget_inr": 50000.0,
   "total_capacity_kwp": 19.0,
   "total_annual_generation_kwh": 28350.0,
   "total_annual_savings_inr": 235450.0,
-  "total_avoided_co2_kg": 20298.6,
+  "total_onsite_consumed_kwh": 25000.0,
+  "total_exported_kwh": 3350.0,
+  "overall_payback_years": 4.03,
+  "avoided_co2_kg_annual": 20298.6,
+  "solver_method": "Multiple-Choice Knapsack (Dynamic Programming)",
+  "created_at": "2026-10-10T10:00:00",
   "allocations": [
     {
       "building_id": "b-uuid",
       "building_name": "Library Block",
-      "allocated_capacity_kwp": 10.0,
-      "max_possible_capacity_kwp": 10.0,
-      "allocation_pct": 100.0,
-      "allocated_cost_inr": 500000.0,
-      "annual_generation_kwh": 14920.0,
-      "annual_savings_inr": 126820.0,
-      "selection_status": "SELECTED_FULL"
+      "category": "Academic",
+      "recommended_capacity_kwp": 10.0,
+      "max_capacity_kwp": 10.0,
+      "capacity_utilization_pct": 100.0,
+      "estimated_cost_inr": 500000.0,
+      "expected_annual_generation_kwh": 14920.0,
+      "expected_annual_savings_inr": 126820.0,
+      "expected_onsite_consumed_kwh": 14920.0,
+      "expected_exported_kwh": 0.0,
+      "payback_years": 3.94,
+      "is_selected": true,
+      "prioritization_score": 1.0,
+      "decision_reasons": ["Illustrative allocation; values are calculated by the engine."],
+      "shade_impact_summary": "Low shading",
+      "demand_support_summary": "Daytime demand supports onsite consumption"
     }
   ],
   "baseline_comparison": {
-    "greedy_cost_inr": 1000000.0,
-    "greedy_capacity_kwp": 20.0,
-    "greedy_savings_inr": 205200.0,
-    "knapsack_savings_inr": 235450.0,
+    "baseline_allocated_inr": 1000000.0,
+    "baseline_capacity_kwp": 20.0,
+    "baseline_generation_kwh": 29000.0,
+    "baseline_savings_inr": 205200.0,
+    "baseline_allocations": [],
+    "savings_lift_inr": 30250.0,
     "savings_lift_pct": 14.74,
     "methodology_note": "Dynamic programming knapsack avoids low-yield over-allocation and prioritizes high-tariff daytime coincidence."
   }
@@ -353,6 +371,8 @@ To ensure clean, non-conflicting parallel development between Antigravity (App D
 ```
 - **Response `201 Created`:** `ReportResponse`.
 
+When `include_load_shifting` is true and activities exist, the report API calls the existing `optimize_energy_scheduling(project_id, db)` interface and renders its `SchedulingOptimizationResponse`. PDF presentation must not invent an operating window or treat an activity's full session demand as absorbed solar. The report generator accepts this result through its optional `scheduling_result` argument; direct callers without a result display "Not calculated".
+
 #### `GET /api/v1/reports/{report_id}/download`
 - **Description:** Streams or redirects to the generated PDF binary (`application/pdf`).
 
@@ -360,29 +380,35 @@ To ensure clean, non-conflicting parallel development between Antigravity (App D
 
 ## 4. Deterministic Intelligence Interface Signatures
 
-All components reside in `backend/app/services/intelligence/`:
+The production API currently calls these service functions. Preserve their signatures and schema return types, or provide a compatible adapter in the engine delivery:
 
 ```python
-# Component A: Solar Potential
-from app.services.intelligence.solar_intel import calculate_building_solar_potential
-# async def calculate_building_solar_potential(building: Building, project: Project, db: Session, ...) -> SolarAnalysis
+from app.services.solar.solar_engine import calculate_building_solar_potential
+# async (building: Building, project: Project, db: Session,
+#        area_per_kwp: float = 8.0, performance_ratio: float = 0.75,
+#        override_capacity_kwp: Optional[float] = None) -> SolarAnalysis
 
-# Component B: Investment Optimization
-from app.services.intelligence.investment_intel import solve_budget_optimization
-# def solve_budget_optimization(building_options: List[List[Dict[str, Any]]], budget: float, objective: str = "MAXIMIZE_SAVINGS") -> Tuple[List[Dict[str, Any]], float]
+from app.services.optimization.optimizer_service import run_project_optimization
+# async (project_id: str, request: OptimizeRequest, db: Session) -> OptimizationRunResponse
 
-# Component C: Scheduling & Load Shifting
-from app.services.intelligence.scheduling_intel import optimize_load_shifting
-# async def optimize_load_shifting(project_id: str, db: Session) -> SchedulingOptimizationResponse
+from app.services.optimization.budget_solver import solve_multiple_choice_knapsack
+# (building_options: List[List[Dict[str, Any]]], budget: float, objective: str)
+#     -> Tuple[List[Dict[str, Any]], float]
 
-# Component D: Explanations
-from app.services.intelligence.explanation_intel import generate_building_rationales
-# def generate_building_rationales(project: Project, buildings: List[Building], latest_run: Optional[OptimizationRun]) -> List[Dict[str, Any]]
+from app.services.energy.surplus_analyzer import analyze_project_energy_surplus
+# async (project_id: str, db: Session) -> EnergyInsightsResponse
 
-# Component E: ML Demand Estimation
-from app.services.intelligence.ml_demand_estimator import estimate_hourly_demand_profile
-# def estimate_hourly_demand_profile(category: str, monthly_consumption_kwh: float, daytime_pct: float) -> List[float]
+from app.services.scheduling.load_shifter import optimize_energy_scheduling
+# async (project_id: str, db: Session) -> SchedulingOptimizationResponse
 ```
+
+The optional `intelligence` package exports `compute_solar_potential`, `solve_with_ortools_knapsack`, `calculate_activity_shift_benefit`, `explain_building_allocation`, and `estimate_hourly_load_profile`. These are separate helper interfaces; the API does not automatically use them. Route wiring must be explicitly reviewed and tested when integrating engine changes.
+
+The canonical wire schemas are in `backend/app/schemas/` and the matching client types in `frontend/src/types/models.ts`. Monetary values are INR, capacity is kWp, instantaneous profiles are kW, energy totals are kWh, and CO2 is kg. `usable_fraction` in the existing solar helper means a percentage from 0 to 100 despite its name. Existing timestamps without a timezone suffix represent UTC. The nine new feature APIs are pending Codex's tested contract delivery; do not infer endpoints or rewrite feature implementations before review.
+
+Building outlines are stored in `roof_polygon` as unclosed arrays of `[latitude, longitude]` degree pairs. The application estimates map area and sends `gross_roof_area` in m². Engine modules consume the supplied area; they need not interpret Leaflet geometry. Existing buildings without outlines remain supported.
+
+For separately hosted frontends, set `VITE_API_BASE_URL` to the full API base (including `/api/v1`) before building. Default local and Docker deployments use same-origin `/api/v1` proxying. Report download URLs returned as root-relative paths must be resolved against the configured API origin.
 
 ---
 

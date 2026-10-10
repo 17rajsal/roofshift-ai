@@ -1,107 +1,61 @@
-# RoofShift AI — AWS Cloud Architecture & Deployment Guide
-**Team DRX** | **Environmental Hacks 2026 — WeMakeDevs × AWS (Track: Waste & Energy)**
+# RoofShift AI — AWS deployment
 
----
+The reviewed application can run as the existing Nginx frontend and FastAPI backend containers on EC2. Engine changes should be integrated from `codex/advanced-engines` before choosing the deployment ref; see `ENGINE_HANDOFF.md`.
 
-## 1. Cloud Architecture Overview
-
-RoofShift AI is engineered to deploy seamlessly on Amazon Web Services (AWS) using either **AWS EC2 (Docker Compose)** or **AWS ECS Fargate (Containerized Microservices)**.
-
-```
-                      Internet / Campus Users
-                                 │
-                                 ▼
-                     ┌───────────────────────┐
-                     │   AWS Route 53 / ALB  │
-                     │    (Port 80 / 443)    │
-                     └───────────┬───────────┘
-                                 │
-              ┌──────────────────┴──────────────────┐
-              ▼                                     ▼
-   ┌───────────────────────┐             ┌──────────────────────┐
-   │    Nginx Frontend     │             │    FastAPI Backend   │
-   │   (React Vite SPA)    │             │  (Python OR-Solver)  │
-   │     Port 80 / 3000    │──/api/v1/──▶│       Port 8000      │
-   └───────────────────────┘             └──────────┬───────────┘
-                                                    │
-                               ┌────────────────────┴────────────────────┐
-                               ▼                                         ▼
-                    ┌─────────────────────┐                   ┌─────────────────────┐
-                    │ NASA POWER Public   │                   │  Persistent Storage │
-                    │ Climatology API     │                   │  (EBS Volume / EFS) │
-                    └─────────────────────┘                   └─────────────────────┘
-```
-
----
-
-## 2. Option A: AWS EC2 One-Click Deployment (Recommended)
-
-### Prerequisites
-- AWS Account
-- EC2 Key Pair (optional for SSH)
-- AWS CLI configured or AWS Web Console access
-
-### Step 1: Launch EC2 Instance
-- **AMI:** Amazon Linux 2023 or Ubuntu 22.04 LTS
-- **Instance Type:** `t3.small` (2 vCPU, 2 GB RAM) or `t3.medium`
-- **Security Group Inbound Rules:**
-  - `HTTP (80)`: `0.0.0.0/0` (Web UI)
-  - `HTTPS (443)`: `0.0.0.0/0` (Secure SSL)
-  - `Custom TCP (8000)`: `0.0.0.0/0` (FastAPI Swagger Docs)
-  - `SSH (22)`: `My IP` (Administrative Access)
-- **Storage:** 25–30 GB gp3 root volume
-
-### Step 2: Run Deployment
-Connect to your EC2 instance via SSH or EC2 Instance Connect, and execute:
+## Local container verification
 
 ```bash
-# Clone the repository
-git clone https://github.com/Team-DRX/roofshift-ai.git /opt/roofshift-ai
-cd /opt/roofshift-ai
+docker compose config --quiet
+docker compose up -d --build --wait --wait-timeout 300
+curl -f http://localhost/api/v1/health
+```
 
-# Make deploy script executable and run
+Open `http://localhost` and verify projects, maps, optimization, and PDF downloads. API traffic uses the same-origin Nginx `/api/` proxy. The backend's published port is restricted to loopback for local diagnostics; no public port 8000 ingress is required. CSV requests are allowed up to 10 MB at the proxy, and long-running engine requests have a 180-second proxy timeout.
+
+## EC2 checkout deployment
+
+Use Amazon Linux 2023 or Ubuntu 22.04/24.04 with a reviewed checkout. The deployment script locates that checkout rather than assuming a separately populated `/opt/roofshift-ai` directory.
+
+```bash
 chmod +x infrastructure/aws/deploy-ec2.sh
 ./infrastructure/aws/deploy-ec2.sh
 ```
 
-### Step 3: Verification
-Open your browser and navigate to:
-- **Web Application:** `http://<YOUR-EC2-PUBLIC-IP>`
-- **API Swagger Documentation:** `http://<YOUR-EC2-PUBLIC-IP>:8000/docs`
-- **API Health Endpoint:** `http://<YOUR-EC2-PUBLIC-IP>:8000/api/v1/health`
+The script installs Docker and Compose when missing, validates Compose, starts both services, waits for container health, and checks the public application proxy. It uses `sudo docker` so a freshly changed group membership is unnecessary.
 
----
+## CloudFormation bootstrap
 
-## 3. Option B: CloudFormation Automated Provisioning
-
-Deploy the full VPC, Security Group, and EC2 instance via the AWS CLI:
+`cloudformation-template.yaml` provisions a VPC, public subnet, routes, security group, and x86 EC2 instance using the matching Amazon Linux 2023 x86 AMI. Supply an HTTPS Git repository reachable without private credentials and a reviewed branch or tag. Do not put credentials in the repository URL or template parameters.
 
 ```bash
 aws cloudformation create-stack \
   --stack-name roofshift-ai-stack \
   --template-body file://infrastructure/aws/cloudformation-template.yaml \
-  --parameters ParameterKey=InstanceType,ParameterValue=t3.small
+  --parameters \
+    ParameterKey=InstanceType,ParameterValue=t3.small \
+    ParameterKey=RepositoryUrl,ParameterValue=https://github.com/YOUR-ORG/YOUR-REPO.git \
+    ParameterKey=RepositoryRef,ParameterValue=YOUR-REVIEWED-BRANCH
 ```
 
----
+Bootstrap clones the selected ref, builds and launches the application, and checks health through Nginx. Bootstrap output is recorded at `/var/log/roofshift-bootstrap.log`. Stack creation confirms infrastructure provisioning; verify application health and the browser journey separately after startup. This template configures HTTP on port 80. HTTPS requires an additional TLS termination configuration.
 
-## 4. Environment Variables Configuration
+## Durable application data
 
-Create a `.env` file on the server:
+The existing named volumes are retained:
 
-```env
-DATABASE_URL=sqlite:///./roofshift.db
-REPORTS_DIR=/app/generated_reports
-NASA_POWER_BASE_URL=https://power.larc.nasa.gov/api/temporal/climatology/point
-```
+- `backend_data` mounts at `/data`. SQLite uses `/data/roofshift.db`, and meter uploads use `/data/uploaded_demand`.
+- `reports_data` retains its mount at `/app/generated_reports`.
 
----
+Previously `backend_data` mounted on `/app`, covering application code. The new mount exposes the same volume's existing database file at `/data/roofshift.db` while allowing updated image code to run. Do not delete or rename the existing volumes when updating. Back up the database and reports before a release. Volumes persist through container updates, but the EC2 root disk is configured for deletion when the instance is terminated; external backups remain necessary for that operation. See the [Docker volume documentation](https://docs.docker.com/engine/storage/volumes/).
 
-## 5. Cost Transparency on AWS
+Container build contexts exclude local databases, reports, uploaded meter files, dependency folders, and environment files. Optional cloud services still use the project's existing settings and fallback adapters; this stack does not provision every advertised integration.
 
-| AWS Service | Specification | Monthly Estimated Cost (Free Tier Eligible) |
-|---|---|---|
-| **Amazon EC2** | 1 × `t3.micro` or `t3.small` | ~$0.00 (Free Tier 750h) or ~$15.00/mo |
-| **Amazon EBS** | 30 GB gp3 storage | ~$2.40/mo |
-| **Data Transfer** | Outbound < 100 GB | ~$0.00 (Free Tier allowance) |
-| **Total** | | **~$0 – $18 / month** |
+## Separately hosted frontend
+
+For Amplify or another frontend host, set `VITE_API_BASE_URL=https://YOUR-API-HOST/api/v1` before building. The API must allow that frontend's origin. Relative report download URLs resolve against the configured API host. Configure SPA rewrites to serve `index.html` for frontend routes. Same-origin Nginx and local Vite deployments need no frontend API environment variable.
+
+## Validation and costs
+
+Check Compose configuration and frontend/backend tests before release. Validate the template with `aws cloudformation validate-template` in the target account before creating a stack. Local YAML checks do not verify AWS account permissions, regional availability, bootstrap network access, or a successful deployment.
+
+Estimate EC2, EBS, transfer, and any optional services for your region and account in the [AWS Pricing Calculator](https://calculator.aws/). No free-tier eligibility or fixed monthly cost is assumed here. No cloud resources are created by the local application checks.

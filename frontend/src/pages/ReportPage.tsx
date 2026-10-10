@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useProject } from '../context/ProjectContext';
 import { GeneratedReportSummary } from '../types/models';
-import { api } from '../services/api';
+import { api, resolveReportUrl } from '../services/api';
 import {
   formatINR,
   formatEnergy,
@@ -29,46 +29,56 @@ export const ReportPage: React.FC = () => {
   const [generating, setGenerating] = useState<boolean>(false);
   const [activeReport, setActiveReport] = useState<GeneratedReportSummary | null>(null);
   const [notes, setNotes] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const requestVersion = useRef(0);
 
-  useEffect(() => {
-    if (activeProject) {
-      loadReports();
-    }
-  }, [activeProject]);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     if (!activeProject) return;
+    const version = ++requestVersion.current;
+    setLoading(true);
+    setError(null);
     try {
       const list = await api.getReports(activeProject.id);
+      if (version !== requestVersion.current) return;
       setReports(list);
-      if (list.length > 0) {
-        setActiveReport(list[0]);
-      }
+      setActiveReport(current => list.find(report => report.report_id === current?.report_id) || list[0] || null);
     } catch (err) {
-      console.error(err);
+      if (version === requestVersion.current) setError(err instanceof Error ? err.message : 'Could not load reports.');
+    } finally {
+      if (version === requestVersion.current) setLoading(false);
     }
-  };
+  }, [activeProject?.id]);
+
+  useEffect(() => {
+    setReports([]);
+    setActiveReport(null);
+    void loadReports();
+    return () => { requestVersion.current++; };
+  }, [loadReports]);
 
   const handleGeneratePdf = async () => {
     if (!activeProject) return;
     try {
       setGenerating(true);
+      setError(null);
       const rep = await api.generateReport(activeProject.id, { notes });
-      await loadReports();
+      setReports(current => [rep, ...current]);
       setActiveReport(rep);
     } catch (err) {
-      console.error(err);
+      setError(err instanceof Error ? err.message : 'Could not generate the report. Please try again.');
     } finally {
       setGenerating(false);
     }
   };
 
   const downloadReportFile = (rep: GeneratedReportSummary) => {
-    window.open(rep.download_url, '_blank');
+    window.open(resolveReportUrl(rep.download_url), '_blank', 'noopener,noreferrer');
   };
 
   return (
     <div className="space-y-8 pb-16">
+      {error && <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><span>{error}</span><button onClick={() => void loadReports()} className="font-semibold underline">Reload reports</button></div>}
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#E5EAE7] shadow-xs">
         <div>
@@ -83,12 +93,17 @@ export const ReportPage: React.FC = () => {
 
         <button
           onClick={handleGeneratePdf}
-          disabled={generating}
+          disabled={generating || loading || !activeProject}
           className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all disabled:opacity-50"
         >
           <Download className="w-4 h-4" />
           <span>{generating ? 'Compiling Official PDF...' : 'Generate New PDF Report'}</span>
         </button>
+      </div>
+
+      <div className="rounded-2xl border border-[#E5EAE7] bg-white p-5">
+        <label htmlFor="report-notes" className="block text-sm font-semibold text-[#123C32]">Notes for this report</label>
+        <textarea id="report-notes" value={notes} onChange={event => setNotes(event.target.value)} maxLength={2000} rows={3} placeholder="Add project context for the review team…" className="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
 
       {/* Main Grid: Report Preview & Document Metadata */}
@@ -186,9 +201,9 @@ export const ReportPage: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="font-bold text-base text-[#123C32]">Ready for Download</h3>
+              <h3 className="font-bold text-base text-[#123C32]">{activeReport ? 'Ready for Download' : 'Your project reports'}</h3>
               <p className="text-xs text-slate-500 mt-0.5">
-                Authentic PDF generated with ReportLab engine.
+                Saved investment proposals for the active project.
               </p>
             </div>
 
@@ -223,10 +238,15 @@ export const ReportPage: React.FC = () => {
             </h4>
 
             <div className="space-y-2 max-h-64 overflow-y-auto">
+              {loading && <p role="status" className="text-xs text-slate-500">Loading report history…</p>}
+              {!loading && reports.length === 0 && <p className="text-xs text-slate-500">No reports generated for this project yet.</p>}
               {reports.map((rep) => (
                 <div
                   key={rep.report_id}
                   onClick={() => setActiveReport(rep)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={event => { if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); setActiveReport(rep); } }}
                   className={`p-3 rounded-xl border text-xs cursor-pointer flex items-center justify-between transition-colors ${
                     activeReport?.report_id === rep.report_id
                       ? 'bg-emerald-50 border-emerald-300'

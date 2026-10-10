@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Ensure reports directory exists
-RUN mkdir -p /app/generated_reports
+RUN mkdir -p /data/uploaded_demand /app/generated_reports
 
 EXPOSE 8000
 

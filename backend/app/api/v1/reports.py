@@ -6,19 +6,27 @@ from typing import List
 from app.core.database import get_db
 from app.models.project import Project
 from app.models.report import GeneratedReport
+from app.models.scheduling import EnergyActivity
 from app.schemas.report import ReportGenerateRequest, ReportResponse
 from app.services.reports.pdf_generator import generate_project_pdf_report
+from app.services.scheduling.load_shifter import optimize_energy_scheduling
 
 router = APIRouter()
 
 @router.post("/projects/{project_id}/reports", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
-def create_report(project_id: str, req: ReportGenerateRequest, db: Session = Depends(get_db)):
+async def create_report(project_id: str, req: ReportGenerateRequest, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
     try:
-        report_record = generate_project_pdf_report(project_id, db, notes=req.notes)
+        schedule = None
+        if req.include_load_shifting and db.query(EnergyActivity).filter(EnergyActivity.project_id == project_id).first():
+            schedule = await optimize_energy_scheduling(project_id, db)
+        report_record = generate_project_pdf_report(
+            project_id, db, notes=req.notes,
+            scheduling_result=schedule, include_load_shifting=req.include_load_shifting
+        )
         return ReportResponse(
             report_id=report_record.id,
             project_id=project.id,

@@ -37,3 +37,6 @@ frontend/node_modules/
 .env
 .env.local
 .env.production
+
+# Disposable application verification data
+tmp/

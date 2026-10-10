@@ -9,13 +9,23 @@ Parameters:
       - 't3.micro'
       - 't3.small'
       - 't3.medium'
-      - 't4g.small'
     Description: 'EC2 instance type for RoofShift AI web and solver services'
 
   LatestAmiId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64'
     Description: 'Latest Amazon Linux 2023 AMI'
+
+  RepositoryUrl:
+    Type: String
+    AllowedPattern: '^https://[A-Za-z0-9._/-]+$'
+    Description: 'HTTPS Git repository URL accessible without credentials from the instance'
+
+  RepositoryRef:
+    Type: String
+    Default: 'master'
+    AllowedPattern: '^[A-Za-z0-9][A-Za-z0-9._/-]*$'
+    Description: 'Reviewed branch or tag to deploy; set this to the integrated application ref'
 
 Resources:
   VPC:
@@ -77,20 +87,12 @@ Resources:
   RoofShiftSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: 'Allow HTTP, HTTPS, and API access to RoofShift AI'
+      GroupDescription: 'Allow HTTP access through the RoofShift AI frontend proxy'
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 443
-          ToPort: 443
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 8000
-          ToPort: 8000
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
@@ -98,9 +100,14 @@ Resources:
 
   RoofShiftInstance:
     Type: AWS::EC2::Instance
+    DependsOn:
+      - PublicRoute
+      - SubnetRouteTableAssociation
     Properties:
       InstanceType: !Ref InstanceType
       ImageId: !Ref LatestAmiId
+      MetadataOptions:
+        HttpTokens: required
       SubnetId: !Ref PublicSubnet
       SecurityGroupIds:
         - !Ref RoofShiftSecurityGroup
@@ -116,12 +123,17 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          dnf update -y
-          dnf install -y docker git
+          set -euo pipefail
+          exec > >(tee /var/log/roofshift-bootstrap.log) 2>&1
+          dnf install -y docker git curl
           systemctl enable --now docker
           mkdir -p /usr/local/lib/docker/cli-plugins
-          curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+          curl -fSL --retry 3 https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
           chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          git clone --depth 1 --branch '${RepositoryRef}' '${RepositoryUrl}' /opt/roofshift-ai
+          cd /opt/roofshift-ai
+          docker compose up -d --build --wait --wait-timeout 300
+          curl -fsS --retry 10 --retry-delay 5 --retry-connrefused http://localhost/api/v1/health
 
 Outputs:
   PublicIP:
@@ -130,6 +142,6 @@ Outputs:
   AppURL:
     Description: 'URL of the RoofShift AI Web Application'
     Value: !Sub 'http://${RoofShiftInstance.PublicIp}'
-  ApiDocsURL:
-    Description: 'FastAPI Interactive Swagger Docs'
-    Value: !Sub 'http://${RoofShiftInstance.PublicIp}:8000/docs'
+  ApiHealthURL:
+    Description: 'Backend health through the frontend proxy'
+    Value: !Sub 'http://${RoofShiftInstance.PublicIp}/api/v1/health'

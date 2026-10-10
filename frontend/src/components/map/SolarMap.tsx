@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, CircleMarker, ZoomControl, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { Building, GeocodeResult } from '../../types/models';
 import { api } from '../../services/api';
 import { formatArea, formatEnergy, formatINR, formatPower } from '../../utils/formatters';
 import { Search, MapPin, Plus, Navigation, Eye, AlertCircle, SunMedium } from 'lucide-react';
+import { isSimpleRoofOutline, readRoofOutline, roofAreaSquareMeters, type RoofPoint } from '../../utils/roofGeometry';
 
 // Fix Leaflet marker icons in Vite bundling
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -68,6 +69,7 @@ interface SolarMapProps {
   selectedBuildingId?: string | null;
   onSelectBuilding: (building: Building) => void;
   onAddBuildingAtCoord: (lat: number, lng: number) => void;
+  onAddRoofOutline: (points: RoofPoint[], area: number) => void;
   defaultCenter?: [number, number];
 }
 
@@ -76,6 +78,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
   selectedBuildingId,
   onSelectBuilding,
   onAddBuildingAtCoord,
+  onAddRoofOutline,
   defaultCenter = [28.6139, 77.2090], // Delhi default
 }) => {
   const [mapCenter, setMapCenter] = useState<[number, number]>(defaultCenter);
@@ -84,6 +87,21 @@ export const SolarMap: React.FC<SolarMapProps> = ({
   const [searchResults, setSearchResults] = useState<GeocodeResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showAddHint, setShowAddHint] = useState(false);
+  const [drawing, setDrawing] = useState(false);
+  const [outline, setOutline] = useState<RoofPoint[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [drawError, setDrawError] = useState<string | null>(null);
+
+  const finishOutline = () => {
+    if (!isSimpleRoofOutline(outline)) {
+      setDrawError('Draw at least three distinct corners without crossing edges. The roof must cover at least 1 m².');
+      return;
+    }
+    onAddRoofOutline(outline, Math.round(roofAreaSquareMeters(outline) * 100) / 100);
+    setDrawing(false);
+    setOutline([]);
+    setDrawError(null);
+  };
 
   useEffect(() => {
     if (buildings.length > 0 && !selectedBuildingId) {
@@ -107,14 +125,17 @@ export const SolarMap: React.FC<SolarMapProps> = ({
 
     try {
       setIsSearching(true);
+      setSearchError(null);
       const results = await api.searchLocation(searchQuery);
       setSearchResults(results);
       if (results.length > 0) {
         setMapCenter([results[0].lat, results[0].lon]);
         setMapZoom(16);
+      } else {
+        setSearchError('No matching location found. Try a nearby city or campus.');
       }
     } catch (err) {
-      console.error(err);
+      setSearchError(err instanceof Error ? err.message : 'Location search is unavailable. Please try again.');
     } finally {
       setIsSearching(false);
     }
@@ -128,11 +149,11 @@ export const SolarMap: React.FC<SolarMapProps> = ({
   };
 
   return (
-    <div className="relative w-full h-[600px] rounded-xl overflow-hidden border border-[#E5EAE7] shadow-sm bg-slate-100 flex flex-col">
+    <div className="relative isolate z-0 w-full h-[600px] rounded-xl overflow-hidden border border-[#E5EAE7] shadow-sm bg-slate-100 flex flex-col">
       {/* Top Map Control Bar */}
       <div className="absolute top-4 left-4 right-4 z-[400] flex flex-wrap items-center justify-between gap-3 pointer-events-none">
         {/* Location Search Bar */}
-        <form onSubmit={handleSearch} className="pointer-events-auto relative w-80">
+        <form onSubmit={handleSearch} className="pointer-events-auto relative w-full sm:w-80">
           <div className="flex items-center bg-white/95 backdrop-blur-md rounded-lg shadow-lg border border-slate-200 overflow-hidden">
             <Search className="w-4 h-4 text-slate-400 ml-3" />
             <input
@@ -140,6 +161,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search Indian city, campus, or area..."
+              aria-label="Search map location"
               className="w-full px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
             />
             <button
@@ -150,6 +172,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               {isSearching ? '...' : 'Go'}
             </button>
           </div>
+          {searchError && <p role="alert" className="mt-1 rounded-lg bg-white p-2 text-xs text-red-700 shadow">{searchError}</p>}
 
           {/* Search suggestions dropdown */}
           {searchResults.length > 0 && (
@@ -174,8 +197,8 @@ export const SolarMap: React.FC<SolarMapProps> = ({
         </form>
 
         {/* Legend and Add Building Control */}
-        <div className="pointer-events-auto flex items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-lg border border-slate-200 text-xs">
-          <div className="flex items-center gap-3 pr-2 border-r border-slate-200">
+        <div className="pointer-events-auto flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-lg shadow-lg border border-slate-200 text-xs">
+          <div className="hidden xl:flex items-center gap-3 pr-2 border-r border-slate-200">
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
               <span className="text-[11px] text-slate-600">Low Shade (&lt;8%)</span>
@@ -190,7 +213,8 @@ export const SolarMap: React.FC<SolarMapProps> = ({
             </div>
           </div>
           <button
-            onClick={() => setShowAddHint(!showAddHint)}
+            onClick={() => { setShowAddHint(!showAddHint); setDrawing(false); setOutline([]); setDrawError(null); }}
+            aria-pressed={showAddHint}
             className={`px-2.5 py-1 rounded text-xs font-semibold flex items-center gap-1 transition-colors ${
               showAddHint ? 'bg-emerald-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
             }`}
@@ -198,8 +222,16 @@ export const SolarMap: React.FC<SolarMapProps> = ({
             <Plus className="w-3.5 h-3.5" />
             <span>Click to Add Roof</span>
           </button>
+          <button type="button" aria-pressed={drawing} onClick={() => { setDrawing(!drawing); setShowAddHint(false); setOutline([]); setDrawError(null); }} className={`rounded px-2.5 py-1 font-semibold ${drawing ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>Draw roof boundary</button>
         </div>
       </div>
+
+      {drawing && <div className="absolute bottom-4 left-4 right-16 z-[400] rounded-xl border border-emerald-200 bg-white p-3 shadow-lg text-xs">
+        <p className="font-semibold text-[#123C32]">Click each rooftop corner in order. {outline.length} corners · {formatArea(roofAreaSquareMeters(outline))}</p>
+        <p className="mt-1 text-slate-500">Map measurements are approximate. Confirm the area before saving.</p>
+        {drawError && <p role="alert" className="mt-1 text-red-700">{drawError}</p>}
+        <div className="mt-2 flex gap-2"><button onClick={finishOutline} disabled={outline.length < 3} className="rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white disabled:opacity-50">Use this roof</button><button disabled={!outline.length} onClick={() => { setOutline(points => points.slice(0, -1)); setDrawError(null); }} className="rounded-lg bg-slate-100 px-3 py-2 disabled:opacity-50">Undo corner</button><button onClick={() => { setDrawing(false); setOutline([]); setDrawError(null); }} className="rounded-lg bg-slate-100 px-3 py-2">Cancel</button></div>
+      </div>}
 
       {showAddHint && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-[400] bg-[#123C32] text-white px-4 py-2 rounded-full shadow-xl text-xs font-medium flex items-center gap-2 border border-emerald-500/40 animate-bounce">
@@ -213,10 +245,21 @@ export const SolarMap: React.FC<SolarMapProps> = ({
         center={mapCenter}
         zoom={mapZoom}
         scrollWheelZoom={true}
+        zoomControl={false}
         className="w-full h-full"
       >
+        <ZoomControl position="bottomright" />
         <MapController center={mapCenter} zoom={mapZoom} />
-        <MapClickHandler onMapClick={onAddBuildingAtCoord} />
+        <MapClickHandler onMapClick={(lat, lng) => {
+          if (drawing) { setOutline(points => [...points, [lat, lng]]); setDrawError(null); }
+          else if (showAddHint) { setShowAddHint(false); onAddBuildingAtCoord(lat, lng); }
+        }} />
+        {outline.length >= 3 ? <Polygon positions={outline} pathOptions={{ color: '#10B981' }} interactive={false} /> : outline.length >= 2 ? <Polyline positions={outline} pathOptions={{ color: '#10B981' }} interactive={false} /> : null}
+        {outline.map((point, index) => <CircleMarker key={index} center={point} radius={4} pathOptions={{ color: '#123C32', fillOpacity: 1 }} interactive={false} />)}
+        {buildings.map(building => {
+          const points = readRoofOutline(building.roof_polygon);
+          return points ? <Polygon key={`roof-${building.id}`} positions={points} pathOptions={{ color: building.id === selectedBuildingId ? '#123C32' : '#10B981', weight: building.id === selectedBuildingId ? 3 : 1, fillOpacity: 0.2 }} eventHandlers={{ click: () => { if (!drawing && !showAddHint) onSelectBuilding(building); } }} bubblingMouseEvents={false} /> : null;
+        })}
 
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

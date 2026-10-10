@@ -49,8 +49,16 @@ class CloudWatchMonitoringAdapter:
         # If CloudWatch is active, put log event
         if self.is_cloudwatch_active():
             try:
-                # Typically batch dispatched in production daemon
-                pass
+                self.cloudwatch_client.put_log_events(
+                    logGroupName=settings.CLOUDWATCH_LOG_GROUP,
+                    logStreamName=getattr(settings, "CLOUDWATCH_LOG_STREAM", "api-stream"),
+                    logEvents=[
+                        {
+                            "timestamp": int(time.time() * 1000),
+                            "message": json.dumps(payload)
+                        }
+                    ]
+                )
             except Exception as e:
                 logger.warning(f"Failed to push metric to CloudWatch: {str(e)}")
 
