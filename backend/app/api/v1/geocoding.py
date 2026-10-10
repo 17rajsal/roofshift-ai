@@ -4,7 +4,6 @@ from fastapi import APIRouter, Query, HTTPException
 from typing import List, Dict, Any
 from urllib.parse import urlencode
 from app.core.config import settings
-from app.services.geospatial.location_adapter import location_adapter
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -41,6 +40,7 @@ async def search_location(q: str = Query(...)):
 
     # AWS Amazon Location Service if configured
     if settings.AWS_ENABLED and settings.GEOCODING_PROVIDER == "amazon_location":
+        from app.services.geospatial.location_adapter import location_adapter
         return await location_adapter.search_places(clean_q)
 
     # 1. Check local instant match
