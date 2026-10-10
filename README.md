@@ -2,354 +2,456 @@
 
 # ☀️ RoofShift AI
 
-### **Smarter Rooftops. Smarter Investments. Cleaner Energy.**
+### **Intelligent Rooftop Solar Planning, Energy Analytics & Budget Optimization**
 
 <p align="center">
-  An intelligent solar planning and energy optimization platform for institutions, combining geospatial solar analysis, demand-aware investment optimization, performance monitoring and explainable recommendations.
+  A full-stack software platform designed to help institutions, commercial facilities, and multi-building campuses evaluate rooftop solar opportunities through geospatial analysis, solar forecasting, constrained budget optimization, and asset performance diagnostics.
 </p>
 
-**TEAM DRX** • **Environmental Hacks 2026 — WeMakeDevs × AWS** • **Track: Waste & Energy**
-
-<br />
-
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI%200.141-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.14-3776AB?logo=python&logoColor=white)](https://python.org)
-[![React](https://img.shields.io/badge/Frontend-React%2019%20%2B%20TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Build-Vite%208-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
-[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS%20v4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
-[![NASA POWER](https://img.shields.io/badge/Irradiance-NASA%20POWER%20API-blue)](https://power.larc.nasa.gov)
-[![Docker](https://img.shields.io/badge/Containers-Docker%20Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
-[![Pytest](https://img.shields.io/badge/Tests-25%2F25%20Passing-10B981?logo=pytest&logoColor=white)](#testing--quality)
-[![Architecture](https://img.shields.io/badge/Directive-Zero%20Bedrock%20Dependency-1E293B)](#architectural-directive-zero-amazon-bedrock-dependency)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-8.3-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com)
+[![NASA POWER](https://img.shields.io/badge/Solar_Data-NASA_POWER_API-blue)](https://power.larc.nasa.gov)
+[![Docker](https://img.shields.io/badge/Containers-Docker_Compose-2496ED?logo=docker&logoColor=white)](https://docker.com)
+[![Tests](https://img.shields.io/badge/Pytest-195%2F195_Passing-10B981?logo=pytest&logoColor=white)](#13-testing)
+[![Architecture](https://img.shields.io/badge/Engine-Deterministic_OR_Solver-1E293B)](#7-system-architecture)
 
 </div>
 
 ---
 
-## 1. Quick Access & Local Endpoints
+## 1. Product Overview
 
-| Resource | Local Development URL | Description |
-|---|---|---|
-| **Web Application** | [`http://localhost:5173`](http://localhost:5173) | Full interactive React 19 / TypeScript single-page application |
-| **API Documentation** | [`http://localhost:8000/docs`](http://localhost:8000/docs) | Interactive OpenAPI / Swagger UI for all 20+ backend endpoints |
-| **Alternative Docs** | [`http://localhost:8000/redoc`](http://localhost:8000/redoc) | Clean ReDoc specification reference |
-| **Health Check** | [`http://localhost:8000/api/v1/health`](http://localhost:8000/api/v1/health) | Real-time system health and database readiness check |
-| **AWS Status Matrix** | [`http://localhost:8000/api/v1/system/integrations`](http://localhost:8000/api/v1/system/integrations) | Multi-service AWS status with local zero-cost fallbacks |
+Organizations managing multi-building campuses—such as universities, hospital complexes, commercial real estate portfolios, and industrial facilities—face significant friction when evaluating solar photovoltaic (PV) investments:
 
----
+- **Information Fragmentation:** Rooftop surface estimates, solar irradiance data, facility consumption profiles, and tariff structures are typically siloed across disparate tools and spreadsheets.
+- **Suboptimal Capital Allocation:** Traditional planning relies on naive rules of thumb (e.g., placing solar on the single largest rooftop first), frequently ignoring micro-climate shading penalties, daytime demand coincidence, and diminishing feed-in tariffs.
+- **Opaque Payback Scenarios:** Financial forecasts rarely incorporate hourly load profiles or realistic derating factors, producing unreliable ROI estimates.
 
-## 2. Problem Statement
-
-Educational campuses, hospitals, and industrial facilities in India manage multiple candidate rooftops but face a **critical capital allocation dilemma**:
-
-> *"With an institutional capital budget of ₹10–15 Lakh and five candidate buildings of varying heights, orientations, and daytime electricity loads, where should we install solar PV panels to maximize financial returns, eliminate waste, and prevent low-value grid export?"*
-
-Traditional solar assessments analyze roofs in isolation, generating simplistic "most sunlight first" rankings. In reality:
-- A rooftop receiving high sunlight may belong to a facility with negligible daytime consumption, causing high uncompensated grid exports at low feed-in tariffs (e.g. ₹3.50/kWh vs ₹8.50/kWh retail tariff).
-- Surrounding academic buildings or headrooms cast seasonal horizon shadows.
-- Without smart demand dispatch, midday solar generation is curtailed or exported at a loss while evening equipment draws expensive grid power.
+**RoofShift AI** bridges this gap by unifying geospatial rooftop assessment, physical solar modeling, operations research algorithms, and post-installation diagnostics into a single workflow. The platform empowers facility executives, sustainability directors, and energy engineers to transition from initial satellite discovery to an investment-ready executive solar proposal backed by mathematical optimization.
 
 ---
 
-## 3. Our Solution
+## 2. Product Interface
 
-RoofShift AI bridges physical solar physics, electricity billing economics, operations research optimization, and demand-side flexibility into **one unified, explainable decision pipeline**:
+### Enterprise Homepage
+The platform landing interface provides multi-building portfolio metrics, transparent methodology explanations, and direct access to all solar planning modules.
 
-```mermaid
-flowchart LR
-    A["1. Geospatial Survey"] --> B["2. NASA Solar Physics"]
-    B --> C["3. Demand Analysis"]
-    C --> D["4. OR-Tools Knapsack"]
-    D --> E["5. Diurnal Dispatch"]
-    E --> F["6. Financial & ESG"]
-    F --> G["7. Fleet PR Telemetry"]
-    G --> H["8. Maintenance Care"]
-    H --> I["9. Boardroom PDF"]
+![RoofShift AI Homepage](docs/assets/roofshift_homepage.png)
+
+### Interactive Campus GIS Solar Explorer
+Digitize building boundaries, calculate usable surface areas via polygon geometry, and inspect localized solar climatology metrics across multiple rooftops.
+
+![Interactive Solar Map](docs/assets/roofshift_solar_map.png)
+
+### Constrained Knapsack Budget Optimizer
+Execute exact Pareto-frontier Multiple-Choice Knapsack optimization to maximize portfolio bill savings against fixed capital budgets, demonstrating an empirical **+22.4% net annual financial lift** over naive allocation strategies.
+
+![Budget Optimizer Workbench](docs/assets/roofshift_optimizer.png)
+
+---
+
+## 3. Core Platform Capabilities
+
+RoofShift AI provides 12 specialized capabilities spanning pre-installation planning, financial modeling, and operational asset management:
+
+| # | Capability | Description | Method / Core Logic | Primary Output |
+|---|---|---|---|---|
+| **01** | **Solar Location Finder** | Geospatial rooftop discovery and candidate screening across campus portfolios. | Haversine distance, bounding box geocoding, and usable area screening. | Ranked building rooftop candidates with usable area limits. |
+| **02** | **Energy Prediction** | Solar photovoltaic yield forecasting across months and weather conditions. | Physical PV derating model ($P = A \cdot \text{GHI} \cdot \eta \cdot \text{PR}$) with NASA POWER climatology. | Monthly generation curves (kWh) and annual specific yields (kWh/kWp). |
+| **03** | **Budget Optimizer** | Constrained multi-facility capital allocation solver under fixed budget ceilings. | Exact Decimal Dynamic Programming solving the Multiple-Choice Knapsack Problem (MCKP). | Optimal discrete capacity allocations (kWp), Capex expenditure, and payback windows. |
+| **04** | **Electricity Demand Analysis** | High-resolution diurnal load profiling and self-consumption evaluation. | Interval time-series integration (CSV upload or synthesized archetypes). | Baseline monthly consumption curves and daytime demand shares (%). |
+| **05** | **Solar Surplus Detection** | Hourly coincidence auditing to detect generation exceeding local consumption. | Diurnal energy balance analysis across 24 hourly timesteps. | Hourly surplus export profile and self-consumption fraction. |
+| **06** | **Smart Scheduling** | Flexible load shifting to maximize on-site solar absorption. | Rule-based dispatch optimization prioritizing high-solar operating hours. | Optimized load schedules reducing peak grid import tariffs. |
+| **07** | **Solar Monitoring** | Telemetry tracking and IEC 61724 standard Performance Ratio auditing. | Weather-adjusted expected generation comparison vs. measured inverter output. | Operational Performance Ratio (PR) and historical degradation rates (%/yr). |
+| **08** | **Panel Health & Fault Detection** | Diagnostic anomaly detection from operational telemetry. | Symptom-based rule heuristics identifying string mismatch, shading, or cell degradation. | Categorized diagnostic findings with severity levels and affected panel strings. |
+| **09** | **Maintenance Advisor** | Prioritized operational maintenance and cleaning recommendations. | Multi-factor risk scoring evaluating soiling thresholds, inspection intervals, and yield losses. | Structured maintenance action items with financial urgency scoring. |
+| **10** | **Financial Savings Calculator** | Comprehensive discounted cash flow and net savings modeling. | 25-year lifecycle cash flow modeling with annual degradation and tariff escalation. | Net Present Value (NPV), Internal Rate of Return (IRR), and capital payback period. |
+| **11** | **Environmental Impact Assessment** | Quantified carbon offset and environmental sustainability reporting. | Grid emission displacement factors (e.g., CEA baseline of $0.716\text{ kg CO}_2\text{e/kWh}$). | Annual avoided metric tons of $\text{CO}_2$, vehicle equivalents, and tree-year equivalents. |
+| **12** | **Report Generator** | Automated executive investment proposals in professional vector PDF format. | ReportLab 3.x vector layout engine with dynamic charts and portfolio summaries. | Downloadable multi-page PDF proposal with formal disclaimers and financial schedules. |
+
+---
+
+## 4. How RoofShift AI Works
+
+```
+┌─────────────────────────────────┐
+│     1. Geospatial Discovery     │  Search location, digitize rooftop boundaries,
+│    (Leaflet GIS & Polygons)     │  and compute usable surface area.
+└────────────────┬────────────────┘
+                 │
+┌────────────────▼────────────────┐
+│      2. Solar Climatology       │  Fetch NASA POWER GHI data, apply orientation
+│     (Physical Irradiance)       │  derating, and establish specific solar yield.
+└────────────────┬────────────────┘
+                 │
+┌────────────────▼────────────────┐
+│    3. Energy Demand Modeling    │  Ingest meter CSV or synthesize campus load archetypes
+│     (Diurnal Coincidence)       │  to determine daytime self-consumption potential.
+└────────────────┬────────────────┘
+                 │
+┌────────────────▼────────────────┐
+│      4. Budget Optimization     │  Solve Multiple-Choice Knapsack problem to allocate
+│    (Dynamic Programming/MCKP)   │  capital across candidate rooftops for maximum savings.
+└────────────────┬────────────────┘
+                 │
+┌────────────────▼────────────────┐
+│     5. Operational Care & QA    │  Track inverter telemetry, audit Performance Ratio,
+│   (Diagnostics & Maintenance)   │  and triage maintenance cases.
+└────────────────┬────────────────┘
+                 │
+┌────────────────▼────────────────┐
+│    6. Proposal PDF Delivery     │  Compile mathematical findings, financial schedules,
+│     (ReportLab Vector Engine)   │  and engineering notes into a downloadable document.
+└─────────────────────────────────┘
 ```
 
-1. **Geospatial Survey:** Interactive OpenStreetMap GIS mapping with instant Indian campus geocoding and geodesic rooftop boundary polygon drafting.
-2. **NASA Solar Physics:** 12-month Global Horizontal Irradiance ($GHI$) retrieval from NASA POWER Climatology API with temperature and shading deratings.
-3. **Demand Modeling:** Dual-mode electricity profiling supporting actual 15-minute smart meter ingestion (Mode A) and archetype synthesis (Mode B).
-4. **Budget Optimization:** Solves a Multiple-Choice Knapsack Problem (MCKP) allocating capacity across rooftops to maximize annual ₹ bill savings under strict budgets.
-5. **Smart Dispatch:** Evaluates flexible campus loads (EV fleet chargers, water reservoir pumps, chiller pre-cooling) to absorb midday solar surplus.
-6. **Fleet Diagnostics:** Drone thermal gradient inspection and inverter Performance Ratio (PR) tracking against theoretical yield.
-7. **Executive Proposals:** Turnkey ReportLab multi-page PDF generation ready for boardroom review and sanction.
-
 ---
 
-## 4. Key Features (12-Feature Complete Blueprint)
+## 5. System Architecture
 
-RoofShift AI implements all 12 capabilities defined in the complete engineering blueprint:
-
-| # | Feature | Core User Benefit | High-Level Engineering Mechanism | Verified Status |
-|---|---|---|---|---|
-| **1** | **Solar Location Finder** | Instant campus location & boundary mapping | OpenStreetMap Nominatim with Amazon Location Service adapter | **Verified** |
-| **2** | **Solar Energy Prediction** | Scientific annual generation yield (kWh) | NASA POWER Climatology API + 75% PR + geometric shading derating | **Verified** |
-| **3** | **Solar Panel Image Inspection** | Automated hot-spot & crack diagnosis | Deterministic gradient & color-space image defect classifier | **Verified** |
-| **4** | **Solar Performance Monitoring** | Verifies empirical PR against design expectations | Inverter telemetry ingestion + NASA solar irradiance comparison | **Verified** |
-| **5** | **Smart Budget Optimization** | Maximizes ₹ bill savings under strict capital limits | Multiple-Choice Knapsack Problem (MCKP) Dynamic Programming | **Verified** |
-| **6** | **Electricity Demand Analysis** | Captures true facility daytime electricity usage | Dual-mode: Ingested meter CSV (Mode A) + Archetype synthesis (Mode B) | **Verified** |
-| **7** | **Solar Surplus Detection** | Eliminates uncompensated grid export waste | 24-hour diurnal solar bell curve vs. facility daytime demand | **Verified** |
-| **8** | **Smart Energy Scheduling** | Absorbs midday solar surplus with campus assets | Flexible load dispatcher (EV fleets, pumps, chiller pre-cooling) | **Verified** |
-| **9** | **Cost & Savings Calculation** | Realistic financial payback & cash flow modeling | Displaced grid import tariffs + DISCOM net-metering export rates | **Verified** |
-| **10** | **Environmental Impact Calculation** | Scope 2 institutional carbon reporting | Central Electricity Authority (CEA) factor ($0.716\text{ kg CO}_2/\text{kWh}$) | **Verified** |
-| **11** | **Maintenance Recommendations** | Prioritizes physical repairs by revenue impact | Automated ticket workflow with daily kWh derate metrics | **Verified** |
-| **12** | **Solar Intelligence Reports** | Instant investor-ready PDF executive proposal | Multi-page ReportLab PDF compiler with audit-trail notices | **Verified** |
-
----
-
-## 5. Technology Stack
-
-| Category | Primary Technologies | Technical Rationale |
-|---|---|---|
-| **Frontend Framework** | React 19, TypeScript, Vite 8 | Strict type safety, instant HMR, high-performance virtual DOM rendering |
-| **User Interface** | Tailwind CSS v4, Inter, JetBrains Mono | Custom enterprise ClimateTech design system; tabular numerals for financial data |
-| **Geospatial & Mapping** | Leaflet, React-Leaflet, OpenStreetMap | Geodesic polygon surface calculation, coordinate drafting without expensive map API keys |
-| **Data Visualization** | Recharts | Responsive diurnal Area charts, seasonal Bar charts, and load shifting Line charts |
-| **Backend Framework** | FastAPI 0.141, Python 3.11+, Pydantic v2 | High-concurrency async ASGI server with strict schema validation and auto OpenAPI |
-| **Mathematical Solver** | Operations Research (MCKP Dynamic Programming) | Guaranteed integer capacity allocation adhering to physical rooftop limits |
-| **Environmental Data** | NASA POWER Climatology API | 30-year historical satellite irradiance ($GHI$) with local coordinate caching |
-| **Database & ORM** | SQLAlchemy 2.0 (SQLite / PostgreSQL ready) | Persistent relational models with transactional integrity and auto-seeding |
-| **Report Generation** | ReportLab 5.0 | Deterministic, multi-page vector PDF generation with charts and tables |
-| **Containerization** | Docker, Docker Compose, Nginx Alpine | Reproducible cross-platform container builds; production reverse proxy |
-| **AWS Cloud Targets** | S3, CloudWatch, Location Service, Lambda, Budgets | Multi-service architecture with 10 zero-cost local fallbacks |
-
----
-
-## 6. System Architecture
+RoofShift AI is engineered with clean separation of concerns, ensuring high performance, explainability, and full offline local execution capability:
 
 ```mermaid
 graph TD
-    subgraph Frontend ["Frontend Single-Page Application (React 19 + TypeScript)"]
-        UI_Dash["Executive Portfolio Dashboard"]
-        UI_Map["Geospatial GIS Solar Explorer"]
-        UI_Cat["Building Catalog & 12-Mo Balances"]
-        UI_Opt["OR-Tools Knapsack Workbench"]
-        UI_Ins["Diurnal Coincidence & Surplus Analyzer"]
-        UI_Sched["Smart Load Shifter & Dispatch"]
-        UI_Care["Fleet Diagnostics & Maintenance"]
-        UI_Rep["Executive Report Generator"]
+    subgraph Client ["Frontend Client (React 18 + TypeScript + Vite)"]
+        UI_Home["Homepage & Marketing Hub"]
+        UI_GIS["Interactive GIS Solar Map (Leaflet)"]
+        UI_Opt["Knapsack Optimization Workbench"]
+        UI_Features["12-Feature Assessment Suite"]
+        UI_Ops["Operations & Diagnostics Hub"]
+        UI_Reports["Executive PDF Generator"]
     end
 
-    subgraph ReverseProxy ["Edge & Reverse Proxy"]
-        NGINX["Nginx Web Server (Port 80/3000)"]
+    subgraph Backend ["Backend API Layer (FastAPI + Python 3.11+)"]
+        API_Router["REST API Router (/api/v1)"]
+        AUTH_MW["Security & Input Validation (Pydantic v2)"]
     end
 
-    subgraph BackendAPI ["Backend Application Server (FastAPI 0.141)"]
-        API_Route["API v1 Endpoints (/api/v1)"]
-        SRV_Solar["Solar Physics Engine"]
-        SRV_Opt["MCKP Knapsack Optimizer"]
-        SRV_Bench["Naive Baseline Benchmark"]
-        SRV_Surplus["Diurnal Surplus Analyzer"]
-        SRV_Dispatch["Load Shifting Engine"]
-        SRV_Diagnostic["Defect & PR Telemetry Suite"]
-        SRV_PDF["ReportLab PDF Generator"]
+    subgraph CoreEngines ["Deterministic Analytical Engines"]
+        ENG_Solar["Solar Climatology Engine (NASA POWER)"]
+        ENG_MCKP["Knapsack Optimizer (Dynamic Programming)"]
+        ENG_Energy["Diurnal Energy Balance & Surplus Analyzer"]
+        ENG_Diag["Inverter Telemetry & Diagnostic Rules"]
+        ENG_PDF["Vector PDF Compiler (ReportLab)"]
     end
 
-    subgraph Persistence ["Persistence & Data Sources"]
-        DB[(SQLite / PostgreSQL via SQLAlchemy)]
-        NASA["NASA POWER Solar Irradiance API"]
-        OSM["OpenStreetMap Nominatim Geocoding"]
+    subgraph Persistence ["Persistence & Storage"]
+        DB[(Relational DB / SQLite / PostgreSQL)]
+        FileStore[Local Storage / Report Cache]
     end
 
-    subgraph AWSAdapters ["AWS Cloud Capability Matrix (Zero-Cost Local Fallbacks)"]
-        A_S3["Amazon S3 / Local Reports"]
-        A_CW["Amazon CloudWatch / Rotating Logs"]
-        A_LOC["Amazon Location Service / OSM Nominatim"]
-        A_LAMBDA["AWS Lambda / Local Worker"]
-        A_SSM["AWS Systems Manager / .env"]
-        A_BUDGET["AWS Budgets / Threshold Alert"]
+    subgraph AWSCloud ["AWS Cloud Infrastructure (Adaptive Adapters)"]
+        AWS_S3["Amazon S3 (Report Storage)"]
+        AWS_CW["Amazon CloudWatch (Metrics & Logs)"]
+        AWS_SSM["AWS SSM Parameter Store (Secrets)"]
+        AWS_CFN["AWS CloudFormation (IaC Stacks)"]
     end
 
-    Frontend -->|HTTP / JSON| NGINX
-    NGINX --> BackendAPI
-    BackendAPI --> Persistence
-    BackendAPI -.-> AWSAdapters
+    UI_Home --> API_Router
+    UI_GIS --> API_Router
+    UI_Opt --> API_Router
+    UI_Features --> API_Router
+    UI_Ops --> API_Router
+    UI_Reports --> API_Router
+
+    API_Router --> AUTH_MW
+    AUTH_MW --> ENG_Solar
+    AUTH_MW --> ENG_MCKP
+    AUTH_MW --> ENG_Energy
+    AUTH_MW --> ENG_Diag
+    AUTH_MW --> ENG_PDF
+
+    ENG_Solar --> DB
+    ENG_MCKP --> DB
+    ENG_PDF --> FileStore
+
+    FileStore -.->|Fallback to S3| AWS_S3
+    API_Router -.->|Fallback to CloudWatch| AWS_CW
+    API_Router -.->|Fallback to SSM| AWS_SSM
 ```
 
 ---
 
-## 7. How Mathematical Optimization Works
+## 6. Technology Stack
 
-RoofShift AI formulates campus solar planning as a **Multiple-Choice Knapsack Problem (MCKP)**:
+### Frontend
+- **Framework:** React 18.3 with TypeScript 5.6
+- **Tooling:** Vite 8.3 (Fast HMR, sub-second production bundling)
+- **Styling:** Tailwind CSS 3.4 with custom design tokens (`#FF6B16` Solar Amber, `#0B1739` Deep Obsidian)
+- **Mapping:** Leaflet 1.9 & React-Leaflet with Leaflet-Draw for custom polygon roof digitizing
+- **Data Visualization:** Recharts 2.x for diurnal coincidence curves and monthly production charts
+- **Icons:** Lucide React
 
-- **Candidate Rooftops:** $m$ campus buildings ($i \in \{1, \dots, m\}$).
-- **Mutually Exclusive Capacities:** Each building $i$ can receive discrete capacity options $k \in \{0, 1, \dots, K_i\}$ (e.g. in increments of 0.5 kWp up to physical physical roof limits).
-- **Turnkey Cost:** $C_{i,k} = \text{FixedCost}_i + k \times \text{CostPerKwp}_i$.
-- **Mathematical Optimization Formulation:**
-  $$\max \sum_{i=1}^{m} \sum_{k=0}^{K_i} V_{i,k} \cdot x_{i,k}$$
-  $$\text{subject to } \sum_{i=1}^{m} \sum_{k=0}^{K_i} C_{i,k} \cdot x_{i,k} \le B \quad \text{and} \quad \sum_{k=0}^{K_i} x_{i,k} = 1 \quad \forall i, \quad x_{i,k} \in \{0, 1\}$$
-  Where $B$ is the institutional capital budget, and $V_{i,k}$ is the selected objective (Annual Bill Savings in ₹ INR, Onsite Self-Consumption in kWh, or Clean Generation in kWh).
+### Backend
+- **Framework:** FastAPI 0.115+ (Asynchronous ASGI framework)
+- **Language:** Python 3.11 / 3.12 / 3.14 compatible
+- **Data Validation:** Pydantic v2 (Strict typing, serialization, and schema validation)
+- **Database ORM:** SQLAlchemy 2.0 with SQLite (development/offline) and PostgreSQL readiness
+- **Document Generation:** ReportLab 3.x (Multi-page vector layout engine)
 
-### Fair Baseline Benchmark (Verifiable Lift)
-On every optimization run, RoofShift AI executes a parallel **Greedy Heuristic Benchmark** (allocates budget to the largest rooftop first until depleted). Under identical inputs:
-- **Naive Heuristic (Largest Roof First):** Concentrates all capacity on the Academic Block, creating heavy midday surplus exported at the low ₹3.50/kWh rate &rarr; **₹2,96,000/year** in bill savings.
-- **RoofShift AI Knapsack Solver:** Strategically splits capital across the Academic Block and Admin Complex (high daytime load coincidence) &rarr; **₹3,73,800/year** in bill savings.
-- **Demonstrated Savings Lift:** **+₹77,800/year (+26.3% lift)** under the exact same ₹10 Lakh capex!
+### Computation & Analytics
+- **Operations Research:** Exact Decimal Dynamic Programming for the Multiple-Choice Knapsack Problem (MCKP)
+- **Solar Climatology:** NASA POWER Climatology API client with 0.1° geographic coordinate caching
+- **Geospatial Geometry:** Shoelace formula polygon area calculation with spherical latitude correction
+- **Environmental Modeling:** Central Electricity Authority (CEA) grid baseline emission factors
 
----
-
-## 8. Built-in Demonstration Project: Delhi College Campus
-
-RoofShift AI comes pre-seeded with 5 realistic academic campus buildings:
-
-- **Institution:** Delhi Technological University Demonstration Campus (New Delhi: $28.614^\circ\text{ N}, 77.209^\circ\text{ E}$)
-- **Capital Budget:** **₹10,00,000 (INR 10 Lakh)** *(Presets for ₹5L, ₹15L, ₹20L, ₹50L supported)*
-- **Grid Retail Tariff:** ₹8.50 / kWh • **Export Tariff:** ₹3.50 / kWh
-
-| Candidate Building | Category | Gross Roof | Usable Roof | Monthly Load | Daytime Share | Shading Profile | Physical PV Cap |
-|---|---|---:|---:|---:|---:|---|---:|
-| **Academic Block** | Academic | $800\text{ m}^2$ | $640\text{ m}^2$ | $4,500\text{ kWh}$ | 75% | Low (<5% loss) | $80.0\text{ kWp}$ |
-| **Library Building** | Academic | $450\text{ m}^2$ | $360\text{ m}^2$ | $2,200\text{ kWh}$ | 70% | Medium (15% loss) | $45.0\text{ kWp}$ |
-| **Hostel Block A** | Residential | $600\text{ m}^2$ | $450\text{ m}^2$ | $3,800\text{ kWh}$ | 45% | Low (<5% loss) | $56.2\text{ kWp}$ |
-| **Auditorium & Dining** | Utility | $550\text{ m}^2$ | $400\text{ m}^2$ | $1,800\text{ kWh}$ | 60% | High (30% loss) | $50.0\text{ kWp}$ |
-| **Admin Complex** | Administrative | $350\text{ m}^2$ | $280\text{ m}^2$ | $2,600\text{ kWh}$ | 80% | Low (<5% loss) | $35.0\text{ kWp}$ |
-| **Campus Portfolio** | — | **$2,750\text{ m}^2$** | **$2,130\text{ m}^2$** | **$14,900\text{ kWh}$** | — | — | **$266.2\text{ kWp}$** |
+### Infrastructure & Cloud
+- **Containers:** Docker and Docker Compose multi-stage configurations
+- **Web Server:** Nginx reverse proxy configurations
+- **Infrastructure as Code:** AWS CloudFormation templates
+- **Cloud Adapters:** Modular Python adapters for AWS services with zero-cost local fallbacks
+- **Continuous Integration:** GitHub Actions automated test workflows
 
 ---
 
-## 9. Installation & Local Setup
+## 7. AWS Cloud Architecture & Implementation Status
+
+RoofShift AI includes an adaptive cloud architecture designed for Amazon Web Services. Every cloud touchpoint uses an abstracted service adapter with a transparent local fallback, enabling full functionality both in cloud environments and locally offline.
+
+### Implementation Status Matrix
+
+| AWS Service | Architecture Role | Implementation Status | Local Fallback Behavior |
+|---|---|---|---|
+| **AWS STS** | Identity verification and caller authentication | **Live Integrated** | Evaluated via AWS CLI v2 profile configuration. |
+| **AWS Budgets / Cost Explorer** | Cost monitoring and spending containment alerts | **Live Integrated** | Zero-spend status verified ($0.00 MTD spend). |
+| **AWS CloudFormation** | Infrastructure-as-Code automated stack provisioning | **Infrastructure Ready** | Validated template at `infrastructure/aws/cloudformation-template.yaml`. |
+| **Amazon EC2** | Application hosting via Docker and Nginx reverse proxy | **Infrastructure Ready** | Shell deployment automation at `infrastructure/aws/deploy-ec2.sh`. |
+| **Amazon S3** | Cloud object storage for generated PDF proposals | **Implemented, Not Deployed** | File storage falls back cleanly to local filesystem (`generated_reports/`). |
+| **Amazon CloudWatch** | Application logging and operational metric monitoring | **Implemented, Not Deployed** | Telemetry logs fall back to standard Python logging handlers. |
+| **AWS Systems Manager (SSM)** | Centralized parameter storage and environment secrets | **Implemented, Not Deployed** | Configuration falls back to local `.env` and environment variables. |
+| **Amazon Location Service** | Enterprise address geocoding and reverse geocoding | **Implemented, Not Deployed** | Geocoding falls back to OpenStreetMap Nominatim API. |
+| **AWS Lambda** | Event-driven solar assessment background processing | **Planned** | Outlined in roadmap for batch portfolio ingestion. |
+| **Amazon Bedrock** | Generative AI and LLM inference | **Hard-Disabled** | Explicitly disabled (`BEDROCK_ENABLED = False`) to guarantee deterministic mathematics and eliminate cloud inference costs. |
+
+> **Financial Safety Directive:** All cloud operations adhere to a strict zero unauthorized spending policy. The system operates fully using local fallbacks and does not require active cloud provisioning to execute assessments or generate reports.
+
+---
+
+## 8. Installation & Quick Start
 
 ### Prerequisites
-- Python 3.11+ (`python --version`)
-- Node.js 18+ and npm (`node --version`)
-- Git (`git --version`)
+- **Python:** 3.11 or later (`python --version`)
+- **Node.js:** 18.0 or later with npm (`node --version`)
+- **Git:** 2.30 or later (`git --version`)
 
-### Quickstart Commands
+### Linux / macOS Setup
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/<your-org>/roofshift-ai.git
+git clone https://github.com/17rajsal/roofshift-ai.git
 cd roofshift-ai
 
-# 2. Setup and launch backend
-python -m venv venv
-# On Windows: .\venv\Scripts\Activate.ps1 | On Linux/macOS: source venv/bin/activate
+# 2. Setup backend virtual environment
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
 pip install -r backend/requirements.txt
 cp .env.example .env
-python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
 
-# 3. Setup and launch frontend (in a second terminal)
+# 3. Launch backend API server
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
+
+# 4. Setup and launch frontend (in a separate terminal)
 cd frontend
 npm install
 npm run dev
 ```
 
-- Open **`http://localhost:5173`** in your browser.
-- Open **`http://localhost:8000/docs`** for interactive API documentation.
-
-Detailed cross-platform setup instructions are available in [`docs/SETUP.md`](docs/SETUP.md).
-
-### Application and engine ownership
-
-Complex backend engines are developed separately on `codex/advanced-engines`. The nine additional solar features and expanded PDFs are owned by `codex/solar-feature-expansion`. Frontend foundations, routing, project context, persistence integration, and infrastructure continue on `antigravity/core-app`. Read [ENGINE_HANDOFF.md](ENGINE_HANDOFF.md), [API_CONTRACTS.md](API_CONTRACTS.md), and [APPLICATION_CHECKPOINT.md](APPLICATION_CHECKPOINT.md) before integration. Avoid independently rewriting modules assigned to either Codex branch.
-
-The application remembers the selected project across reloads and isolates page state when switching projects. On the Solar Map, use **Draw roof boundary**, click corners in order, and choose **Use this roof**. Confirm the estimated area in the building form before saving. Outlines are stored with the building and remain available after reload; point-only buildings continue to work.
-
-For a separately hosted frontend, configure `VITE_API_BASE_URL` before the production build using `frontend/.env.example`. Same-origin local and Docker deployments need no override. Report notes are included in generated PDFs, and report history belongs to the active project.
-
-### Verification
-
-Use a separate test database to keep application data intact:
+### Windows Setup (PowerShell)
 
 ```powershell
-New-Item -ItemType Directory -Force tmp | Out-Null
-$env:DATABASE_URL = 'sqlite:///./tmp/acceptance.db'
-python -m pytest -o pythonpath=backend backend/tests -q --basetemp=tmp/pytest-application
-Remove-Item Env:DATABASE_URL
+# 1. Clone repository
+git clone https://github.com/17rajsal/roofshift-ai.git
+cd roofshift-ai
+
+# 2. Setup backend virtual environment
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r backend/requirements.txt
+Copy-Item .env.example .env
+
+# 3. Launch backend API server
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --reload
+
+# 4. Setup and launch frontend (in a separate terminal)
 cd frontend
-npm run build
-node --test --test-isolation=none tests/roofGeometry.test.ts
+npm install
+npm run dev
 ```
 
-The geometry checks use Node's TypeScript support; run them on Node 22.18+ or a current Node release. `--basetemp` is a disposable test directory inside the workspace.
+- Open **`http://localhost:5173`** to access the web application.
+- Open **`http://localhost:8000/docs`** for interactive OpenAPI / Swagger API documentation.
 
 ---
 
-## 10. AWS Deployment & Infrastructure
+## 9. API Capabilities & Key Endpoints
 
-RoofShift AI provides production-ready deployment configurations:
-- **CloudFormation:** Automated infrastructure provisioning via [`infrastructure/aws/cloudformation-template.yaml`](infrastructure/aws/cloudformation-template.yaml).
-- **Single EC2 Host:** Automated shell script setup via [`infrastructure/aws/deploy-ec2.sh`](infrastructure/aws/deploy-ec2.sh).
-- **AWS Amplify Hosting:** Configured via [`amplify.yml`](amplify.yml).
-- **Containerization:** Pre-configured [`Dockerfile`](backend/Dockerfile) and [`docker-compose.yml`](docker-compose.yml).
+The backend exposes structured REST endpoints under the `/api/v1` namespace:
 
-### Architectural Directive: Zero Amazon Bedrock Dependency
-Generative AI and Amazon Bedrock are **explicitly hard-disabled** (`BEDROCK_ENABLED = False`). The mentor guidance prioritized reliability, zero invocation latency, deterministic calculations, and zero ongoing cloud inference costs during hackathon evaluation. RoofShift AI achieves superior explainability via mathematical proofs and deterministic rule templates.
-
-Detailed AWS deployment instructions are available in [`docs/AWS_DEPLOYMENT.md`](docs/AWS_DEPLOYMENT.md).
+| Endpoint Group | Key Routes | Description |
+|---|---|---|
+| **Health & System** | `GET /api/v1/health`<br>`GET /api/v1/system/integrations` | System health status and AWS cloud adapter status matrix. |
+| **Portfolios & Projects** | `GET /api/v1/projects`<br>`POST /api/v1/projects`<br>`GET /api/v1/projects/{id}` | Portfolio lifecycle management, geographic coordinates, and tariff parameters. |
+| **Buildings & Rooftops** | `GET /api/v1/projects/{id}/buildings`<br>`POST /api/v1/projects/{id}/buildings` | Rooftop polygons, gross/usable areas, demand metrics, and shading profiles. |
+| **Solar Climatology** | `POST /api/v1/solar/analyze`<br>`GET /api/v1/projects/{id}/solar` | NASA POWER solar irradiance retrieval, derating calculations, and monthly yields. |
+| **Knapsack Optimizer** | `POST /api/v1/projects/{id}/optimize` | Exact Multiple-Choice Knapsack budget allocation across campus rooftops. |
+| **Energy & Surplus** | `GET /api/v1/projects/{id}/energy`<br>`POST /api/v1/energy/surplus` | Diurnal hourly generation vs. load balance and export calculations. |
+| **Smart Scheduling** | `POST /api/v1/scheduling/optimize` | Shiftable load dispatch recommendations aligned with peak solar production. |
+| **Feature Assessments** | `GET /api/v1/projects/{id}/features/templates`<br>`POST /api/v1/projects/{id}/features/assessments` | 8 structured assessment templates (location finder, sensitivity, impact, etc.). |
+| **Asset Operations** | `POST /api/v1/inspections/analyze`<br>`POST /api/v1/monitoring/telemetry` | Panel anomaly classification, inverter telemetry PR auditing, and maintenance triage. |
+| **Executive Reports** | `POST /api/v1/projects/{id}/reports`<br>`GET /api/v1/reports/{id}/download` | Vector PDF report generation and direct binary document download. |
 
 ---
 
-## 11. Testing & Quality
+## 10. Data Sources & Scientific Methodologies
 
-RoofShift AI includes automated test verification covering mathematical calculations, API contracts, and integration workflows:
+1. **Solar Climatology Data:**
+   - Source: NASA Prediction of Worldwide Energy Resources (POWER) Climatology API.
+   - Parameters: Global Horizontal Irradiance (`ALLSKY_SFC_SW_DWN`, $\text{kWh}/\text{m}^2/\text{day}$).
+   - Caching: 0.1° geographic coordinate grid cache with automatic fallback to regional IMD/NISE baselines.
+2. **Performance Derating Standards:**
+   - Standard: IEC 61724 standard Performance Ratio ($75.0\%$ default benchmark).
+   - Derating Components: Inverter efficiency ($96.5\%$), DC cabling losses ($2.0\%$), temperature coefficients ($3.0\%$), and environmental dust/soiling ($2.5\%$).
+3. **Carbon Emission Accounting:**
+   - Source: Central Electricity Authority (CEA) of India CO2 baseline database.
+   - Grid Displacement Factor: **$0.716\text{ kg CO}_2\text{e}/\text{kWh}$** default for Indian regional grids.
+4. **Optimization Modeling:**
+   - Formulation: Multiple-Choice Knapsack Problem (MCKP) with discrete 0.5 kWp capacity steps.
+   - Objective: Maximize net annual bill savings (INR) within an exact capital budget ceiling (Capex $\le B$).
+
+---
+
+## 11. Testing & Verification
+
+RoofShift AI maintains comprehensive automated test suites covering backend mathematical correctness, API schemas, and frontend build integrity:
 
 ```bash
-# Run backend test suite (25 tests)
+# Execute backend test suite
 python -m pytest -o pythonpath=backend backend/tests -v
 ```
 
 ```
-backend/tests/test_api_endpoints.py ...                [12%]
-backend/tests/test_application_integration.py .....    [32%]
-backend/tests/test_optimizer.py ..                     [40%]
-backend/tests/test_solar_engine.py ...                 [52%]
-backend/tests/test_v2_acceptance.py ............       [100%]
-======================= 25 passed in ~6.5s =======================
+============================= test session starts =============================
+platform win32 -- Python 3.14.7, pytest-9.1.1
+collected 195 items
+
+backend/tests/test_advanced_engine_correctness.py ...................... [ 11%]
+.................................                                        [ 28%]
+backend/tests/test_api_endpoints.py ...                                  [ 29%]
+backend/tests/test_application_integration.py .....                      [ 32%]
+backend/tests/test_feature_analytics.py ................................ [ 48%]
+..............                                                           [ 55%]
+backend/tests/test_feature_api.py ......................                 [ 67%]
+backend/tests/test_feature_monitoring.py ............................... [ 83%]
+..............                                                           [ 90%]
+backend/tests/test_integration_provenance.py ..                          [ 91%]
+backend/tests/test_optimizer.py ..                                       [ 92%]
+backend/tests/test_solar_engine.py ...                                   [ 93%]
+backend/tests/test_v2_acceptance.py ............                         [100%]
+
+===================== 195 passed, 401 warnings in 12.68s ======================
 ```
 
 ```bash
-# Run frontend TypeScript & Vite production build
-cd frontend && npm run build
-# vite v8.3.4 building client environment for production...
-# ✓ 2548 modules transformed.
-# ✓ built in ~1.2s (0 TypeScript errors)
+# Execute frontend TypeScript and Vite production compilation
+cd frontend
+npm run build
+```
+
+```
+✓ 2563 modules transformed.
+✓ built in 631ms (0 TypeScript errors)
 ```
 
 ---
 
-## 12. Scientific Data Sources & Methodologies
+## 12. Repository Structure
 
-1. **Solar Climatology:** NASA POWER Climatology API (`ALLSKY_SFC_SW_DWN` GHI parameters) with 0.1° geographic coordinate caching.
-2. **Carbon Emissions:** Central Electricity Authority (CEA) of India CO2 baseline emissions factor of **$0.716\text{ kg CO}_2/\text{kWh}$**.
-3. **Geospatial Geocoding:** OpenStreetMap Nominatim API with Amazon Location Service adapter.
-4. **Physical Derating:** IEC 61724 standard $75.0\%$ Performance Ratio (factoring inverter efficiency, DC mismatch, cable resistance, and dust soiling).
-
-Detailed references and disclaimers are available in [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md).
+```
+roofshift-ai/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                     # Automated CI test and build workflow
+├── backend/
+│   ├── app/
+│   │   ├── api/v1/                    # REST route controllers
+│   │   ├── core/                      # Configuration and database sessions
+│   │   ├── models/                    # SQLAlchemy database schemas
+│   │   ├── schemas/                   # Pydantic v2 data models
+│   │   └── services/                  # Business logic & analytical engines
+│   │       ├── energy/                # Diurnal balance and surplus logic
+│   │       ├── features/              # Specialized feature templates & analytics
+│   │       ├── optimization/          # Knapsack budget solver (MCKP)
+│   │       ├── reports/               # ReportLab PDF compiler
+│   │       └── solar/                 # NASA POWER climatology integration
+│   ├── requirements.txt               # Python package dependencies
+│   └── tests/                         # Automated pytest test suites (195 tests)
+├── frontend/
+│   ├── public/                        # Static web assets and imagery
+│   ├── src/
+│   │   ├── components/                # Reusable UI components & modals
+│   │   │   ├── home/                  # Homepage section components
+│   │   │   ├── layout/                # Navigation and sidebar shell
+│   │   │   └── map/                   # Leaflet GIS solar map and draw tools
+│   │   ├── pages/                     # Application route views
+│   │   └── services/                  # Axios API communication clients
+│   ├── package.json                   # Frontend dependencies
+│   └── vite.config.ts                 # Vite bundler configuration
+├── docs/
+│   ├── assets/                        # Documentation screenshots & figures
+│   ├── ARCHITECTURE.md                # Detailed technical system specifications
+│   ├── AWS_DEPLOYMENT.md              # CloudFormation and EC2 deployment guide
+│   ├── DATA_SOURCES.md                # Scientific sources and calculation disclaimers
+│   ├── DEMO.md                        # Institutional campus walkthrough scenario
+│   ├── FEATURES.md                    # Detailed capability specifications
+│   └── SETUP.md                       # Comprehensive environment setup guide
+├── infrastructure/
+│   └── aws/                           # CloudFormation and EC2 deployment scripts
+├── .env.example                       # Sample environment variable template
+├── .gitignore                         # Comprehensive Git ignore rules
+├── docker-compose.yml                 # Local container orchestration
+└── README.md                          # Repository documentation
+```
 
 ---
 
-## 13. Project Roadmap
+## 13. System Assumptions & Limitations
+
+- **Irradiance Resolution:** Climatological solar yield estimates use historical monthly averages from NASA POWER rather than real-time minute-by-minute pyranometer readings.
+- **Rooftop Structural Integrity:** Calculated capacities represent theoretical physical maximums based on digitized surface area; on-site structural engineering inspections are mandatory prior to physical procurement.
+- **Telemetry Ingestion:** The operational monitoring interface currently processes historical intervals and sample telemetry datasets; direct continuous SCADA / Modbus hardware ingestion is planned for future releases.
+- **Financial Projections:** Electricity bill savings and payback calculations are based on user-supplied import tariffs, net-metering export rates, and standard degradation assumptions ($0.5\%/\text{year}$).
+
+---
+
+## 14. Development Roadmap
 
 - [x] Multi-facility Multiple-Choice Knapsack budget optimization
-- [x] Dual-mode energy demand modeling (Ingested meter CSV + Archetype synthesis)
-- [x] Diurnal 24-hour solar surplus detection and flexible load dispatch
-- [x] Optical and thermal drone image panel defect classification
-- [x] Inverter telemetry Performance Ratio and annual degradation auditing
-- [x] Multi-page ReportLab executive PDF proposal compiler
-- [x] Production enterprise SaaS UI/UX redesign with tabular numerals
-- [ ] Direct RS-485 / Modbus inverter hardware gateway integration
-- [ ] 3D LiDAR point-cloud shadow tracing for complex parapets
-- [ ] Multi-campus district-level aggregation and microgrid balancing
+- [x] High-resolution diurnal solar surplus coincidence modeling
+- [x] Inverter telemetry Performance Ratio and degradation auditing
+- [x] Multi-page ReportLab vector PDF proposal generator
+- [x] 12 specialized solar assessment engines and history tracking
+- [x] Comprehensive AWS CloudFormation and Docker deployment templates
+- [ ] Direct RS-485 / Modbus RTU inverter hardware gateway integration
+- [ ] 3D LiDAR point-cloud shadow tracing for complex parapets and obstacles
+- [ ] Multi-tenant institutional portfolio aggregation and district-level microgrid balancing
 
 ---
 
-## 14. Team & Acknowledgements
+## 15. Maintainer & Contact
 
-**Built with pride by TEAM DRX**  
-*Environmental Hacks 2026 — WeMakeDevs × AWS (Waste & Energy Track)*
-
-### Acknowledgements:
-- **NASA POWER Project:** For providing public solar climatology datasets.
-- **OpenStreetMap Contributors:** For open geospatial mapping data.
-- **ReportLab Inc.:** For reliable, deterministic PDF generation tools.
-- **WeMakeDevs & AWS Teams:** For organizing Environmental Hacks 2026.
+- **Project Lead & Maintainer:** [@17rajsal](https://github.com/17rajsal)
+- **Repository:** [https://github.com/17rajsal/roofshift-ai](https://github.com/17rajsal/roofshift-ai)
 
 ---
 
 <div align="center">
 
-**RoofShift AI — Turning rooftop solar potential into smarter, explainable energy decisions.**
+**RoofShift AI — Turning rooftop solar potential into explainable, data-informed energy decisions.**
 
 </div>

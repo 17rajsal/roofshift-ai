@@ -190,7 +190,7 @@ export const AwsIntegrationsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {/* Footer */}
         <div className="p-3.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
           <span className="text-[11px] text-slate-500 font-mono">
-            RoofShift AI • Environmental Hacks 2026 • Team DRX
+            RoofShift AI • Cloud Architecture & Infrastructure Status
           </span>
           <button
             onClick={onClose}

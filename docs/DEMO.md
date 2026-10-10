@@ -5,7 +5,7 @@
 > **Capital Budget:** **₹10,00,000 (INR 10 Lakh)**  
 > **Grid Electricity Tariff:** ₹8.50 / kWh  
 > **Export Net-Metering Rate:** ₹3.50 / kWh  
-> **Target Audience:** College Deans, Facility Engineers, AWS Evaluators, and Hackathon Judges  
+> **Target Audience:** Institutional Executives, Facility Engineers, Energy Planners, and Solutions Architects  
 
 ---
 

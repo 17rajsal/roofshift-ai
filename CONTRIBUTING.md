@@ -1,6 +1,6 @@
 # Contributing to RoofShift AI
 
-Thank you for your interest in contributing to **RoofShift AI**! This project was created by **TEAM DRX** for **Environmental Hacks 2026 — WeMakeDevs × AWS** (Waste & Energy track).
+Thank you for your interest in contributing to **RoofShift AI**! This project is an open-source platform designed to make institutional rooftop solar planning and energy optimization accessible, transparent, and mathematically rigorous.
 
 ---
 

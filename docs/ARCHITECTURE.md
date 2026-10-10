@@ -1,8 +1,8 @@
 # RoofShift AI — System Architecture & Technical Specifications
 
-> **Environmental Hacks 2026 — WeMakeDevs × AWS**  
-> **Track:** Waste & Energy  
-> **Team:** TEAM DRX  
+> **Product:** RoofShift AI Enterprise Platform  
+> **Platform Architecture Specification**  
+> **Maintainer:** @17rajsal  
 > **Document Version:** 2.0.0  
 
 ---

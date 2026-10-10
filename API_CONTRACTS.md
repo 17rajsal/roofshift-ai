@@ -1,6 +1,6 @@
 # RoofShift AI — API Contracts & Integration Guide
 **Version:** 2.0.0-PROD
-**Team:** TEAM DRX
+**Project Maintainer:** @17rajsal
 **Primary Application Branch:** `antigravity/core-app`
 **Advanced Engines Branch:** `codex/advanced-engines`
 **Solar Feature Expansion Branch:** `codex/solar-feature-expansion`

@@ -51,7 +51,7 @@ def root():
         "documentation": "/docs",
         "health": f"{settings.API_V1_STR}/health",
         "version": settings.VERSION,
-        "team": "Team DRX — Environmental Hacks 2026 (WeMakeDevs x AWS)"
+        "edition": "RoofShift AI Enterprise Edition"
     }
 
 if __name__ == "__main__":

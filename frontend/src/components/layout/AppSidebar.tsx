@@ -244,7 +244,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, m
           </span>
         </div>
         <div className="text-[10px] text-slate-400 mt-2 flex items-center justify-between">
-          <span>TEAM DRX</span>
+          <span>RoofShift Core</span>
           <span>v2.4 Enterprise</span>
         </div>
       </div>

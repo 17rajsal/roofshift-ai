@@ -1,6 +1,6 @@
 {
   "Budget": {
-    "BudgetName": "RoofShift-Hackathon-SpendingLimit",
+    "BudgetName": "RoofShift-Application-SpendingLimit",
     "BudgetLimit": {
       "Amount": "20.0",
       "Unit": "USD"

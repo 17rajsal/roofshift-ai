@@ -15,7 +15,7 @@ The RoofShift AI team takes application security seriously.
 
 If you discover a security vulnerability or potential credential exposure:
 1. **Do not create a public GitHub issue.**
-2. Send a responsible disclosure report via private communication to the maintainers (TEAM DRX).
+2. Send a responsible disclosure report via private communication to the project maintainers (@17rajsal).
 3. Provide detailed steps to reproduce the issue, along with proof of concept if available.
 
 ### Scope:

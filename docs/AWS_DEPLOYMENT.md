@@ -1,8 +1,8 @@
 # RoofShift AI — AWS Deployment & Infrastructure Guide
 
-> **Environmental Hacks 2026 — WeMakeDevs × AWS**  
-> **Track:** Waste & Energy  
-> **Team:** TEAM DRX  
+> **Product:** RoofShift AI Enterprise Platform  
+> **Infrastructure & Deployment Guide**  
+> **Maintainer:** @17rajsal  
 
 This guide provides technical instructions for provisioning and deploying RoofShift AI on Amazon Web Services (AWS) using CloudFormation, EC2/ECS, and Docker.
 
@@ -65,7 +65,7 @@ aws cloudformation create-stack \
 
 ## 3. Deployment Option A: Single EC2 Host with Docker & Nginx
 
-For rapid hackathon demonstration or institutional pilot deployment, run the automated EC2 deployment script:
+For rapid single-host evaluation or institutional pilot deployment, run the automated EC2 deployment script:
 
 ```bash
 # SSH into the Amazon Linux 2023 or Ubuntu EC2 instance

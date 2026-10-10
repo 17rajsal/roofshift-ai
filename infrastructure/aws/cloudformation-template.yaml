@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'RoofShift AI Infrastructure Template — Environmental Hacks 2026 (Team DRX)'
+Description: 'RoofShift AI Cloud Infrastructure Stack — Production-Ready AWS Architecture'
 
 Parameters:
   InstanceType:

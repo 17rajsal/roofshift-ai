@@ -199,7 +199,7 @@ export const HomeFooter: React.FC = () => {
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
           <div>
-            © 2026 RoofShift AI — Team DRX. All rights reserved.
+            © 2026 RoofShift AI. All rights reserved.
           </div>
           <div className="font-medium text-[#61708A]">
             Building a cleaner, brighter tomorrow.
