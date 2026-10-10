@@ -102,7 +102,7 @@ export const AwsIntegrationsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 </span>
               </div>
               <p className="text-slate-300 mt-1 leading-relaxed text-[11px]">
-                RoofShift AI uses 100% deterministic mathematical optimization (Google OR-Tools CP-SAT & Dynamic Programming), PV physics engines, and Scikit-learn load curve profilers. Zero LLM latency, zero model outages, and zero API costs during critical demonstration.
+                RoofShift AI uses 100% deterministic mathematical optimization (exact Decimal dynamic programming), PV planning engines and explicitly synthetic demand profiles. Zero LLM latency, zero model outages, and zero API costs during critical demonstration.
               </p>
             </div>
           </div>

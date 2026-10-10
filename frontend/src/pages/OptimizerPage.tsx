@@ -99,7 +99,7 @@ export const OptimizerPage: React.FC = () => {
               <span>Multiple-Choice Knapsack Budget Optimizer</span>
             </h2>
             <span className="text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200 font-mono">
-              OR-Tools CP-SAT
+              Exact Decimal Dynamic Programming
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">

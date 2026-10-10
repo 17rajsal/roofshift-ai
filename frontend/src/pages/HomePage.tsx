@@ -128,10 +128,10 @@ export const HomePage: React.FC = () => {
               <div className="text-[11px] font-mono font-semibold text-amber-600 mb-2">03 / SOLVER</div>
               <h3 className="font-semibold text-slate-900 text-sm mb-1.5">Knapsack Knapsack</h3>
               <p className="text-slate-600 leading-relaxed text-[11px]">
-                Multiple-Choice integer knapsack (OR-Tools CP-SAT) solving optimal discrete kWp capacity per building.
+                Multiple-Choice integer knapsack (Exact Decimal Dynamic Programming) solving optimal discrete kWp capacity per building.
               </p>
             </div>
-            <div className="mt-3 text-[10px] text-amber-700 font-medium">Deterministic OR-Tools</div>
+            <div className="mt-3 text-[10px] text-amber-700 font-medium">Exact discrete solver</div>
           </div>
 
           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200/70 flex flex-col justify-between">
