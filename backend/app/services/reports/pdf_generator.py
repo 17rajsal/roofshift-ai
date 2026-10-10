@@ -1,4 +1,6 @@
 import os
+import uuid
+from html import escape
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from reportlab.lib import colors
@@ -15,7 +17,10 @@ from app.models.building import Building
 from app.models.optimization import OptimizationRun
 from app.models.scheduling import EnergyActivity
 from app.models.report import GeneratedReport
+from app.models.feature import FeatureAssessment
+from app.services.reports.feature_sections import append_feature_sections
 from app.core.config import settings
+from app.schemas.scheduling import SchedulingOptimizationResponse
 
 class NumberedCanvas(canvas.Canvas):
     """Adds professional running headers and 'Page X of Y' footers to every page."""
@@ -57,7 +62,13 @@ class NumberedCanvas(canvas.Canvas):
         self.line(54, 46, 612 - 54, 46)
         self.restoreState()
 
-def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[str] = None) -> GeneratedReport:
+def generate_project_pdf_report(
+    project_id: str, db: Session, notes: Optional[str] = None,
+    scheduling_result: Optional[SchedulingOptimizationResponse] = None,
+    include_load_shifting: bool = True,
+    include_features: bool = True,
+    include_scenarios: bool = True,
+) -> GeneratedReport:
     """
     Builds a comprehensive, publication-grade PDF report using ReportLab.
     """
@@ -75,7 +86,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     os.makedirs(settings.REPORTS_DIR, exist_ok=True)
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     clean_name = "".join(c if c.isalnum() else "_" for c in project.name)[:25]
-    filename = f"RoofShift_Report_{clean_name}_{timestamp}.pdf"
+    filename = f"RoofShift_Report_{clean_name}_{timestamp}_{uuid.uuid4().hex[:10]}.pdf"
     file_path = os.path.join(settings.REPORTS_DIR, filename)
 
     doc = SimpleDocTemplate(
@@ -141,8 +152,8 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     story.append(Paragraph("RoofShift AI", style_subtitle))
     story.append(Paragraph("Solar Investment & Energy Optimization Report", style_title))
     story.append(Paragraph(
-        f"<b>Organization:</b> {project.organization_name} &nbsp;|&nbsp; "
-        f"<b>Location:</b> {project.city} &nbsp;|&nbsp; "
+        f"<b>Organization:</b> {escape(project.organization_name)} &nbsp;|&nbsp; "
+        f"<b>Location:</b> {escape(project.city)} &nbsp;|&nbsp; "
         f"<b>Date:</b> {datetime.utcnow().strftime('%B %d, %Y')}",
         style_body
     ))
@@ -154,7 +165,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     if latest_run:
         exec_text = (
             f"This preliminary solar engineering and financial assessment evaluates <b>{len(buildings)} candidate campus rooftops</b> "
-            f"in <b>{project.city}</b> under an institutional capital expenditure ceiling of <b>INR {latest_run.budget_inr:,.0f}</b>. "
+            f"in <b>{escape(project.city)}</b> under an institutional capital expenditure ceiling of <b>INR {latest_run.budget_inr:,.0f}</b>. "
             f"Using satellite-derived climatological solar irradiance from NASA POWER and rigorous multiple-choice knapsack optimization, "
             f"RoofShift AI recommends deploying <b>{latest_run.total_capacity_kwp:.1f} kWp</b> of rooftop solar PV capacity. "
             f"This optimized portfolio generates an estimated <b>{latest_run.total_annual_generation_kwh:,.0f} kWh</b> of clean electricity annually, "
@@ -163,7 +174,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
         )
     else:
         exec_text = (
-            f"Preliminary rooftop solar assessment for <b>{project.name}</b> across <b>{len(buildings)} buildings</b>. "
+            f"Preliminary rooftop solar assessment for <b>{escape(project.name)}</b> across <b>{len(buildings)} buildings</b>. "
             f"Assessment incorporates location-specific solar irradiance and electricity demand models."
         )
     story.append(Paragraph(exec_text, style_body))
@@ -222,8 +233,8 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
         usable = b.gross_roof_area * (b.usable_roof_percentage / 100.0)
         max_c = round(usable / settings.DEFAULT_AREA_PER_KWP, 1)
         b_table_data.append([
-            b.name,
-            b.category,
+            Paragraph(escape(b.name), style_body),
+            Paragraph(escape(b.category), style_body),
             f"{b.gross_roof_area:,.0f} m²",
             f"{usable:,.0f} m²",
             f"{b.monthly_consumption_kwh:,.0f} kWh",
@@ -261,7 +272,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
         for item in latest_run.allocations_json:
             is_sel = item.get("is_selected", False)
             alloc_data.append([
-                item.get("building_name", ""),
+                Paragraph(escape(item.get("building_name", "")), style_body),
                 f"{item.get('recommended_capacity_kwp', 0):.1f} kWp",
                 f"₹{item.get('estimated_cost_inr', 0):,.0f}",
                 f"{item.get('expected_annual_generation_kwh', 0):,.0f} kWh",
@@ -293,7 +304,7 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
             reasons = item.get("decision_reasons", [])
             bullets = " • ".join(reasons) if reasons else item.get("shade_impact_summary", "")
             story.append(Paragraph(
-                f"<b>{item.get('building_name')} ({status}):</b> {bullets}",
+                f"<b>{escape(str(item.get('building_name')))} ({status}):</b> {escape(bullets).replace('₹', 'INR ')}",
                 style_body
             ))
 
@@ -344,21 +355,23 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
         story.append(Spacer(1, 10))
 
     # ================= 5. SMART LOAD SCHEDULING =================
-    if activities:
+    if activities and include_load_shifting:
         story.append(Paragraph("5. Smart Electricity Scheduling Recommendations", style_h1))
         story.append(Paragraph(
-            "Shiftable campus utility loads can be rescheduled into solar-rich daylight hours (10:00 AM – 3:00 PM) "
-            "to maximize direct on-site solar consumption.",
+            "Operating windows below use the project's scheduling engine results where available. "
+            "Confirm equipment and staffing constraints before changing operations.",
             style_body
         ))
         act_data = [
-            ["Activity Name", "Power Draw", "Current Timing", "Recommended Timing", "Est. Daily Shift"]
+            ["Activity Name", "Power Draw", "Current Timing", "Recommended Timing", "Solar Absorbed"]
         ]
+        shifts = {item.activity_id: item for item in scheduling_result.recommendations} if scheduling_result else {}
         for a in activities:
-            orig_h = f"{a.preferred_hour:02d}:00"
-            rec_h = "11:00 - 14:00"
-            daily_kwh = f"{a.power_kw * a.duration_hours:.1f} kWh"
-            act_data.append([a.name, f"{a.power_kw:.1f} kW", orig_h, rec_h, daily_kwh])
+            shift = shifts.get(a.id)
+            orig_h = shift.original_window if shift else f"{a.preferred_hour:02d}:00"
+            rec_h = shift.recommended_window if shift else "Not calculated"
+            absorbed = f"{shift.additional_solar_absorbed_kwh:.1f} kWh/session" if shift else "Not calculated"
+            act_data.append([Paragraph(escape(a.name), style_body), f"{a.power_kw:.1f} kW", orig_h, rec_h, absorbed])
 
         t_act = Table(act_data, colWidths=[134, 70, 90, 110, 100])
         t_act.setStyle(TableStyle([
@@ -388,6 +401,15 @@ def generate_project_pdf_report(project_id: str, db: Session, notes: Optional[st
     ]
     for n in notes_list:
         story.append(Paragraph(f"• {n}", style_body))
+
+    if include_features:
+        assessments = db.query(FeatureAssessment).filter(FeatureAssessment.project_id == project_id).order_by(FeatureAssessment.created_at.desc(), FeatureAssessment.id.desc()).all()
+        append_feature_sections(story, assessments, style_h2, style_body, style_caption, include_scenarios)
+
+    if notes and notes.strip():
+        story.append(Spacer(1, 12))
+        story.append(Paragraph("Project Review Notes", style_h1))
+        story.append(Paragraph(escape(notes.strip()).replace("\n", "<br/>"), style_body))
 
     doc.build(story, canvasmaker=NumberedCanvas)
 

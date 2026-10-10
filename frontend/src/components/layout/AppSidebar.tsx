@@ -36,6 +36,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal })
     { name: 'Energy Insights', path: '/insights', icon: BarChart3 },
     { name: 'Smart Scheduling', path: '/scheduling', icon: Clock },
     { name: 'Recommendations', path: '/recommendations', icon: Sparkles },
+    { name: 'Solar Assessments', path: '/solar-features', icon: Sun },
     { name: 'Final Report', path: '/reports', icon: FileText, badge: 'PDF' },
   ];
 

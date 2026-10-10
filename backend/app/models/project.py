@@ -26,3 +26,4 @@ class Project(Base):
     optimization_runs = relationship("OptimizationRun", back_populates="project", cascade="all, delete-orphan")
     activities = relationship("EnergyActivity", back_populates="project", cascade="all, delete-orphan")
     reports = relationship("GeneratedReport", back_populates="project", cascade="all, delete-orphan")
+    feature_assessments = relationship("FeatureAssessment", back_populates="project", cascade="all, delete-orphan")

@@ -13,6 +13,7 @@ import { EnergyInsightsPage } from './pages/EnergyInsightsPage';
 import { SchedulingPage } from './pages/SchedulingPage';
 import { RecommendationsPage } from './pages/RecommendationsPage';
 import { ReportPage } from './pages/ReportPage';
+import { SolarFeaturesPage } from './pages/SolarFeaturesPage';
 
 export function App() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -39,6 +40,7 @@ export function App() {
                 <Route path="/scheduling" element={<SchedulingPage />} />
                 <Route path="/recommendations" element={<RecommendationsPage />} />
                 <Route path="/reports" element={<ReportPage />} />
+                <Route path="/solar-features" element={<SolarFeaturesPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
