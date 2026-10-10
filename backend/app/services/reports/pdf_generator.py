@@ -242,7 +242,7 @@ def generate_project_pdf_report(
             f"{max_c:.1f} kWp"
         ])
 
-    t_b = Table(b_table_data, colWidths=[110, 74, 60, 60, 75, 55, 70])
+    t_b = Table(b_table_data, colWidths=[110, 74, 60, 60, 75, 55, 70], repeatRows=1)
     t_b.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), c_forest),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -281,7 +281,7 @@ def generate_project_pdf_report(
                 "SELECTED" if is_sel else "DEFERRED"
             ])
 
-        t_alloc = Table(alloc_data, colWidths=[114, 60, 65, 75, 75, 55, 60])
+        t_alloc = Table(alloc_data, colWidths=[114, 60, 65, 75, 75, 55, 60], repeatRows=1)
         t_alloc.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), c_forest),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -339,7 +339,7 @@ def generate_project_pdf_report(
                 f"{latest_run.total_annual_generation_kwh - latest_run.baseline_generation_kwh:+,.0f} kWh"
             ]
         ]
-        t_comp = Table(comp_data, colWidths=[120, 120, 120, 144])
+        t_comp = Table(comp_data, colWidths=[120, 120, 120, 144], repeatRows=1)
         t_comp.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#334155")),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -373,7 +373,7 @@ def generate_project_pdf_report(
             absorbed = f"{shift.additional_solar_absorbed_kwh:.1f} kWh/session" if shift else "Not calculated"
             act_data.append([Paragraph(escape(a.name), style_body), f"{a.power_kw:.1f} kW", orig_h, rec_h, absorbed])
 
-        t_act = Table(act_data, colWidths=[134, 70, 90, 110, 100])
+        t_act = Table(act_data, colWidths=[134, 70, 90, 110, 100], repeatRows=1)
         t_act.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), c_forest),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
