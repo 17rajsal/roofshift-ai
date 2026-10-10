@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { solarFeatureApi, type FeatureTemplate, type FeatureInput, type FeatureValue } from '../services/solarFeatureApi';
 
@@ -79,7 +79,8 @@ export function SolarFeaturesPage() {
   const { activeProject } = useProject();
   const [templates, setTemplates] = useState<FeatureTemplate[]>([]);
   const [results, setResults] = useState<Record<string, FeatureInput>>({});
-  const [selected, setSelected] = useState('solar-location-finder');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selected = searchParams.get('feature') || 'solar-location-finder';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
@@ -104,6 +105,6 @@ export function SolarFeaturesPage() {
     <div className="flex flex-wrap items-center justify-between gap-4"><div><h1 className="text-2xl font-bold text-[#123C32]">Solar Assessments</h1><p className="mt-1 text-sm text-slate-600">{activeProject.name} · Calculations, diagnostics and maintenance planning</p></div><Link className="rounded-lg border border-emerald-700 px-4 py-2 text-sm font-semibold text-emerald-800" to="/reports">Expanded PDF reports</Link></div>
     {loading && <p role="status">Loading project assessments…</p>}
     {error && <div role="alert" className="rounded-lg bg-red-50 p-4 text-red-800">{error} <button className="underline" onClick={() => setRetry(value => value + 1)}>Retry</button></div>}
-    {templates.length > 0 && <><label className="block max-w-lg text-sm font-semibold text-[#123C32]">Assessment<select className={`${inputClass} mt-2`} value={template.key} onChange={event => setSelected(event.target.value)}>{templates.map(item => <option key={item.key} value={item.key}>{item.title}</option>)}</select></label><FeatureForm key={`${activeProject.id}:${template.key}`} projectId={activeProject.id} template={template} initialResult={results[template.key]} onSaved={(key, result) => setResults(previous => ({ ...previous, [key]: result }))} /></>}
+    {templates.length > 0 && <><label className="block max-w-lg text-sm font-semibold text-[#123C32]">Assessment<select className={`${inputClass} mt-2`} value={template.key} onChange={event => setSearchParams({ feature: event.target.value })}>{templates.map(item => <option key={item.key} value={item.key}>{item.title}</option>)}</select></label><FeatureForm key={`${activeProject.id}:${template.key}`} projectId={activeProject.id} template={template} initialResult={results[template.key]} onSaved={(key, result) => setResults(previous => ({ ...previous, [key]: result }))} /></>}
   </div>;
 }
