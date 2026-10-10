@@ -49,7 +49,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, m
     {
       title: 'Portfolio & GIS',
       items: [
-        { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+        { name: 'Landing Page', path: '/', icon: LayoutDashboard },
         { name: 'Solar Explorer', path: '/map', icon: Compass, badge: activeProject ? `${activeProject.building_count} roofs` : undefined },
         { name: 'Building Analysis', path: '/buildings', icon: Building },
       ]
