@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Tuple
+from decimal import Decimal
 from app.models.building import Building
 from app.models.project import Project
 from app.services.optimization.budget_solver import evaluate_capacity_option
@@ -15,7 +16,7 @@ def run_baseline_first_feasible(
     Allocates budget sequentially (first-fit / simple greedy by size)
     using the exact same building profiles and solar data.
     """
-    remaining_budget = budget
+    remaining_budget = Decimal(str(budget))
     baseline_allocations = []
     total_cost = 0.0
     total_savings = 0.0
@@ -30,7 +31,7 @@ def run_baseline_first_feasible(
         # Find maximum capacity option that fits within remaining_budget
         best_fit = None
         for opt in reversed(options):
-            if opt["cost_inr"] <= remaining_budget:
+            if Decimal(str(opt["cost_inr"])) <= remaining_budget:
                 best_fit = opt
                 break
         
@@ -47,7 +48,7 @@ def run_baseline_first_feasible(
             "annual_gen_kwh": best_fit["annual_gen_kwh"]
         })
 
-        remaining_budget -= best_fit["cost_inr"]
+        remaining_budget -= Decimal(str(best_fit["cost_inr"]))
         total_cost += best_fit["cost_inr"]
         total_savings += best_fit["savings_inr"]
         total_gen += best_fit["annual_gen_kwh"]

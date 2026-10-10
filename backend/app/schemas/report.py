@@ -5,6 +5,7 @@ from datetime import datetime
 class ReportGenerateRequest(BaseModel):
     include_scenarios: bool = True
     include_load_shifting: bool = True
+    include_features: bool = True
     notes: Optional[str] = Field(default=None, max_length=2000)
 
 class ReportResponse(BaseModel):

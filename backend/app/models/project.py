@@ -28,3 +28,5 @@ class Project(Base):
     reports = relationship("GeneratedReport", back_populates="project", cascade="all, delete-orphan")
     monitoring_logs = relationship("SolarMonitoringLog", back_populates="project", cascade="all, delete-orphan")
     maintenance_cases = relationship("MaintenanceCase", back_populates="project", cascade="all, delete-orphan")
+
+    feature_assessments = relationship("FeatureAssessment", back_populates="project", cascade="all, delete-orphan")

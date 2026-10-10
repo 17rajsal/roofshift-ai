@@ -7,33 +7,33 @@ export const HomeFAQ: React.FC = () => {
   const faqs = [
     {
       q: 'How does RoofShift AI estimate solar generation without on-site hardware?',
-      a: 'We query NASA POWER Climatology API to retrieve multi-decade Global Horizontal Irradiance (GHI) and Direct Normal Irradiance (DNI) at the exact coordinates of your campus. We then apply physical derating factors—including tilt, orientation, local shading geometry, soiling, and temperature coefficients—to model monthly kilowatt-hour output.',
+      a: 'The planning engine uses NASA POWER monthly Global Horizontal Irradiance when available, plus declared usable roof area, performance ratio and shading loss. Missing irradiance uses clearly labeled illustrative defaults. These are planning estimates; orientation, tilt, detailed obstacle geometry and measured weather are not part of this model.',
     },
     {
       q: 'How does the Budget Optimizer decide which rooftops to fund?',
-      a: 'Unlike naive approaches that simply pick the largest roof until funds run out, RoofShift AI formulates solar allocation as a Multiple-Choice Knapsack Problem (MCKP). Using exact dynamic programming, it evaluates all candidate capacity steps per building, taking into account shade deratings, daytime demand coincidence, and net-metering tariffs to mathematically maximize financial return.',
+      a: 'The optimizer compares discrete capacity choices with an exact multiple-choice knapsack solver. It respects installation cost and the project budget, then maximizes the chosen objective: energy savings, generation or onsite solar consumption. Exactness applies to the supplied choices and model assumptions; documented resource limits return an error instead of an approximate plan.',
     },
     {
       q: 'Does RoofShift AI support multi-building institutional portfolios?',
-      a: 'Yes. Organizations can evaluate dozens of distributed rooftops across a single campus or multiple regional sites. Each building retains its own geometric footprint, azimuth, tilt, obstacle count, and metered hourly demand profile.',
+      a: 'Yes. A project can contain multiple registered buildings with roof outlines, usable area, declared shading and monthly demand. Each building is modeled separately. Project selection is preserved so analyses, uploads and reports stay scoped to the selected portfolio.',
     },
     {
-      q: 'What is the difference between live telemetry and climatological estimates?',
-      a: 'Planning and forecasting rely on multi-decade climatological data from NASA POWER and NISE India. Once an array is operational, users can upload inverter telemetry CSVs to our Operations module, which calculates empirical Performance Ratio (PR) and flags abnormal string degradation or soiling losses in real time.',
+      q: 'What is the difference between uploaded measurements and climatological estimates?',
+      a: 'Climatology describes modeled average solar conditions. Solar Features accepts performance readings for comparison with declared expected output and uploaded demand for interval analysis. These are user-supplied snapshots, not a connected live monitoring feed. Fault findings are rule-based evidence for review, not automatic image diagnoses.',
     },
     {
       q: 'How are energy bill savings and payback periods calculated?',
-      a: 'Financial projections model two distinct revenue streams: (1) direct on-site grid displacement valued at retail commercial tariffs (e.g. ₹8.50/kWh), and (2) surplus solar exported under state net-metering regulations (e.g. ₹3.50/kWh DERC feed-in rate). Cash flows include inverter replacement reserves and 0.75%/year panel degradation.',
+      a: 'Onsite solar is valued at the declared purchase tariff and exports at the declared export tariff. The Cost & Savings tool adds explicit assumptions for degradation, escalation, operating costs and discount rate. Users must enter the applicable local tariffs; example rates do not establish net-metering entitlement or financial guarantees.',
     },
     {
       q: 'Can reports and proposals be exported for executive review?',
-      a: 'Yes. Our Report Generator compiles publication-grade vector PDF documents using ReportLab. Reports include site maps, financial cash flows, carbon abatement certificates (using CEA India’s 0.716 kg CO₂/kWh grid factor), and cryptographic SHA-256 verification hashes.',
+      a: 'Yes. PDF reports summarize the selected project, optimization, registered load scheduling and saved feature snapshots with their assumptions. They support planning review and are not carbon certificates or regulatory compliance attestations. Environmental estimates use the declared emissions factor.',
     },
   ];
 
   return (
     <section id="faq" className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-      
+
       {/* FAQ Banner / Header matching screenshot */}
       <div className="bg-[#FAFBFD] rounded-3xl p-8 sm:p-12 border border-[#E8EDF4] flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
         <div className="text-center md:text-left">

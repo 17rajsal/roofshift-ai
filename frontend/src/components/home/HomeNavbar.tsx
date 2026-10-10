@@ -66,10 +66,10 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ onRequestDemo }) => {
             How It Works
           </button>
           <button
-            onClick={() => scrollToSection('pricing')}
+            onClick={() => navigate('/solar-features?feature=cost-savings')}
             className="hover:text-[#0B1739] transition-colors cursor-pointer"
           >
-            Pricing
+            Savings Tools
           </button>
           <button
             onClick={() => scrollToSection('faq')}
@@ -145,10 +145,10 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ onRequestDemo }) => {
               How It Works
             </button>
             <button
-              onClick={() => scrollToSection('pricing')}
+              onClick={() => navigate('/solar-features?feature=cost-savings')}
               className="text-left py-2 hover:text-[#0B1739]"
             >
-              Pricing
+              Savings Tools
             </button>
             <button
               onClick={() => scrollToSection('faq')}

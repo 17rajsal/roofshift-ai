@@ -16,6 +16,8 @@ const RecommendationsPage = lazy(() => import('./pages/RecommendationsPage').the
 const OperationsPage = lazy(() => import('./pages/OperationsPage').then(m => ({ default: m.OperationsPage })));
 const ReportPage = lazy(() => import('./pages/ReportPage').then(m => ({ default: m.ReportPage })));
 
+const SolarFeaturesPage = lazy(() => import('./pages/SolarFeaturesPage').then(module => ({ default: module.SolarFeaturesPage })));
+
 function ApplicationShell() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [navigationOpen, setNavigationOpen] = useState(false);
@@ -81,6 +83,7 @@ function ApplicationShell() {
                 <Route path="/insights" element={<EnergyInsightsPage />} />
                 <Route path="/scheduling" element={<SchedulingPage />} />
                 <Route path="/recommendations" element={<RecommendationsPage />} />
+                <Route path="/solar-features" element={<SolarFeaturesPage />} />
                 <Route path="/operations" element={<OperationsPage />} />
                 <Route path="/reports" element={<ReportPage />} />
                 <Route path="*" element={<Navigate to="/map" replace />} />
@@ -107,7 +110,7 @@ export function App() {
           <Routes>
             {/* 1. Public Master SaaS Landing Page */}
             <Route path="/" element={<HomePage />} />
-            
+
             {/* 2. Operational Workspace Tools */}
             <Route path="/*" element={<ApplicationShell />} />
           </Routes>

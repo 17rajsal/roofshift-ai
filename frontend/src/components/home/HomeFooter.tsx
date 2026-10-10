@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
-  Mail,
+  Layers,
+  HelpCircle,
   CheckCircle2
 } from 'lucide-react';
 import { RoofShiftLogo } from './RoofShiftLogo';
@@ -11,13 +12,20 @@ export const HomeFooter: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [reminderError, setReminderError] = useState('');
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     if (email.trim()) {
-      setSubscribed(true);
-      setTimeout(() => setSubscribed(false), 4000);
-      setEmail('');
+      try {
+        window.localStorage.setItem('roofshift.localUpdateReminder', email.trim());
+        setReminderError('');
+        setSubscribed(true);
+        setTimeout(() => setSubscribed(false), 4000);
+        setEmail('');
+      } catch {
+        setReminderError('Browser storage is unavailable. No reminder was saved or sent.');
+      }
     }
   };
 
@@ -29,10 +37,10 @@ export const HomeFooter: React.FC = () => {
   return (
     <footer className="bg-white border-t border-[#E8EDF4] pt-16 pb-12 text-sm text-[#61708A]">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Main Columns Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 pb-12 border-b border-[#E8EDF4]">
-          
+
           {/* Column 1: Branding & Bio (3 cols) */}
           <div className="lg:col-span-3 space-y-4">
             <RoofShiftLogo iconSize={32} textSize="text-xl" />
@@ -42,26 +50,18 @@ export const HomeFooter: React.FC = () => {
             {/* Social Icons */}
             <div className="flex items-center gap-3 pt-1 text-slate-400">
               <a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noreferrer"
+                href="#how-it-works"
                 className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center hover:text-[#0B1739] hover:border-slate-400 transition-colors"
-                aria-label="LinkedIn"
+                aria-label="View planning workflow"
               >
-                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                  <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
-                </svg>
+                <Layers className="w-3.5 h-3.5" />
               </a>
               <a
-                href="https://twitter.com"
-                target="_blank"
-                rel="noreferrer"
+                href="#faq"
                 className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center hover:text-[#0B1739] hover:border-slate-400 transition-colors"
-                aria-label="Twitter"
+                aria-label="View frequently asked questions"
               >
-                <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                </svg>
+                <HelpCircle className="w-3.5 h-3.5" />
               </a>
               <a
                 href="https://github.com/17rajsal"
@@ -114,19 +114,19 @@ export const HomeFooter: React.FC = () => {
             <h4 className="text-xs font-bold text-[#0B1739] uppercase tracking-wider">Solutions</h4>
             <ul className="space-y-2 text-xs font-medium">
               <li>
-                <span className="hover:text-[#0B1739] cursor-pointer">Commercial Buildings</span>
+                <span className="text-[#61708A]">Commercial Buildings</span>
               </li>
               <li>
-                <span className="hover:text-[#0B1739] cursor-pointer">Educational Campuses</span>
+                <span className="text-[#61708A]">Educational Campuses</span>
               </li>
               <li>
-                <span className="hover:text-[#0B1739] cursor-pointer">Multi-Site Portfolios</span>
+                <span className="text-[#61708A]">Multi-Site Portfolios</span>
               </li>
               <li>
-                <span className="hover:text-[#0B1739] cursor-pointer">Campus Energy Planning</span>
+                <span className="text-[#61708A]">Campus Energy Planning</span>
               </li>
               <li>
-                <span className="hover:text-[#0B1739] cursor-pointer">Industrial Rooftops</span>
+                <span className="text-[#61708A]">Industrial Rooftops</span>
               </li>
             </ul>
           </div>
@@ -146,12 +146,12 @@ export const HomeFooter: React.FC = () => {
                 </button>
               </li>
               <li>
-                <a href="/docs/ARCHITECTURE.md" target="_blank" className="hover:text-[#0B1739] transition-colors">
-                  Documentation
+                <a href="#faq-accordion" className="hover:text-[#0B1739] transition-colors">
+                  Planning Guide
                 </a>
               </li>
               <li>
-                <a href="/docs/DATA_SOURCES.md" target="_blank" className="hover:text-[#0B1739] transition-colors">
+                <a href="https://power.larc.nasa.gov/docs/services/api/temporal/climatology/" target="_blank" rel="noreferrer" className="hover:text-[#0B1739] transition-colors">
                   NASA POWER Sources
                 </a>
               </li>
@@ -162,7 +162,7 @@ export const HomeFooter: React.FC = () => {
           <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold text-[#0B1739] uppercase tracking-wider">Stay Updated</h4>
             <p className="text-xs leading-relaxed text-[#61708A]">
-              Get the latest product updates and institutional clean energy insights.
+              Save an optional update reminder in this browser. No email subscription is sent.
             </p>
 
             <form onSubmit={handleSubscribe} className="space-y-2">
@@ -171,22 +171,24 @@ export const HomeFooter: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder="Email for a local reminder"
+                  aria-label="Email for local update reminder"
                   required
                   className="w-full bg-slate-50 border border-[#E8EDF4] rounded-xl pl-3.5 pr-11 py-2.5 text-xs text-[#0B1739] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FF6B16]/20 focus:border-[#FF6B16]"
                 />
                 <button
                   type="submit"
-                  aria-label="Subscribe to newsletter"
+                  aria-label="Save local update reminder"
                   className="absolute right-1.5 w-8 h-8 rounded-lg bg-[#FF6B16] hover:bg-[#EA580C] text-white flex items-center justify-center transition-colors shadow-2xs cursor-pointer"
                 >
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
+              {reminderError && <p role="alert" className="text-xs text-red-700">{reminderError}</p>}
               {subscribed && (
                 <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 animate-fadeIn">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Thank you! We have registered your contact.</span>
+                  <span>Reminder saved in this browser. No subscription was sent.</span>
                 </div>
               )}
             </form>

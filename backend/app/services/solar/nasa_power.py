@@ -1,124 +1,82 @@
-import httpx
+"""NASA POWER climatology with validated values and truthful cache provenance."""
+import math
 import logging
-from typing import Dict, Any, Tuple
+import httpx
+from datetime import datetime, timedelta
+from typing import Dict, Tuple
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.models.solar_cache import SolarDataCache
+from app.services.energy.balance import finite, DAYS_IN_MONTH, MONTH_KEYS
 
 logger = logging.getLogger(__name__)
-
-# Official representative Indian Solar Climatology fallback (kWh/m^2/day)
-# Based on National Institute of Solar Energy (NISE) and IMD solar radiation atlas
+# Retained application example values. They are planning defaults, not a
+# verified NISE/IMD dataset and must not be presented as satellite observations.
 DEFAULT_INDIA_MONTHLY_GHI = {
-    "JAN": 4.35, "FEB": 5.12, "MAR": 5.88, "APR": 6.42,
-    "MAY": 6.65, "JUN": 5.75, "JUL": 4.82, "AUG": 4.58,
-    "SEP": 5.10, "OCT": 5.25, "NOV": 4.72, "DEC": 4.15
+    'JAN': 4.35, 'FEB': 5.12, 'MAR': 5.88, 'APR': 6.42,
+    'MAY': 6.65, 'JUN': 5.75, 'JUL': 4.82, 'AUG': 4.58,
+    'SEP': 5.10, 'OCT': 5.25, 'NOV': 4.72, 'DEC': 4.15,
 }
-DEFAULT_ANNUAL_GHI = 5.23
+DEFAULT_ANNUAL_GHI = sum(DEFAULT_INDIA_MONTHLY_GHI[m] * d for m, d in zip(MONTH_KEYS, DAYS_IN_MONTH)) / 365
+CACHE_SOURCE_PREFIX = 'RoofShift GHI v3 | '
 
-MONTH_KEYS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+
+def _valid(value):
+    try:
+        number = float(value)
+        return number if math.isfinite(number) and 0 <= number <= 15 else None
+    except (ValueError, TypeError):
+        return None
+
+
+def _annual(monthly):
+    return sum(monthly[m] * days for m, days in zip(MONTH_KEYS, DAYS_IN_MONTH)) / 365
+
+
+def _label(source):
+    if 'Composite' in source:
+        return 'Mixed NASA POWER model and illustrative fallback; not measured data'
+    if 'Illustrative' in source:
+        return 'Illustrative planning fallback; not location-verified irradiance'
+    return 'NASA POWER satellite/model climatology; not measured site data'
+
 
 async def fetch_solar_irradiance(lat: float, lon: float, db: Session) -> Tuple[Dict[str, float], float, str, str]:
-    """
-    Fetch monthly Global Horizontal Irradiance (GHI in kWh/m^2/day) from NASA POWER.
-    Checks database cache first. Falls back to NISE/IMD Indian climatology baseline on network failure.
-    Returns: (monthly_ghi_dict, annual_avg_ghi, data_source_name, data_quality_label)
-    """
-    grid_lat = round(lat, 1)
-    grid_lon = round(lon, 1)
-
-    # 1. Check DB Cache
-    cached = db.query(SolarDataCache).filter(
-        SolarDataCache.grid_lat == grid_lat,
-        SolarDataCache.grid_lon == grid_lon
-    ).first()
-
-    if cached and cached.ghi_monthly:
-        logger.info(f"Using cached NASA POWER solar data for grid ({grid_lat}, {grid_lon})")
-        return (
-            cached.ghi_monthly,
-            cached.ghi_annual,
-            cached.source,
-            "Public dataset (NASA POWER Climatology - Cached)"
-        )
-
-    # 2. Query NASA POWER Climatology Point API
-    # ALLSKY_SFC_SW_DWN = All Sky Surface Shortwave Downward Irradiance (GHI in kWh/m2/day)
-    url = (
-        f"{settings.NASA_POWER_BASE_URL}?"
-        f"parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude={lon:.4f}&latitude={lat:.4f}&format=JSON"
-    )
-
+    finite(lat, 'latitude', -90, 90)
+    finite(lon, 'longitude', -180, 180)
+    # Query and cache the same coordinate precision. No 0.1-degree ambiguity.
+    grid_lat, grid_lon = round(lat, 4), round(lon, 4)
+    cached = db.query(SolarDataCache).filter(SolarDataCache.grid_lat == grid_lat, SolarDataCache.grid_lon == grid_lon).order_by(SolarDataCache.fetched_at.desc()).first()
+    if cached and cached.source and cached.source.startswith(CACHE_SOURCE_PREFIX):
+        monthly = cached.ghi_monthly
+        if isinstance(monthly, dict) and all(m in monthly and _valid(monthly[m]) is not None for m in MONTH_KEYS):
+            ttl = timedelta(hours=1) if 'Illustrative' in cached.source or 'Composite' in cached.source else timedelta(days=30)
+            if cached.fetched_at and datetime.utcnow() - cached.fetched_at <= ttl:
+                values = {m: float(monthly[m]) for m in MONTH_KEYS}
+                return values, _annual(values), cached.source, _label(cached.source) + ' (cached)'
+    observed = {}
     try:
         async with httpx.AsyncClient(timeout=settings.NASA_REQUEST_TIMEOUT_SECONDS) as client:
-            response = await client.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                ghi_data = data.get("properties", {}).get("parameter", {}).get("ALLSKY_SFC_SW_DWN", {})
-                
-                monthly_ghi = {}
-                satellite_count = 0
-                total_ghi = 0.0
-
-                for m in MONTH_KEYS:
-                    val = ghi_data.get(m)
-                    if val is not None and float(val) > 0.0:
-                        monthly_ghi[m] = round(float(val), 2)
-                        total_ghi += float(val)
-                        satellite_count += 1
-                    else:
-                        monthly_ghi[m] = DEFAULT_INDIA_MONTHLY_GHI[m]
-                        total_ghi += DEFAULT_INDIA_MONTHLY_GHI[m]
-
-                annual_avg = round(total_ghi / 12.0, 2)
-
-                if satellite_count == 12:
-                    source_str = "NASA POWER Climatology (Satellite/Model v2.0)"
-                    label_str = "Verified Public Dataset (NASA POWER)"
-                elif satellite_count == 0:
-                    source_str = "Regional Indian Solar Database (NISE/IMD)"
-                    label_str = "Regional Climatological Baseline (NISE/IMD Fallback)"
-                else:
-                    source_str = "Composite Solar Model (NASA POWER + Regional Baseline)"
-                    label_str = "Mixed Observation & Regional Fallback"
-
-                # Save to cache
-                new_cache = SolarDataCache(
-                    grid_lat=grid_lat,
-                    grid_lon=grid_lon,
-                    ghi_monthly=monthly_ghi,
-                    ghi_annual=annual_avg,
-                    source=source_str
-                )
-                db.add(new_cache)
-                db.commit()
-
-                logger.info(f"Retrieved solar data for ({lat}, {lon}) with {satellite_count}/12 satellite observations.")
-                return (
-                    monthly_ghi,
-                    annual_avg,
-                    source_str,
-                    label_str
-                )
-            else:
-                logger.warning(f"NASA POWER API returned status {response.status_code}. Using regional fallback.")
-    except Exception as e:
-        logger.warning(f"NASA POWER API request failed: {str(e)}. Using verified regional fallback.")
-
-    # 3. Fallback to documented Indian regional climatology
-    # Adjust slightly based on latitude for northern vs southern India
-    adjusted_monthly = {}
-    lat_factor = 1.0 - (lat - 28.0) * 0.008 # Mild solar gradient adjustment
-    total = 0.0
-    for m in MONTH_KEYS:
-        val = round(DEFAULT_INDIA_MONTHLY_GHI[m] * lat_factor, 2)
-        adjusted_monthly[m] = max(3.5, min(7.5, val))
-        total += adjusted_monthly[m]
-    annual_avg = round(total / 12.0, 2)
-
-    return (
-        adjusted_monthly,
-        annual_avg,
-        "Regional Indian Solar Database (NISE/IMD)",
-        "Regional Climatological Baseline (NISE/IMD Fallback)"
-    )
+            response = await client.get(settings.NASA_POWER_BASE_URL, params={
+                'parameters': 'ALLSKY_SFC_SW_DWN', 'community': 'RE',
+                'longitude': grid_lon, 'latitude': grid_lat, 'format': 'JSON',
+            })
+            response.raise_for_status()
+            data = response.json().get('properties', {}).get('parameter', {}).get('ALLSKY_SFC_SW_DWN', {})
+            if isinstance(data, dict):
+                observed = {m: value for m in MONTH_KEYS if (value := _valid(data.get(m))) is not None}
+    except (httpx.HTTPError, ValueError, TypeError, AttributeError) as exc:
+        logger.warning('NASA POWER unavailable: %s; using illustrative planning fallback', type(exc).__name__)
+    monthly = {m: observed.get(m, DEFAULT_INDIA_MONTHLY_GHI[m]) for m in MONTH_KEYS}
+    if len(observed) == 12:
+        source = CACHE_SOURCE_PREFIX + 'NASA POWER Climatology (Satellite/Model)'
+    elif observed:
+        source = CACHE_SOURCE_PREFIX + f'Composite NASA POWER ({len(observed)}/12 months) + illustrative fallback'
+    else:
+        source = CACHE_SOURCE_PREFIX + 'Illustrative Solar Planning Defaults (Indian example profile)'
+    if cached:
+        cached.ghi_monthly, cached.ghi_annual, cached.source, cached.fetched_at = monthly, _annual(monthly), source, datetime.utcnow()
+    else:
+        db.add(SolarDataCache(grid_lat=grid_lat, grid_lon=grid_lon, ghi_monthly=monthly, ghi_annual=_annual(monthly), source=source))
+    db.commit()
+    return monthly, _annual(monthly), source, _label(source)

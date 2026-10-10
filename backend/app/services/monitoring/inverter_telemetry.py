@@ -91,5 +91,5 @@ def process_inverter_telemetry_csv(
         "generation_delta_pct": delta_pct,
         "degradation_annual_pct": degradation_pct,
         "underperformance_flag": underperforming,
-        "diagnostic_summary": diag
+        "diagnostic_summary": "Legacy screening assumes hourly energy samples, minimum one day and fixed GHI; degradation is an assumption. " + diag
     }

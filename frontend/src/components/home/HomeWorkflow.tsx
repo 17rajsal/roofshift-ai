@@ -18,8 +18,8 @@ export const HomeWorkflow: React.FC = () => {
     },
     {
       num: 2,
-      title: 'AI Roof Analysis',
-      description: 'Our AI analyzes roof space, shading and solar potential.',
+      title: 'Roof Potential Analysis',
+      description: 'The model combines declared roof space, shading and solar climatology.',
       icon: Search,
     },
     {
@@ -37,7 +37,7 @@ export const HomeWorkflow: React.FC = () => {
     {
       num: 5,
       title: 'Take Action',
-      description: 'Export reports or move directly to implementation.',
+      description: 'Export planning reports for technical and operational review.',
       icon: FileCheck2,
     },
   ];
@@ -62,7 +62,7 @@ export const HomeWorkflow: React.FC = () => {
 
           return (
             <div key={step.num} className="relative flex flex-col items-center text-center group">
-              
+
               {/* Step indicator header: Number Pill + Icon */}
               <div className="flex items-center gap-2 mb-4">
                 <span className="w-6 h-6 rounded-full bg-[#FFF4E9] text-[#FF6B16] font-bold text-xs flex items-center justify-center border border-[#FF6B16]/20">

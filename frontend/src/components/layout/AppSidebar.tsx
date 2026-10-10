@@ -57,7 +57,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, m
     {
       title: 'Optimization & Dispatch',
       items: [
-        { name: 'Budget Optimizer', path: '/optimize', icon: SlidersHorizontal, badge: 'OR-Tools', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+        { name: 'Budget Optimizer', path: '/optimize', icon: SlidersHorizontal, badge: 'Exact DP', badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
         { name: 'Energy Analytics', path: '/insights', icon: Activity },
         { name: 'Smart Scheduling', path: '/scheduling', icon: CalendarClock },
       ]
@@ -65,6 +65,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, m
     {
       title: 'Operations & Asset Care',
       items: [
+        { name: 'Solar Assessments', path: '/solar-features', icon: Activity },
         { name: 'Operations & Health', path: '/operations', icon: Wrench, badge: 'Diagnostics', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
       ]
     },
@@ -239,7 +240,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ onOpenNewProjectModal, m
             <span className="text-[11px]">{loading ? 'Syncing...' : error ? 'Offline' : 'System Ready'}</span>
           </span>
           <span className="text-[10px] text-slate-400 px-1.5 py-0.5 rounded bg-slate-800/80 border border-slate-700">
-            AWS Ready
+            Cloud optional
           </span>
         </div>
         <div className="text-[10px] text-slate-400 mt-2 flex items-center justify-between">

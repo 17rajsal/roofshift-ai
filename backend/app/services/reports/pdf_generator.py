@@ -17,6 +17,8 @@ from app.models.building import Building
 from app.models.optimization import OptimizationRun
 from app.models.scheduling import EnergyActivity
 from app.models.report import GeneratedReport
+from app.models.feature import FeatureAssessment
+from app.services.reports.feature_sections import append_feature_sections
 from app.core.config import settings
 from app.schemas.scheduling import SchedulingOptimizationResponse
 
@@ -64,6 +66,8 @@ def generate_project_pdf_report(
     project_id: str, db: Session, notes: Optional[str] = None,
     scheduling_result: Optional[SchedulingOptimizationResponse] = None,
     include_load_shifting: bool = True,
+    include_features: bool = True,
+    include_scenarios: bool = True,
 ) -> GeneratedReport:
     """
     Builds a comprehensive, publication-grade PDF report using ReportLab.
@@ -227,15 +231,10 @@ def generate_project_pdf_report(
     ]
     for b in buildings:
         usable = b.gross_roof_area * (b.usable_roof_percentage / 100.0)
-        if b.solar_analysis and b.solar_analysis.max_pv_capacity_kwp is not None:
-            max_c = b.solar_analysis.max_pv_capacity_kwp
-        elif b.max_eligible_kwp is not None:
-            max_c = b.max_eligible_kwp
-        else:
-            max_c = round(usable / settings.DEFAULT_AREA_PER_KWP, 1)
+        max_c = b.solar_analysis.max_pv_capacity_kwp if b.solar_analysis else min(usable / settings.DEFAULT_AREA_PER_KWP, b.max_eligible_kwp) if b.max_eligible_kwp is not None else usable / settings.DEFAULT_AREA_PER_KWP
         b_table_data.append([
-            b.name,
-            b.category,
+            Paragraph(escape(b.name), style_body),
+            Paragraph(escape(b.category), style_body),
             f"{b.gross_roof_area:,.0f} m²",
             f"{usable:,.0f} m²",
             f"{b.monthly_consumption_kwh:,.0f} kWh",
@@ -243,7 +242,7 @@ def generate_project_pdf_report(
             f"{max_c:.1f} kWp"
         ])
 
-    t_b = Table(b_table_data, colWidths=[110, 74, 60, 60, 75, 55, 70])
+    t_b = Table(b_table_data, colWidths=[110, 74, 60, 60, 75, 55, 70], repeatRows=1)
     t_b.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), c_forest),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -267,31 +266,14 @@ def generate_project_pdf_report(
             style_body
         ))
 
-        b_map = {b.id: b for b in buildings}
-        b_name_map = {b.name: b for b in buildings}
         alloc_data = [
             ["Building", "Capacity", "Capex", "Annual Gen", "Annual Savings", "Payback", "Status"]
         ]
         for item in latest_run.allocations_json:
             is_sel = item.get("is_selected", False)
-            b_obj = b_map.get(item.get("building_id")) or b_name_map.get(item.get("building_name"))
-            curr_limit = None
-            if b_obj:
-                if b_obj.solar_analysis and b_obj.solar_analysis.max_pv_capacity_kwp is not None:
-                    curr_limit = b_obj.solar_analysis.max_pv_capacity_kwp
-                elif b_obj.max_eligible_kwp is not None:
-                    curr_limit = b_obj.max_eligible_kwp
-                else:
-                    usable = b_obj.gross_roof_area * (b_obj.usable_roof_percentage / 100.0)
-                    curr_limit = round(usable / settings.DEFAULT_AREA_PER_KWP, 1)
-
-            rec_cap = item.get('recommended_capacity_kwp', 0)
-            if curr_limit is not None and rec_cap > curr_limit:
-                rec_cap = curr_limit
-
             alloc_data.append([
-                item.get("building_name", ""),
-                f"{rec_cap:.1f} kWp",
+                Paragraph(escape(item.get("building_name", "")), style_body),
+                f"{item.get('recommended_capacity_kwp', 0):.1f} kWp",
                 f"₹{item.get('estimated_cost_inr', 0):,.0f}",
                 f"{item.get('expected_annual_generation_kwh', 0):,.0f} kWh",
                 f"₹{item.get('expected_annual_savings_inr', 0):,.0f}",
@@ -299,7 +281,7 @@ def generate_project_pdf_report(
                 "SELECTED" if is_sel else "DEFERRED"
             ])
 
-        t_alloc = Table(alloc_data, colWidths=[114, 60, 65, 75, 75, 55, 60])
+        t_alloc = Table(alloc_data, colWidths=[114, 60, 65, 75, 75, 55, 60], repeatRows=1)
         t_alloc.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), c_forest),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -322,7 +304,7 @@ def generate_project_pdf_report(
             reasons = item.get("decision_reasons", [])
             bullets = " • ".join(reasons) if reasons else item.get("shade_impact_summary", "")
             story.append(Paragraph(
-                f"<b>{item.get('building_name')} ({status}):</b> {bullets}",
+                f"<b>{escape(str(item.get('building_name')))} ({status}):</b> {escape(bullets).replace('₹', 'INR ')}",
                 style_body
             ))
 
@@ -357,7 +339,7 @@ def generate_project_pdf_report(
                 f"{latest_run.total_annual_generation_kwh - latest_run.baseline_generation_kwh:+,.0f} kWh"
             ]
         ]
-        t_comp = Table(comp_data, colWidths=[120, 120, 120, 144])
+        t_comp = Table(comp_data, colWidths=[120, 120, 120, 144], repeatRows=1)
         t_comp.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#334155")),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -391,7 +373,7 @@ def generate_project_pdf_report(
             absorbed = f"{shift.additional_solar_absorbed_kwh:.1f} kWh/session" if shift else "Not calculated"
             act_data.append([Paragraph(escape(a.name), style_body), f"{a.power_kw:.1f} kW", orig_h, rec_h, absorbed])
 
-        t_act = Table(act_data, colWidths=[134, 70, 90, 110, 100])
+        t_act = Table(act_data, colWidths=[134, 70, 90, 110, 100], repeatRows=1)
         t_act.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), c_forest),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -407,32 +389,13 @@ def generate_project_pdf_report(
 
     # ================= 6. DATA SOURCES, ASSUMPTIONS & DISCLAIMER =================
     story.append(Paragraph("6. Assumptions, Data Sources & Regulatory Disclaimers", style_h1))
-
-    # Determine irradiance provenance from building solar analyses
-    irradiance_source = "NASA POWER Climatological All-Sky Surface Shortwave Irradiance (GHI)"
-    data_quality_label = None
-    for b in buildings:
-        if b.solar_analysis and b.solar_analysis.irradiance_source:
-            irradiance_source = b.solar_analysis.irradiance_source
-            data_quality_label = getattr(b.solar_analysis, "data_quality_label", None)
-            break
-
-    irrad_text = f"<b>Solar Irradiance:</b> {escape(irradiance_source)}."
-    if data_quality_label:
-        irrad_text += f" ({escape(data_quality_label)})"
-
-    # Tariffs from latest run scenario assumptions if present
-    tariff_val = project.tariff_rate
-    export_tariff_val = project.export_tariff
-    if latest_run and isinstance(latest_run.explanations_json, dict):
-        assumptions = latest_run.explanations_json.get("assumptions", {})
-        if assumptions.get("tariff_rate") is not None:
-            tariff_val = assumptions.get("tariff_rate")
-        if assumptions.get("export_tariff") is not None:
-            export_tariff_val = assumptions.get("export_tariff")
-
+    sources = sorted({b.solar_analysis.irradiance_source for b in buildings if b.solar_analysis and b.solar_analysis.irradiance_source})
+    irradiance_text = escape("; ".join(sources)) if sources else "No saved irradiance analysis"
+    assumptions = latest_run.explanations_json.get("assumptions", {}) if latest_run and isinstance(latest_run.explanations_json, dict) else {}
+    tariff_val = assumptions.get("tariff_rate", project.tariff_rate)
+    export_tariff_val = assumptions.get("export_tariff", project.export_tariff)
     notes_list = [
-        irrad_text,
+        f"<b>Solar Irradiance:</b> {irradiance_text}.",
         f"<b>Economic Tariffs:</b> Grid displacement tariff: INR {tariff_val:.2f}/kWh; Export tariff: INR {export_tariff_val:.2f}/kWh.",
         f"<b>Grid Emission Baseline:</b> Central Electricity Authority (CEA) factor of {project.co2_factor} kg CO2/kWh.",
         "<b>System Performance Ratio:</b> 75% standard derate accounting for inverter efficiency, temperature derating, soiling, and cabling.",
@@ -443,6 +406,10 @@ def generate_project_pdf_report(
     ]
     for n in notes_list:
         story.append(Paragraph(f"• {n}", style_body))
+
+    if include_features:
+        assessments = db.query(FeatureAssessment).filter(FeatureAssessment.project_id == project_id).order_by(FeatureAssessment.created_at.desc(), FeatureAssessment.id.desc()).all()
+        append_feature_sections(story, assessments, style_h2, style_body, style_caption, include_scenarios)
 
     if notes and notes.strip():
         story.append(Spacer(1, 12))

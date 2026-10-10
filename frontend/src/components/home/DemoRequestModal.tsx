@@ -45,7 +45,7 @@ export const DemoRequestModal: React.FC<DemoRequestModalProps> = ({ isOpen, onCl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
       <div className="bg-white rounded-2xl max-w-lg w-full border border-[#E8EDF4] shadow-2xl overflow-hidden relative">
-        
+
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -60,9 +60,9 @@ export const DemoRequestModal: React.FC<DemoRequestModalProps> = ({ isOpen, onCl
             <div className="w-14 h-14 rounded-full bg-emerald-50 text-[#16A34A] flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-[#0B1739]">Demo Request Received!</h3>
+            <h3 className="text-xl font-bold text-[#0B1739]">Local Demo Preview Ready</h3>
             <p className="text-sm text-[#61708A] leading-relaxed">
-              Thank you, {formData.name || 'Solar Partner'}. Our technical team has prepared the initial site assessment for {formData.organization || 'your campus'}.
+              This is a local walkthrough preview. These details remain in this browser page; no booking request or site assessment has been sent to a team.
             </p>
             <div className="pt-4 flex flex-col gap-2.5">
               <button
@@ -88,10 +88,10 @@ export const DemoRequestModal: React.FC<DemoRequestModalProps> = ({ isOpen, onCl
               <span>Institutional Pilot Program</span>
             </div>
             <h3 className="text-2xl font-black text-[#0B1739] tracking-tight">
-              Request a Technical Walkthrough
+              Explore a Campus Walkthrough
             </h3>
             <p className="text-xs sm:text-sm text-[#61708A] mt-1 mb-6">
-              Experience customized multi-building solar planning, knapsack budget allocation, and tariff modeling for your facilities.
+              Explore the seeded campus demo and its planning tools. This form prepares a local preview and does not contact a team.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -160,7 +160,7 @@ export const DemoRequestModal: React.FC<DemoRequestModalProps> = ({ isOpen, onCl
                   type="submit"
                   className="w-full sm:flex-1 py-3 rounded-xl bg-[#FF6B16] hover:bg-[#EA580C] text-white font-bold text-sm transition-all shadow-md cursor-pointer text-center"
                 >
-                  Schedule Technical Demo
+                  Prepare Local Walkthrough
                 </button>
                 <button
                   type="button"

@@ -1,65 +1,65 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Building2, Maximize2, Zap, Layers, Leaf } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
+import { api } from '../../services/api';
+import type { OptimizationRunResponse } from '../../types/models';
 
 export const HomeStatistics: React.FC = () => {
   const { activeProject } = useProject();
 
-  // If a live project is active, we can show real calculated numbers with realistic scale,
-  // while preserving the reference demo statistics as baseline.
-  const hasLiveActive = Boolean(activeProject && activeProject.building_count > 0);
+  const [latest, setLatest] = useState<OptimizationRunResponse | null>(null);
+  const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    setLatest(null);
+    setFailed(false);
+    if (!activeProject) {
+      setPending(false);
+      return;
+    }
+    setPending(true);
+    api.getOptimizationRuns(activeProject.id)
+      .then(runs => { if (!cancelled) setLatest(runs[0] ?? null); })
+      .catch(() => { if (!cancelled) setFailed(true); })
+      .finally(() => { if (!cancelled) setPending(false); });
+    return () => { cancelled = true; };
+  }, [activeProject?.id]);
+
+  const awaiting = !activeProject ? 'Select portfolio' : pending ? 'Loading…' : failed ? 'Unavailable' : 'Run optimizer';
+  const money = (value: number) => `₹${(value / 100000).toLocaleString('en-IN', { maximumFractionDigits: 2 })} Lakh`;
   const stats = [
     {
-      id: 'buildings',
-      label: 'Total Buildings',
-      value: hasLiveActive && activeProject ? String(activeProject.building_count) : '124',
-      description: 'analyzed',
-      icon: Building2,
-      iconBg: 'bg-amber-50 text-amber-500',
+      id: 'buildings', label: 'Total Buildings',
+      value: activeProject ? String(activeProject.building_count) : '—',
+      description: 'registered in selected portfolio', icon: Building2, iconBg: 'bg-amber-50 text-amber-500',
     },
     {
-      id: 'area',
-      label: 'Total Roof Area',
-      value: hasLiveActive && activeProject
-        ? `${activeProject.total_roof_area.toLocaleString()} m²`
-        : '245,000 m²',
-      description: 'usable space',
-      icon: Maximize2,
-      iconBg: 'bg-emerald-50 text-emerald-500',
+      id: 'area', label: 'Total Roof Area',
+      value: activeProject ? `${activeProject.total_roof_area.toLocaleString()} m²` : '—',
+      description: 'declared gross roof area', icon: Maximize2, iconBg: 'bg-emerald-50 text-emerald-500',
     },
     {
-      id: 'generation',
-      label: 'Estimated Generation',
-      value: hasLiveActive && activeProject
-        ? `${Math.round(activeProject.total_roof_area * 0.42)} MWh/year`
-        : '836 MWh/year',
-      description: 'clean energy potential',
-      icon: Zap,
-      iconBg: 'bg-orange-50 text-[#FF6B16]',
+      id: 'generation', label: 'Estimated Generation',
+      value: latest ? `${(latest.total_annual_generation_kwh / 1000).toLocaleString('en-IN', { maximumFractionDigits: 1 })} MWh/year` : awaiting,
+      description: 'latest saved planning estimate', icon: Zap, iconBg: 'bg-orange-50 text-[#FF6B16]',
     },
     {
-      id: 'optimization',
-      label: 'Budget Optimization',
-      value: '22%',
-      description: 'higher ROI',
-      icon: Layers,
-      iconBg: 'bg-blue-50 text-blue-500',
+      id: 'optimization', label: 'Allocated Budget',
+      value: latest ? money(latest.total_allocated_inr) : awaiting,
+      description: 'latest saved optimization', icon: Layers, iconBg: 'bg-blue-50 text-blue-500',
     },
     {
-      id: 'savings',
-      label: 'Estimated Savings',
-      value: hasLiveActive && activeProject
-        ? `₹${Math.round((activeProject.total_roof_area * 0.42 * 8.5) / 100000)} Lakh/yr`
-        : '$125,000/year',
-      description: 'energy cost savings',
-      icon: Leaf,
-      iconBg: 'bg-green-50 text-[#16A34A]',
+      id: 'savings', label: 'Estimated Savings',
+      value: latest ? `${money(latest.total_annual_savings_inr)}/yr` : awaiting,
+      description: 'declared tariff assumptions', icon: Leaf, iconBg: 'bg-green-50 text-green-600',
     },
   ];
 
   return (
     <section className="relative z-10 -mt-6 sm:-mt-10 max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 mb-20">
+      <p className="mb-3 text-xs font-medium text-slate-500">Selected portfolio totals and saved planning results. These are not live meter readings.</p>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 lg:gap-5">
         {stats.map((stat) => {
           const Icon = stat.icon;

@@ -101,7 +101,7 @@ export const OperationsPage: React.FC = () => {
     setInspectionSuccess(null);
     try {
       await api.uploadPanelInspection(selectedBuildingId, inspectionFile);
-      setInspectionSuccess('Module inspection image successfully evaluated and logged.');
+      setInspectionSuccess('Demonstration inspection logged; findings are simulated.');
       setInspectionFile(null);
       await loadData();
     } catch (err: any) {
@@ -193,7 +193,7 @@ export const OperationsPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Deterministic thermal panel anomaly diagnostics, recorded inverter telemetry verification, and preventive maintenance workflows.
+            Simulated image inspection, legacy CSV screening and saved maintenance cases. Use Solar Assessments for diagnostics from explicit observed intervals.
           </p>
         </div>
         <button
@@ -268,14 +268,14 @@ export const OperationsPage: React.FC = () => {
               <div className="text-2xl font-semibold text-slate-900 tabular-nums font-mono mt-1">
                 {defectSummary?.total_inspections ?? 0}
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">Visual & thermal sensor passes</div>
+              <div className="text-[11px] text-slate-500 mt-1">Demonstration image records</div>
             </div>
             <div className="bg-white p-4.5 rounded-lg border border-slate-200 shadow-2xs">
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">Healthy Baseline Modules</span>
               <div className="text-2xl font-semibold text-emerald-700 tabular-nums font-mono mt-1">
                 {defectSummary?.healthy_panels ?? 0}
               </div>
-              <div className="text-[11px] text-emerald-700 mt-1 font-medium">Operating within STC tolerances</div>
+              <div className="text-[11px] text-emerald-700 mt-1 font-medium">Simulated normal examples</div>
             </div>
             <div className="bg-white p-4.5 rounded-lg border border-slate-200 shadow-2xs">
               <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider block">Detected Anomaly Count</span>
@@ -289,16 +289,16 @@ export const OperationsPage: React.FC = () => {
               <div className="text-2xl font-semibold text-red-600 tabular-nums font-mono mt-1">
                 {defectSummary?.total_estimated_power_loss_pct ?? 0}%
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">Array generation efficiency loss</div>
+              <div className="text-[11px] text-slate-500 mt-1">Simulated loss estimate</div>
             </div>
           </div>
 
           {/* Upload Card */}
           <div className="bg-white rounded-lg border border-slate-200 shadow-2xs p-5">
             <div className="border-b border-slate-100 pb-3 mb-4">
-              <h2 className="text-sm font-semibold text-slate-900">Upload Solar Module Image for Defect Analysis</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Demonstration Image Inspection</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Ingest optical or thermal infrared drone imagery. The gradient classifier identifies hot cells, particulate soiling, and micro-cracks.
+                Demonstration only: filename and raw byte patterns select example findings. Scores, temperature deltas and losses are synthetic. No image recognition or thermal measurement is implemented. Use Solar Assessments for diagnostics from supplied telemetry.
               </p>
             </div>
 
@@ -370,7 +370,7 @@ export const OperationsPage: React.FC = () => {
                         }`}>
                           {insp.defect_type}
                         </span>
-                        <span className="text-xs text-slate-500 font-mono">Confidence: {(insp.confidence_score * 100).toFixed(0)}%</span>
+                        <span className="text-xs text-slate-500 font-mono">Demo score: {(insp.confidence_score * 100).toFixed(0)}%</span>
                         {insp.temperature_delta_c !== undefined && insp.temperature_delta_c > 1.0 && (
                           <span className="text-[11px] font-mono font-medium text-red-700 bg-red-50 border border-red-200/60 px-1.5 py-0.5 rounded">
                             ΔT: +{insp.temperature_delta_c.toFixed(1)}°C
@@ -408,7 +408,7 @@ export const OperationsPage: React.FC = () => {
             <div className="border-b border-slate-100 pb-3 mb-4">
               <h2 className="text-sm font-semibold text-slate-900">Upload Inverter Generation Telemetry (CSV)</h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Upload measured generation logs from campus inverters. Evaluates recorded energy against NASA POWER solar irradiance modeling to compute empirical Performance Ratio (PR) and annual degradation.
+                Legacy CSV screening assumes hourly energy records, a minimum one-day window and a fixed irradiation value. Degradation is an assumed 0.75%/year, not a measurement. For explicit interval durations and coverage, use Performance Monitoring in Solar Assessments.
               </p>
             </div>
 

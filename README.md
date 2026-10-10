@@ -240,6 +240,30 @@ npm run dev
 
 Detailed cross-platform setup instructions are available in [`docs/SETUP.md`](docs/SETUP.md).
 
+### Application and engine ownership
+
+Complex backend engines are developed separately on `codex/advanced-engines`. The nine additional solar features and expanded PDFs are owned by `codex/solar-feature-expansion`. Frontend foundations, routing, project context, persistence integration, and infrastructure continue on `antigravity/core-app`. Read [ENGINE_HANDOFF.md](ENGINE_HANDOFF.md), [API_CONTRACTS.md](API_CONTRACTS.md), and [APPLICATION_CHECKPOINT.md](APPLICATION_CHECKPOINT.md) before integration. Avoid independently rewriting modules assigned to either Codex branch.
+
+The application remembers the selected project across reloads and isolates page state when switching projects. On the Solar Map, use **Draw roof boundary**, click corners in order, and choose **Use this roof**. Confirm the estimated area in the building form before saving. Outlines are stored with the building and remain available after reload; point-only buildings continue to work.
+
+For a separately hosted frontend, configure `VITE_API_BASE_URL` before the production build using `frontend/.env.example`. Same-origin local and Docker deployments need no override. Report notes are included in generated PDFs, and report history belongs to the active project.
+
+### Verification
+
+Use a separate test database to keep application data intact:
+
+```powershell
+New-Item -ItemType Directory -Force tmp | Out-Null
+$env:DATABASE_URL = 'sqlite:///./tmp/acceptance.db'
+python -m pytest -o pythonpath=backend backend/tests -q --basetemp=tmp/pytest-application
+Remove-Item Env:DATABASE_URL
+cd frontend
+npm run build
+node --test --test-isolation=none tests/roofGeometry.test.ts
+```
+
+The geometry checks use Node's TypeScript support; run them on Node 22.18+ or a current Node release. `--basetemp` is a disposable test directory inside the workspace.
+
 ---
 
 ## 10. AWS Deployment & Infrastructure

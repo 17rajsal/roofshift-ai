@@ -12,35 +12,35 @@ export const HomeValueStrip: React.FC = () => {
     {
       id: 1,
       title: 'Lower Energy Costs',
-      description: 'Significant long-term savings on electricity bills.',
+      description: 'Estimate long-term savings under declared tariffs and costs.',
       icon: DollarSign,
       iconBg: 'bg-emerald-600 text-white',
     },
     {
       id: 2,
-      title: 'Higher ROI',
-      description: 'Optimize system design for maximum financial returns.',
+      title: 'Compare Returns',
+      description: 'Compare savings and payback under stated planning assumptions.',
       icon: TrendingUp,
       iconBg: 'bg-orange-500 text-white',
     },
     {
       id: 3,
       title: 'Reduced Carbon Footprint',
-      description: 'Measure and minimize CO₂ emissions with official CEA accounting.',
+      description: 'Estimate avoided CO₂ using your declared grid emissions factor.',
       icon: Leaf,
       iconBg: 'bg-emerald-600 text-white',
     },
     {
       id: 4,
       title: 'Better Maintenance Visibility',
-      description: 'Detect issues early and keep systems performing at peak PR.',
+      description: 'Review uploaded performance evidence and maintenance priorities.',
       icon: ShieldCheck,
       iconBg: 'bg-teal-600 text-white',
     },
     {
       id: 5,
       title: 'Actionable Reports',
-      description: 'Download professional reports for stakeholders and compliance.',
+      description: 'Download planning reports for stakeholder review.',
       icon: FileText,
       iconBg: 'bg-emerald-700 text-white',
     },
@@ -50,7 +50,7 @@ export const HomeValueStrip: React.FC = () => {
     <section className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Soft pale green horizontal container matching screenshot */}
       <div className="bg-[#EDF8F1] rounded-3xl p-8 sm:p-10 lg:p-12 border border-emerald-100">
-        
+
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-10">
           <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0B1739] tracking-tight">

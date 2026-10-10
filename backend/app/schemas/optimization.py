@@ -1,32 +1,26 @@
-import math
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ConfigDict, model_validator
 from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 
 class OptimizeRequest(BaseModel):
-    budget_inr: float = Field(..., gt=0.0, description="Capital installation budget in INR")
-    objective: str = Field(default="MAXIMIZE_SAVINGS")
-    scenario_name: str = Field(default="Base Scenario")
+    model_config = ConfigDict(allow_inf_nan=False)
+    budget_inr: float = Field(..., gt=0.0, le=1_000_000_000_000_000)
+    objective: Literal["MAXIMIZE_SAVINGS", "MAXIMIZE_ONSITE_UTILIZATION", "MAXIMIZE_GENERATION", "MAXIMIZE_SELF_CONSUMPTION"] = "MAXIMIZE_SAVINGS"
+    scenario_name: str = Field(default="Base Scenario") # Base Scenario, Conservative Scenario, Optimistic Scenario
     capacity_step_kwp: float = Field(default=0.5, ge=0.1, le=5.0)
-    override_cost_per_kwp: Optional[float] = Field(default=None, gt=0.0)
-    override_tariff_rate: Optional[float] = Field(default=None, ge=0.0)
-    override_export_tariff: Optional[float] = Field(default=None, ge=0.0)
-    performance_ratio_multiplier: Optional[float] = Field(default=1.0, ge=0.0, le=2.0)
+    override_cost_per_kwp: Optional[float] = Field(default=None, gt=0, le=1_000_000_000)
+    override_tariff_rate: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    override_export_tariff: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    performance_ratio_multiplier: Optional[float] = Field(default=1.0, ge=0, le=4/3)
 
-    @field_validator("budget_inr")
-    @classmethod
-    def check_budget_finite(cls, v: float) -> float:
-        if not math.isfinite(v) or v <= 0:
-            raise ValueError("budget_inr must be a positive finite number")
-        return v
-
-    @field_validator("objective")
-    @classmethod
-    def validate_objective(cls, v: str) -> str:
-        allowed = ("MAXIMIZE_SAVINGS", "MAXIMIZE_GENERATION", "MAXIMIZE_ONSITE_UTILIZATION", "MAXIMIZE_SELF_CONSUMPTION")
-        if v not in allowed:
-            raise ValueError(f"Unknown objective '{v}'. Must be one of: {', '.join(allowed)}")
-        return v
+    @model_validator(mode="after")
+    def physical_performance_ratio(self):
+        multiplier = self.performance_ratio_multiplier if self.performance_ratio_multiplier is not None else 1
+        scenario = self.scenario_name.lower()
+        factor = .90 if "conservative" in scenario else 1.05 if "optimistic" in scenario else 1
+        if .75 * multiplier * factor > 1:
+            raise ValueError("Effective performance ratio cannot exceed one")
+        return self
 
 class BuildingAllocationItem(BaseModel):
     building_id: str

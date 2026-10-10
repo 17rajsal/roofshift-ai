@@ -9,10 +9,9 @@ def analyze_solar_panel_image(
     image_bytes: bytes,
     filename: str
 ) -> Dict[str, Any]:
-    """
-    Deterministic solar PV panel visual & thermal anomaly classifier.
-    Analyzes panel surface characteristics, luminance contrast, and thermal signatures
-    to detect hotspots, soiling, and micro-cracking without external paid API or Bedrock dependency.
+    """Demonstration filename/byte-pattern classifier; all finding metrics are synthetic.
+
+    No pixels are decoded and no physical temperatures or defects are measured.
     """
     byte_len = len(image_bytes)
     if byte_len == 0:
@@ -63,5 +62,5 @@ def analyze_solar_panel_image(
         "temperature_delta_c": delta_temp,
         "estimated_power_loss_pct": loss_pct,
         "recommended_action": action,
-        "model_provenance": "RoofShift Thermal & Optical CV Analyzer v2.0 (Deterministic Gradient Engine)"
+        "model_provenance": "Simulated filename/byte-pattern demonstration; not image recognition or measured temperature"
     }

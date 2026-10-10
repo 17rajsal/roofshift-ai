@@ -59,15 +59,15 @@ export const HomeCampusOverview: React.FC = () => {
 
   return (
     <section className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      
+
       {/* Top Header: Section title + Site selector */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
         <div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1739] tracking-tight">
-            Campus & Portfolio Overview
+            Illustrative Campus Overview
           </h2>
           <p className="mt-2 text-base text-[#61708A]">
-            Visualize solar potential across your entire campus or portfolio.
+            Example roofs, charts and impact figures demonstrate the interface. The illustration does not change with your selected project.
           </p>
         </div>
 
@@ -98,20 +98,20 @@ export const HomeCampusOverview: React.FC = () => {
 
       {/* Main Container: Left Map (55%) + Right Insights (45%) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
-        
+
         {/* Left Panel: Geospatial Campus View (55% = 7 cols) */}
         <div className="lg:col-span-7 bg-white rounded-2xl border border-[#E8EDF4] shadow-sm overflow-hidden flex flex-col relative aspect-[4/3] sm:aspect-[16/11]">
-          
+
           {/* Top Campus Map Header */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white z-10">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="text-xs font-bold text-[#0B1739]">
-                {activeProject ? activeProject.name : 'Greenfield University Campus'}
+                Illustrative University Campus
               </span>
-              <span className="text-[11px] text-slate-400">· 5 Analyzed Roofs</span>
+              <span className="text-[11px] text-slate-400">· 5 Example Roofs</span>
             </div>
-            <span className="text-[11px] font-semibold text-slate-500">Interactive Model</span>
+            <span className="text-[11px] font-semibold text-slate-500">Interactive Illustration</span>
           </div>
 
           {/* Interactive Geospatial Canvas Simulator */}
@@ -119,7 +119,7 @@ export const HomeCampusOverview: React.FC = () => {
             {/* Aerial Orthophoto Background */}
             <img
               src="/hero-campus.jpg"
-              alt="Campus satellite rooftop view"
+              alt="Illustrative campus rooftop view"
               className="w-full h-full object-cover filter brightness-90 contrast-105 transition-transform duration-300"
               style={{ transform: `scale(${zoomLevel})` }}
             />
@@ -271,13 +271,13 @@ export const HomeCampusOverview: React.FC = () => {
 
         </div>
 
-        {/* Right Panel: Site Insights (45% = 5 cols) */}
+        {/* Right Panel: Example Site Insights (45% = 5 cols) */}
         <div className="lg:col-span-5 bg-white rounded-2xl p-6 border border-[#E8EDF4] shadow-sm flex flex-col justify-between">
-          
+
           <div>
             {/* Header: Title + Building Selector */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-[#0B1739]">Site Insights</h3>
+              <h3 className="text-lg font-bold text-[#0B1739]">Example Site Insights</h3>
               <div className="relative">
                 <select
                   value={selectedBuilding}
@@ -353,7 +353,7 @@ export const HomeCampusOverview: React.FC = () => {
                   </div>
                   <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-xs font-bold text-[#16A34A] border border-emerald-200">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    <span>28% vs. current usage</span>
+                    <span>Illustrative comparison</span>
                   </div>
                 </div>
 
@@ -468,8 +468,8 @@ export const HomeCampusOverview: React.FC = () => {
           </div>
 
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-            <span>NASA POWER Solar Physics Engine</span>
-            <span>Deterministic DP Knapsack</span>
+            <span>Illustrative planning figures</span>
+            <span>Open tools for saved project results</span>
           </div>
 
         </div>

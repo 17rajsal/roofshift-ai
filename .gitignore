@@ -73,3 +73,7 @@ desktop.ini
 
 # Worktrees
 roofshift-integration/
+
+# Additional delivery/test artifacts
+.npm
+pytest-cache-files-*/

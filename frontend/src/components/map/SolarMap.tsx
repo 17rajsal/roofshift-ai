@@ -50,7 +50,7 @@ const markerHighShade = createCustomMarker('#EF4444'); // Red
 function MapController({ center, zoom }: { center: [number, number]; zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(center, zoom);
+    map.setView(center, zoom, { animate: false });
   }, [center, zoom, map]);
   return null;
 }
@@ -242,6 +242,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
 
       {/* Interactive Leaflet Map */}
       <MapContainer
+        zoomAnimation={false}
         center={mapCenter}
         zoom={mapZoom}
         scrollWheelZoom={true}

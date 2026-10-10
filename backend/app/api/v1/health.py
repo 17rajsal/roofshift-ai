@@ -9,5 +9,5 @@ def health_check():
         "status": "healthy",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "region_support": "India (NASA POWER & NISE climatology integrated)"
+        "region_support": "India (NASA POWER climatology with explicitly labelled illustrative fallback)"
     }

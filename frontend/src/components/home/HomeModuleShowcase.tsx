@@ -17,16 +17,17 @@ export const HomeModuleShowcase: React.FC = () => {
       {/* Section Header */}
       <div className="text-center max-w-2xl mx-auto mb-14">
         <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1739] tracking-tight">
-          Powerful Modules for Real Impact
+          Powerful Modules for Planning & Review
         </h2>
         <p className="mt-2.5 text-base text-[#61708A]">
           Dive deeper into the key capabilities that make RoofShift AI a complete solar planning platform.
         </p>
       </div>
 
+      <p className="mb-5 text-xs font-medium text-slate-500">Illustrative previews below. Open a tool for project calculations or uploaded measurement results.</p>
       {/* 3 Large Showcase Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-        
+
         {/* Card A: Budget Optimization */}
         <div className="bg-white rounded-2xl p-6 sm:p-7 border border-[#E8EDF4] shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
           <div>
@@ -36,9 +37,9 @@ export const HomeModuleShowcase: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-[#0B1739]">Budget Optimization</h3>
             </div>
-            
+
             <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
-              Compare multiple design scenarios, optimize system size and configuration, and get the best ROI for your investment.
+              Compare supplied capacity choices and modeled energy values under a stated budget. Savings and payback depend on your inputs.
             </p>
 
             <button
@@ -80,22 +81,22 @@ export const HomeModuleShowcase: React.FC = () => {
           </div>
         </div>
 
-        {/* Card B: Live Monitoring */}
+        {/* Card B: Performance Monitoring */}
         <div className="bg-white rounded-2xl p-6 sm:p-7 border border-[#E8EDF4] shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#16A34A] flex items-center justify-center">
                 <Tv2 className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-[#0B1739]">Live Monitoring</h3>
+              <h3 className="text-lg font-bold text-[#0B1739]">Performance Monitoring</h3>
             </div>
-            
+
             <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
-              Track real-time solar generation, system performance and site health across your entire portfolio.
+              Compare uploaded readings with declared expected output and review performance evidence.
             </p>
 
             <button
-              onClick={() => navigate('/operations')}
+              onClick={() => navigate('/solar-features?feature=performance-monitoring')}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E8EDF4] hover:border-[#16A34A] text-xs font-bold text-[#0B1739] hover:text-[#16A34A] transition-colors cursor-pointer mb-6"
             >
               <span>Learn More</span>
@@ -106,7 +107,7 @@ export const HomeModuleShowcase: React.FC = () => {
           {/* Mini Interactive Preview Chart (Green Solar Curve) */}
           <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100 mt-2">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-500">Live Generation</span>
+              <span className="text-[11px] font-semibold text-slate-500">Illustrative Generation</span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-[10px] font-bold text-[#16A34A]">
                 <TrendingUp className="w-3 h-3" />
                 428 kW
@@ -151,13 +152,13 @@ export const HomeModuleShowcase: React.FC = () => {
               </div>
               <h3 className="text-lg font-bold text-[#0B1739]">Panel Health / Fault Detection</h3>
             </div>
-            
+
             <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
-              Automatically detect performance drops, faults and maintenance needs using AI-powered analytics.
+              Review rule-based fault findings from submitted measurements and inspection evidence.
             </p>
 
             <button
-              onClick={() => navigate('/operations')}
+              onClick={() => navigate('/solar-features?feature=panel-fault-detection')}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E8EDF4] hover:border-rose-500 text-xs font-bold text-[#0B1739] hover:text-rose-500 transition-colors cursor-pointer mb-6"
             >
               <span>Learn More</span>
@@ -174,7 +175,7 @@ export const HomeModuleShowcase: React.FC = () => {
             />
             {/* Shaded defect highlight overlay */}
             <div className="absolute inset-0 bg-rose-500/10 pointer-events-none" />
-            
+
             {/* Warning pill badge */}
             <div className="absolute bottom-2.5 right-2.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-md border border-rose-200 shadow-sm flex items-center gap-1.5 text-[10px] font-bold text-rose-600">
               <AlertTriangle className="w-3 h-3 text-rose-500" />

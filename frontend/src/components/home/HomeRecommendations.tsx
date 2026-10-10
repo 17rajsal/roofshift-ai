@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Sun, Wrench, BarChart2, Leaf, ArrowRight } from 'lucide-react';
 
 export const HomeRecommendations: React.FC = () => {
@@ -14,7 +14,7 @@ export const HomeRecommendations: React.FC = () => {
       iconBg: 'bg-amber-50 text-amber-500',
       badge: 'High Impact',
       badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      time: '2 hours ago',
+      time: 'Illustrative example',
       route: '/map',
     },
     {
@@ -25,29 +25,29 @@ export const HomeRecommendations: React.FC = () => {
       iconBg: 'bg-slate-100 text-slate-700',
       badge: 'Recommended',
       badgeClass: 'bg-amber-50 text-amber-700 border-amber-200',
-      time: '5 hours ago',
-      route: '/operations',
+      time: 'Illustrative example',
+      route: '/solar-features?feature=maintenance-recommendations',
     },
     {
       id: 3,
       title: 'Optimize System Size',
-      description: 'Increase ROI by 18% with revised configuration.',
+      description: 'Compare projected savings under a revised configuration.',
       icon: BarChart2,
       iconBg: 'bg-blue-50 text-blue-600',
       badge: 'Suggestion',
       badgeClass: 'bg-blue-50 text-blue-700 border-blue-200',
-      time: '1 day ago',
+      time: 'Illustrative example',
       route: '/optimize',
     },
     {
       id: 4,
       title: 'New Sustainability Report',
-      description: 'Q3 2026 environmental impact report ready.',
+      description: 'Create an environmental planning report from saved results.',
       icon: Leaf,
       iconBg: 'bg-emerald-50 text-emerald-600',
       badge: 'New',
       badgeClass: 'bg-teal-50 text-teal-700 border-teal-200',
-      time: '2 days ago',
+      time: 'Illustrative example',
       route: '/reports',
     },
   ];
@@ -58,10 +58,10 @@ export const HomeRecommendations: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
         <div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1739] tracking-tight">
-            Recommended Actions & Recent Updates
+            Example Actions & Planning Tools
           </h2>
           <p className="mt-2 text-base text-[#61708A]">
-            AI-powered recommendations to maximize your solar investment.
+            Illustrative examples only. Open a tool for your saved project findings.
           </p>
         </div>
 
@@ -79,9 +79,10 @@ export const HomeRecommendations: React.FC = () => {
         {recommendations.map((item) => {
           const Icon = item.icon;
           return (
-            <div
+            <Link
               key={item.id}
-              onClick={() => navigate(item.route)}
+              to={item.route}
+              aria-label={`Open ${item.title}`}
               className="bg-white rounded-2xl p-5 border border-[#E8EDF4] shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between group"
             >
               <div>
@@ -106,7 +107,7 @@ export const HomeRecommendations: React.FC = () => {
                   {item.time}
                 </span>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>
