@@ -7,6 +7,7 @@ from app.models.solar import SolarAnalysis
 from app.schemas.solar import SolarAnalysisResponse, MonthlySolarItem
 from app.services.solar.solar_engine import calculate_building_solar_potential, MONTH_NAMES, DAYS_IN_MONTH
 from app.services.solar.nasa_power import fetch_solar_irradiance, MONTH_KEYS
+from app.services.energy.balance import monthly_balance
 
 router = APIRouter()
 
@@ -28,15 +29,15 @@ async def get_solar_analysis(building_id: str, db: Session = Depends(get_db)):
     monthly_ghi, _, _, _ = await fetch_solar_irradiance(b.latitude, b.longitude, db)
     monthly_gen_list = sa.monthly_generation_kwh or []
     monthly_demand = b.monthly_consumption_kwh
-    daytime_demand_monthly = monthly_demand * (b.daytime_consumption_pct / 100.0)
+    balance = monthly_balance(monthly_gen_list, monthly_demand, b.daytime_consumption_pct)
 
     items = []
     for i, m_name in enumerate(MONTH_NAMES):
         m_key = MONTH_KEYS[i]
         ghi = monthly_ghi.get(m_key, 5.0)
         gen = monthly_gen_list[i] if i < len(monthly_gen_list) else 0.0
-        onsite = min(gen, daytime_demand_monthly)
-        export = max(0.0, gen - daytime_demand_monthly)
+        onsite = balance["onsite"][i]
+        export = balance["export"][i]
 
         items.append(MonthlySolarItem(
             month=m_name,
@@ -44,8 +45,8 @@ async def get_solar_analysis(building_id: str, db: Session = Depends(get_db)):
             ghi_kwh_m2_day=ghi,
             generation_kwh=gen,
             consumption_kwh=monthly_demand,
-            onsite_used_kwh=round(onsite, 1),
-            export_kwh=round(export, 1)
+            onsite_used_kwh=onsite,
+            export_kwh=export
         ))
 
     return SolarAnalysisResponse(

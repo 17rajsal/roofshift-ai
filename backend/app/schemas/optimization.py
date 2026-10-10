@@ -1,16 +1,26 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field, ConfigDict, model_validator
+from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 
 class OptimizeRequest(BaseModel):
-    budget_inr: float = Field(..., gt=0.0)
-    objective: str = Field(default="MAXIMIZE_SAVINGS") # MAXIMIZE_SAVINGS, MAXIMIZE_ONSITE_UTILIZATION, MAXIMIZE_GENERATION
+    model_config = ConfigDict(allow_inf_nan=False)
+    budget_inr: float = Field(..., gt=0.0, le=1_000_000_000_000_000)
+    objective: Literal["MAXIMIZE_SAVINGS", "MAXIMIZE_ONSITE_UTILIZATION", "MAXIMIZE_GENERATION", "MAXIMIZE_SELF_CONSUMPTION"] = "MAXIMIZE_SAVINGS"
     scenario_name: str = Field(default="Base Scenario") # Base Scenario, Conservative Scenario, Optimistic Scenario
     capacity_step_kwp: float = Field(default=0.5, ge=0.1, le=5.0)
-    override_cost_per_kwp: Optional[float] = None
-    override_tariff_rate: Optional[float] = None
-    override_export_tariff: Optional[float] = None
-    performance_ratio_multiplier: Optional[float] = 1.0
+    override_cost_per_kwp: Optional[float] = Field(default=None, gt=0, le=1_000_000_000)
+    override_tariff_rate: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    override_export_tariff: Optional[float] = Field(default=None, ge=0, le=1_000_000)
+    performance_ratio_multiplier: Optional[float] = Field(default=1.0, ge=0, le=4/3)
+
+    @model_validator(mode="after")
+    def physical_performance_ratio(self):
+        multiplier = self.performance_ratio_multiplier if self.performance_ratio_multiplier is not None else 1
+        scenario = self.scenario_name.lower()
+        factor = .90 if "conservative" in scenario else 1.05 if "optimistic" in scenario else 1
+        if .75 * multiplier * factor > 1:
+            raise ValueError("Effective performance ratio cannot exceed one")
+        return self
 
 class BuildingAllocationItem(BaseModel):
     building_id: str

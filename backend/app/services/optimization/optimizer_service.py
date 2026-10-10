@@ -1,4 +1,6 @@
 import logging
+import math
+from decimal import Decimal
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from app.models.project import Project
@@ -17,6 +19,7 @@ from app.services.optimization.budget_solver import (
 )
 from app.services.optimization.baseline_solver import run_baseline_first_feasible
 from app.core.config import settings
+from app.services.energy.balance import finite
 
 logger = logging.getLogger(__name__)
 
@@ -44,14 +47,14 @@ async def run_project_optimization(
 
     budget = request.budget_inr
     objective = request.objective or "MAXIMIZE_SAVINGS"
-    step_kwp = max(0.2, min(5.0, request.capacity_step_kwp or 0.5))
+    step_kwp = request.capacity_step_kwp
 
     # Scenario parameters
     scenario = request.scenario_name or "Base Scenario"
     scenario_lower = scenario.lower()
 
     # Scenario multiplier adjustments
-    pr_multiplier = request.performance_ratio_multiplier or 1.0
+    pr_multiplier = request.performance_ratio_multiplier if request.performance_ratio_multiplier is not None else 1.0
     cost_override = request.override_cost_per_kwp
     tariff_override = request.override_tariff_rate
     export_override = request.override_export_tariff
@@ -64,6 +67,7 @@ async def run_project_optimization(
         cost_multiplier = 0.92 # 8% lower equipment cost
     else:
         cost_multiplier = 1.0
+    pr = finite(settings.DEFAULT_PERFORMANCE_RATIO * pr_multiplier, "effective performance ratio", 0, 1)
 
     # Ensure all buildings have solar analysis
     for b in buildings:
@@ -77,8 +81,8 @@ async def run_project_optimization(
 
     for b in buildings:
         usable_area = b.gross_roof_area * (b.usable_roof_percentage / 100.0)
-        max_cap = round(usable_area / settings.DEFAULT_AREA_PER_KWP, 2)
-        if b.max_eligible_kwp and b.max_eligible_kwp > 0:
+        max_cap = usable_area / settings.DEFAULT_AREA_PER_KWP
+        if b.max_eligible_kwp is not None:
             max_cap = min(max_cap, b.max_eligible_kwp)
 
         # Solar irradiance
@@ -87,10 +91,9 @@ async def run_project_optimization(
         shading_loss = get_effective_shading_loss(b.shading_category, b.custom_shading_loss)
         shading_factor = max(0.0, 1.0 - (shading_loss / 100.0))
 
-        cost_per_kwp = cost_override if cost_override else (b.cost_per_kwp * cost_multiplier)
-        tariff = tariff_override if tariff_override else (b.tariff_inr if b.tariff_inr else project.tariff_rate)
-        export_tariff = export_override if export_override else project.export_tariff
-        pr = settings.DEFAULT_PERFORMANCE_RATIO * pr_multiplier
+        cost_per_kwp = cost_override if cost_override is not None else (b.cost_per_kwp * cost_multiplier)
+        tariff = tariff_override if tariff_override is not None else (b.tariff_inr if b.tariff_inr is not None else project.tariff_rate)
+        export_tariff = export_override if export_override is not None else project.export_tariff
 
         options = []
         # Option 0: 0 kWp
@@ -104,8 +107,15 @@ async def run_project_optimization(
             "savings_inr": 0.0,
         })
 
-        curr_c = step_kwp
-        while curr_c <= (max_cap + 0.01):
+        # Decimal stepping avoids 0.1 accumulation and never exceeds the ceiling.
+        step_decimal, max_decimal = Decimal(str(step_kwp)), Decimal(str(max_cap))
+        if max_cap / step_kwp > 5000:
+            raise ValueError("Building capacity option limit exceeded; increase capacity step or set an eligible capacity cap")
+        capacities = [float(step_decimal * i) for i in range(1, int(max_decimal // step_decimal) + 1)]
+        # Include the physical roof endpoint even when smaller than one step.
+        if max_cap > 0 and (not capacities or capacities[-1] < max_cap):
+            capacities.append(max_cap)
+        for curr_c in capacities:
             eval_res = evaluate_capacity_option(
                 capacity_kwp=curr_c,
                 building=b,
@@ -119,7 +129,6 @@ async def run_project_optimization(
             )
             eval_res["building_id"] = b.id
             options.append(eval_res)
-            curr_c += step_kwp
 
         building_options_list.append(options)
         building_options_map[b.id] = options
@@ -149,15 +158,15 @@ async def run_project_optimization(
     )
 
     # 5. Build allocations, explainability & summaries
-    total_allocated = sum(c["cost_inr"] for c in chosen_solution)
+    total_allocated = float(sum((Decimal(str(c["cost_inr"])) for c in chosen_solution), Decimal(0)))
     remaining_budget = max(0.0, budget - total_allocated)
     total_capacity = sum(c["capacity_kwp"] for c in chosen_solution)
     total_generation = sum(c["annual_gen_kwh"] for c in chosen_solution)
     total_savings = sum(c["savings_inr"] for c in chosen_solution)
     total_onsite = sum(c["onsite_kwh"] for c in chosen_solution)
     total_export = sum(c["export_kwh"] for c in chosen_solution)
-    overall_payback = round(total_allocated / total_savings, 2) if total_savings > 10.0 else None
-    co2_factor = project.co2_factor if project.co2_factor > 0 else 0.716
+    overall_payback = round(total_allocated / total_savings, 2) if total_savings > 0 else None
+    co2_factor = finite(project.co2_factor, "co2_factor")
     avoided_co2 = round(total_generation * co2_factor, 1)
 
     allocations_items: List[BuildingAllocationItem] = []
@@ -165,13 +174,13 @@ async def run_project_optimization(
 
     for b in buildings:
         meta = building_meta[b.id]
-        opt = chosen_by_building.get(b.id, options[0])
+        opt = chosen_by_building.get(b.id, building_options_map[b.id][0])
         cap = opt["capacity_kwp"]
         max_cap = meta["max_cap"]
-        is_sel = cap > 0.05
+        is_sel = cap > 0
         cost = opt["cost_inr"]
         savings = opt["savings_inr"]
-        payback = round(cost / savings, 2) if savings > 10.0 and cost > 0.0 else None
+        payback = round(cost / savings, 2) if savings > 0 and cost > 0.0 else None
 
         reasons, shade_summary, demand_summary = generate_decision_explanations(
             building=b,
@@ -194,7 +203,7 @@ async def run_project_optimization(
             category=b.category,
             recommended_capacity_kwp=cap,
             max_capacity_kwp=max_cap,
-            capacity_utilization_pct=round((cap / max(0.1, max_cap)) * 100.0, 1),
+            capacity_utilization_pct=round(cap / max_cap * 100, 1) if max_cap > 0 else 0.0,
             estimated_cost_inr=cost,
             expected_annual_generation_kwh=opt["annual_gen_kwh"],
             expected_annual_savings_inr=savings,
@@ -272,6 +281,6 @@ async def run_project_optimization(
         scenario_name=scenario,
         allocations=allocations_items,
         baseline_comparison=baseline_comp,
-        solver_method="Multiple-Choice Knapsack Dynamic Programming (Exact Global Optimum)",
+        solver_method="Exact Pareto-frontier Multiple-Choice Knapsack (supplied discrete capacity choices)",
         created_at=run_record.created_at
     )

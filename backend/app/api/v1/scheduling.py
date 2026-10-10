@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.database import get_db
 from app.models.project import Project
+from app.models.building import Building
 from app.models.scheduling import EnergyActivity
 from app.schemas.scheduling import (
     EnergyActivityCreate, EnergyActivityResponse, SchedulingOptimizationResponse
@@ -20,6 +21,10 @@ def create_activity(project_id: str, data: EnergyActivityCreate, db: Session = D
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    if data.building_id:
+        building = db.query(Building).filter(Building.id == data.building_id, Building.project_id == project_id).first()
+        if not building:
+            raise HTTPException(status_code=422, detail="building_id must belong to this project")
 
     act = EnergyActivity(
         project_id=project_id,

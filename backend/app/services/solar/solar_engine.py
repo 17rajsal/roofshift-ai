@@ -1,10 +1,13 @@
 from typing import Dict, Any, List, Optional
+from datetime import datetime
+import uuid
 from sqlalchemy.orm import Session
 from app.models.building import Building
 from app.models.project import Project
 from app.models.solar import SolarAnalysis
 from app.core.config import settings
 from app.services.solar.nasa_power import fetch_solar_irradiance, MONTH_KEYS
+from app.services.energy.balance import finite, monthly_balance, generation_by_month, installation_cost as capital_charge
 
 DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -19,7 +22,7 @@ def get_effective_shading_loss(shading_category: str, custom_loss: Optional[floa
     elif cat == "high":
         return 30.0
     elif cat == "custom" and custom_loss is not None:
-        return float(custom_loss)
+        return finite(custom_loss, "custom_shading_loss", 0, 100)
     return 5.0
 
 async def calculate_building_solar_potential(
@@ -42,70 +45,60 @@ async def calculate_building_solar_potential(
     )
 
     # 2. Roof geometry and capacity
-    usable_area = round(building.gross_roof_area * (building.usable_roof_percentage / 100.0), 2)
-    max_pv_capacity = round(usable_area / max(1.0, area_per_kwp), 2)
-    if building.max_eligible_kwp and building.max_eligible_kwp > 0:
-        max_pv_capacity = min(max_pv_capacity, building.max_eligible_kwp)
+    roof = finite(building.gross_roof_area, "gross_roof_area", 0, 10_000_000)
+    usable = finite(building.usable_roof_percentage, "usable_roof_percentage", 0, 100)
+    if finite(area_per_kwp, "area_per_kwp") <= 0:
+        raise ValueError("area_per_kwp must be positive")
+    finite(performance_ratio, "performance_ratio", 0, 1)
+    usable_area = roof * usable / 100
+    max_pv_capacity = usable_area / area_per_kwp
+    if building.max_eligible_kwp is not None:
+        max_pv_capacity = min(max_pv_capacity, finite(building.max_eligible_kwp, "max_eligible_kwp"))
 
-    active_capacity = override_capacity_kwp if override_capacity_kwp is not None else max_pv_capacity
-    active_capacity = max(0.0, active_capacity)
+    active_capacity = max_pv_capacity
+    if override_capacity_kwp is not None:
+        active_capacity = finite(override_capacity_kwp, "override_capacity_kwp")
+        if active_capacity > max_pv_capacity + 1e-9:
+            raise ValueError("override_capacity_kwp exceeds eligible roof capacity")
 
     # 3. Shading derating
     shading_loss_pct = get_effective_shading_loss(building.shading_category, building.custom_shading_loss)
     shading_factor = max(0.0, 1.0 - (shading_loss_pct / 100.0))
 
     # 4. Monthly generation and energy balance
-    monthly_gen_list = []
-    annual_generation = 0.0
-    annual_onsite_consumed = 0.0
-    annual_exported = 0.0
+    monthly_gen_list = generation_by_month(active_capacity, monthly_ghi_dict, performance_ratio, shading_factor)
+    balance = monthly_balance(monthly_gen_list, building.monthly_consumption_kwh, building.daytime_consumption_pct)
+    annual_generation = sum(monthly_gen_list)
+    annual_onsite_consumed = sum(balance["onsite"])
+    annual_exported = sum(balance["export"])
 
-    monthly_demand = building.monthly_consumption_kwh
-    daytime_demand_monthly = monthly_demand * (building.daytime_consumption_pct / 100.0)
-
-    for i, month_key in enumerate(MONTH_KEYS):
-        ghi_day = monthly_ghi_dict.get(month_key, 5.0)
-        days = DAYS_IN_MONTH[i]
-        
-        # Generation = kWp * (kWh/m^2/day) * days * PR * (1 - shade)
-        month_gen = round(active_capacity * ghi_day * days * performance_ratio * shading_factor, 1)
-        monthly_gen_list.append(month_gen)
-        annual_generation += month_gen
-
-        # Energy balance for month
-        onsite = min(month_gen, daytime_demand_monthly)
-        export = max(0.0, month_gen - daytime_demand_monthly)
-        annual_onsite_consumed += onsite
-        annual_exported += export
-
-    annual_generation = round(annual_generation, 1)
-    annual_onsite_consumed = round(annual_onsite_consumed, 1)
-    annual_exported = round(annual_exported, 1)
-
-    onsite_utilization_pct = round((annual_onsite_consumed / max(1.0, annual_generation)) * 100.0, 1)
-    specific_yield = round(annual_generation / max(0.1, active_capacity), 1) if active_capacity > 0 else 0.0
+    onsite_utilization_pct = round(annual_onsite_consumed / annual_generation * 100, 1) if annual_generation else 0.0
+    specific_yield = round(annual_generation / active_capacity, 1) if active_capacity > 0 else 0.0
 
     # 5. Financial calculations
-    tariff = building.tariff_inr if building.tariff_inr is not None else project.tariff_rate
-    export_tariff = project.export_tariff
-    cost_per_kwp = building.cost_per_kwp if building.cost_per_kwp > 0 else settings.DEFAULT_COST_PER_KWP
+    tariff = finite(building.tariff_inr if building.tariff_inr is not None else project.tariff_rate, "tariff")
+    export_tariff = finite(project.export_tariff, "export_tariff")
+    cost_per_kwp = finite(building.cost_per_kwp, "cost_per_kwp")
 
     annual_savings = round((annual_onsite_consumed * tariff) + (annual_exported * export_tariff), 2)
-    installation_cost = round((active_capacity * cost_per_kwp) + (building.fixed_cost or 0.0), 2)
+    installation_cost = capital_charge(active_capacity, cost_per_kwp, building.fixed_cost or 0)
 
     payback_years = None
-    if annual_savings > 100.0 and installation_cost > 0.0:
+    if annual_savings > 0.0 and installation_cost > 0.0:
         payback_years = round(installation_cost / annual_savings, 2)
 
     # 6. Environmental impact
-    co2_factor = project.co2_factor if project.co2_factor > 0 else settings.DEFAULT_GRID_EMISSIONS_FACTOR_KG_CO2_PER_KWH
+    co2_factor = finite(project.co2_factor, "co2_factor")
     avoided_co2 = round(annual_generation * co2_factor, 1)
 
     # 7. Update or create SolarAnalysis in DB
-    existing_analysis = db.query(SolarAnalysis).filter(SolarAnalysis.building_id == building.id).first()
+    # Capacity override is a scenario result; preserve the canonical full-roof
+    # analysis so subsequent no-optimization insights cannot mislabel capacity.
+    existing_analysis = db.query(SolarAnalysis).filter(SolarAnalysis.building_id == building.id).first() if override_capacity_kwp is None else None
     if not existing_analysis:
-        existing_analysis = SolarAnalysis(building_id=building.id)
-        db.add(existing_analysis)
+        existing_analysis = SolarAnalysis(building_id=building.id, id=str(uuid.uuid4()), created_at=datetime.utcnow(), updated_at=datetime.utcnow())
+        if override_capacity_kwp is None:
+            db.add(existing_analysis)
 
     existing_analysis.usable_roof_area_sqm = usable_area
     existing_analysis.max_pv_capacity_kwp = max_pv_capacity
@@ -128,8 +121,11 @@ async def calculate_building_solar_potential(
     existing_analysis.calculation_notes = (
         f"Simulated with {performance_ratio*100:.0f}% PR, {shading_loss_pct:.1f}% shading loss, "
         f"and ₹{cost_per_kwp:,.0f}/kWp capital expenditure."
+        " Onsite consumption uses synthetic hourly coincidence, without storage or inter-building netting."
+        f" Evaluated capacity: {active_capacity:.6g} kWp; eligibility ceiling: {max_pv_capacity:.6g} kWp."
     )
 
-    db.commit()
-    db.refresh(existing_analysis)
+    if override_capacity_kwp is None:
+        db.commit()
+        db.refresh(existing_analysis)
     return existing_analysis
