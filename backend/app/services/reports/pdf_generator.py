@@ -17,6 +17,8 @@ from app.models.building import Building
 from app.models.optimization import OptimizationRun
 from app.models.scheduling import EnergyActivity
 from app.models.report import GeneratedReport
+from app.models.feature import FeatureAssessment
+from app.services.reports.feature_sections import append_feature_sections
 from app.core.config import settings
 from app.schemas.scheduling import SchedulingOptimizationResponse
 
@@ -64,6 +66,8 @@ def generate_project_pdf_report(
     project_id: str, db: Session, notes: Optional[str] = None,
     scheduling_result: Optional[SchedulingOptimizationResponse] = None,
     include_load_shifting: bool = True,
+    include_features: bool = True,
+    include_scenarios: bool = True,
 ) -> GeneratedReport:
     """
     Builds a comprehensive, publication-grade PDF report using ReportLab.
@@ -229,8 +233,8 @@ def generate_project_pdf_report(
         usable = b.gross_roof_area * (b.usable_roof_percentage / 100.0)
         max_c = round(usable / settings.DEFAULT_AREA_PER_KWP, 1)
         b_table_data.append([
-            b.name,
-            b.category,
+            Paragraph(escape(b.name), style_body),
+            Paragraph(escape(b.category), style_body),
             f"{b.gross_roof_area:,.0f} m²",
             f"{usable:,.0f} m²",
             f"{b.monthly_consumption_kwh:,.0f} kWh",
@@ -268,7 +272,7 @@ def generate_project_pdf_report(
         for item in latest_run.allocations_json:
             is_sel = item.get("is_selected", False)
             alloc_data.append([
-                item.get("building_name", ""),
+                Paragraph(escape(item.get("building_name", "")), style_body),
                 f"{item.get('recommended_capacity_kwp', 0):.1f} kWp",
                 f"₹{item.get('estimated_cost_inr', 0):,.0f}",
                 f"{item.get('expected_annual_generation_kwh', 0):,.0f} kWh",
@@ -300,7 +304,7 @@ def generate_project_pdf_report(
             reasons = item.get("decision_reasons", [])
             bullets = " • ".join(reasons) if reasons else item.get("shade_impact_summary", "")
             story.append(Paragraph(
-                f"<b>{item.get('building_name')} ({status}):</b> {bullets}",
+                f"<b>{escape(str(item.get('building_name')))} ({status}):</b> {escape(bullets).replace('₹', 'INR ')}",
                 style_body
             ))
 
@@ -397,6 +401,10 @@ def generate_project_pdf_report(
     ]
     for n in notes_list:
         story.append(Paragraph(f"• {n}", style_body))
+
+    if include_features:
+        assessments = db.query(FeatureAssessment).filter(FeatureAssessment.project_id == project_id).order_by(FeatureAssessment.created_at.desc(), FeatureAssessment.id.desc()).all()
+        append_feature_sections(story, assessments, style_h2, style_body, style_caption, include_scenarios)
 
     if notes and notes.strip():
         story.append(Spacer(1, 12))

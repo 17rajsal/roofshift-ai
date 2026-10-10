@@ -5,6 +5,7 @@ from app.models.solar_cache import SolarDataCache
 from app.models.optimization import OptimizationRun
 from app.models.scheduling import EnergyActivity, SchedulingResult
 from app.models.report import GeneratedReport
+from app.models.feature import FeatureAssessment
 
 __all__ = [
     "Project",
@@ -15,4 +16,5 @@ __all__ = [
     "EnergyActivity",
     "SchedulingResult",
     "GeneratedReport",
+    "FeatureAssessment",
 ]

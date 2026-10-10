@@ -15,6 +15,9 @@ from app.api.v1 import (
 
 api_router = APIRouter()
 
+from app.api.v1 import features
+api_router.include_router(features.router, tags=["Solar Feature Assessments"])
+
 api_router.include_router(health.router, tags=["Health"])
 api_router.include_router(system.router, tags=["System Integrations"])
 api_router.include_router(projects.router, tags=["Projects"])

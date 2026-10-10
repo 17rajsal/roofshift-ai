@@ -13,6 +13,7 @@ const EnergyInsightsPage = lazy(() => import('./pages/EnergyInsightsPage').then(
 const SchedulingPage = lazy(() => import('./pages/SchedulingPage').then(module => ({ default: module.SchedulingPage })));
 const RecommendationsPage = lazy(() => import('./pages/RecommendationsPage').then(module => ({ default: module.RecommendationsPage })));
 const ReportPage = lazy(() => import('./pages/ReportPage').then(module => ({ default: module.ReportPage })));
+const SolarFeaturesPage = lazy(() => import('./pages/SolarFeaturesPage').then(module => ({ default: module.SolarFeaturesPage })));
 
 function ApplicationShell() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
@@ -51,6 +52,7 @@ function ApplicationShell() {
                 <Route path="/scheduling" element={<SchedulingPage />} />
                 <Route path="/recommendations" element={<RecommendationsPage />} />
                 <Route path="/reports" element={<ReportPage />} />
+                <Route path="/solar-features" element={<SolarFeaturesPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               </Suspense>}

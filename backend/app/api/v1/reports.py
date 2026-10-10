@@ -25,7 +25,8 @@ async def create_report(project_id: str, req: ReportGenerateRequest, db: Session
             schedule = await optimize_energy_scheduling(project_id, db)
         report_record = generate_project_pdf_report(
             project_id, db, notes=req.notes,
-            scheduling_result=schedule, include_load_shifting=req.include_load_shifting
+            scheduling_result=schedule, include_load_shifting=req.include_load_shifting,
+            include_features=req.include_features, include_scenarios=req.include_scenarios,
         )
         return ReportResponse(
             report_id=report_record.id,
