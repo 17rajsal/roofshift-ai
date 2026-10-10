@@ -131,15 +131,26 @@ Resources:
           mkswap /swapfile
           swapon /swapfile
           echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
-          dnf install -y docker git curl
+          dnf install -y docker git
           systemctl enable --now docker
-          mkdir -p /usr/local/lib/docker/cli-plugins
-          curl -fSL --retry 3 https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+          mkdir -p /usr/local/lib/docker/cli-plugins /usr/local/bin /usr/libexec/docker/cli-plugins
+          curl -fSL --retry 5 https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
           chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          cp /usr/local/lib/docker/cli-plugins/docker-compose /usr/libexec/docker/cli-plugins/docker-compose
+          ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+          ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/bin/docker-compose
           git clone --depth 1 --branch '${RepositoryRef}' '${RepositoryUrl}' /opt/roofshift-ai
           cd /opt/roofshift-ai
-          docker compose up -d --build --wait --wait-timeout 600
-          curl -fsS --retry 10 --retry-delay 5 --retry-connrefused http://localhost/api/v1/health
+          docker compose up -d --build
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost/api/v1/health >/dev/null 2>&1; then
+              echo "RoofShift AI is healthy and operational!"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Healthcheck timeout after 300s"
+          exit 1
 
 Outputs:
   PublicIP:
