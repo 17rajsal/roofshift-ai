@@ -249,6 +249,34 @@ RoofShift AI includes an adaptive cloud architecture designed for Amazon Web Ser
 
 > **Financial Safety Directive:** All cloud operations adhere to a strict zero unauthorized spending policy. The system operates fully using local fallbacks and does not require active cloud provisioning to execute assessments or generate reports.
 
+### Service Operational Status & Financial Risk Audit
+
+RoofShift AI maintains a strict **Financial Safety Directive** with zero unauthorized spending. Cloud components are segregated into two distinct operating domains:
+
+1. **Genuinely Active Cloud Infrastructure (Single Live EC2 Host):**
+   - **Host & Ingress:** Amazon EC2 `t3.micro` instance at [`http://54.252.232.247`](http://54.252.232.247) in AWS Sydney (`ap-southeast-2`), launched within a custom VPC, Public Subnet, and Security Group (inbound port 80 only).
+   - **Storage & Compute:** 30 GB `gp3` root volume (`/dev/xvda`) with 2 GB swapfile. Docker Compose runs Nginx 1.31.6 reverse proxy and FastAPI Uvicorn backend.
+   - **Billing Analysis & Run-Rate Risk:**
+     - `t3.micro` On-Demand: $0.0132 / hr (~$9.50 / month)
+     - 30 GB EBS gp3: $0.11 / GB-mo (~$3.30 / month)
+     - Public IPv4 allocation: $0.005 / hr (~$3.60 / month)
+     - **Total Projected Burn:** ~$0.44 / day (~$16.40 / month / ~₹1,365 / month).
+     - *Free Tier Consideration:* New AWS accounts (<12 months) receive standard Free Tier allowances for micro instances and IPv4. **For accounts older than 12 months, standard On-Demand rates apply unconditionally.** The server is never assumed to be free.
+     - *Teardown Protocol:* To decommission after demonstration: `aws cloudformation delete-stack --stack-name roofshift-ai-production --profile roofshift-ai --region ap-southeast-2`.
+
+2. **Configured Services with Active Local Fallbacks (Zero Cloud Cost):**
+   - **Amazon S3:** Adapter code (`s3_adapter.py`) implemented; active deployment uses local persistent storage (`/app/generated_reports`). Bucket storage cost: $0.00.
+   - **Amazon CloudWatch:** Adapter code (`monitoring.py`) implemented; active deployment uses stdout structured JSON logs. Ingestion cost: $0.00.
+   - **AWS Lambda & EventBridge:** Handler (`solar_processor.py`) and cron rule (`schedule_rule.json`) defined; solar calculations run in-process within FastAPI. Execution cost: $0.00.
+   - **AWS SSM Parameter Store:** Adapter code (`param_store.py`) implemented; active configuration loaded via `.env` and environment variables. Cost: $0.00.
+   - **Amazon Bedrock:** Explicitly **hard-disabled** (`BEDROCK_ENABLED = False`). Inference cost: $0.00.
+
+3. **Public Exposure & HTTPS Hosting Architecture:**
+   - **Port Exposure Audit:** Port 8000 (FastAPI ASGI) is strictly bound to internal loopback/Docker network; no public port 8000 ingress exists. Only port 80 is routed through Nginx.
+   - **Secure HTTPS Alternatives:**
+     - *Verified HTTPS Demonstration:* Served via Cloudflare Quick Tunnel ([`https://element-concerning-joining-alabama.trycloudflare.com`](https://element-concerning-joining-alabama.trycloudflare.com)) providing end-to-end TLS termination, DDoS defense, and edge caching at **₹0 / $0 additional cost**.
+     - *Custom Domain HTTPS:* When binding a registered custom domain, Let's Encrypt / Certbot can be configured directly on Nginx on port 443 with zero cloud resource overhead, avoiding expensive Application Load Balancers ($16.20+/month).
+
 ---
 
 ## 8. Installation & Quick Start
