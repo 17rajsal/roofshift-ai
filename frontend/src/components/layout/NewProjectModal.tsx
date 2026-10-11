@@ -3,23 +3,46 @@ import { X, Building2, MapPin, DollarSign, Zap } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { api } from '../../services/api';
 
+import { OsmBuildingItem } from '../../types/models';
+
 interface NewProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialCity?: string;
+  initialLat?: number;
+  initialLon?: number;
+  initialName?: string;
+  mappedOsmBuildings?: OsmBuildingItem[];
 }
 
-export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClose }) => {
+export const NewProjectModal: React.FC<NewProjectModalProps> = ({
+  isOpen,
+  onClose,
+  initialCity,
+  initialLat,
+  initialLon,
+  initialName,
+  mappedOsmBuildings
+}) => {
   const { createProject } = useProject();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(initialName || (initialCity ? `${initialCity} Solar Project` : ''));
   const [organization, setOrganization] = useState('');
-  const [city, setCity] = useState('New Delhi');
-  const [latitude, setLatitude] = useState(28.6139);
-  const [longitude, setLongitude] = useState(77.2090);
+  const [city, setCity] = useState(initialCity || 'New Delhi');
+  const [latitude, setLatitude] = useState(initialLat || 28.6139);
+  const [longitude, setLongitude] = useState(initialLon || 77.2090);
   const [budget, setBudget] = useState(1000000);
   const [tariff, setTariff] = useState(8.5);
   const [exportTariff, setExportTariff] = useState(3.5);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (initialCity) setCity(initialCity);
+    if (initialLat) setLatitude(initialLat);
+    if (initialLon) setLongitude(initialLon);
+    if (initialName) setName(initialName);
+    else if (initialCity) setName(`${initialCity} Solar Project`);
+  }, [initialCity, initialLat, initialLon, initialName, isOpen]);
 
   if (!isOpen) return null;
 
@@ -46,19 +69,52 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
     try {
       setLoading(true);
       setError(null);
-      const matches = await api.searchLocation(city.trim());
-      if (!matches.length) throw new Error('Choose a city that can be located on the map.');
-      await createProject({
+      let targetLat = latitude;
+      let targetLon = longitude;
+
+      if (!initialLat || !initialLon) {
+        const matches = await api.searchLocation(city.trim());
+        if (matches.length > 0) {
+          targetLat = matches[0].lat;
+          targetLon = matches[0].lon;
+        }
+      }
+
+      const created = await createProject({
         name: name.trim(),
         organization_name: organization.trim() || name.trim(),
         city,
-        latitude: matches[0].lat,
-        longitude: matches[0].lon,
+        latitude: targetLat,
+        longitude: targetLon,
         budget,
         tariff_rate: tariff,
         export_tariff: exportTariff,
         co2_factor: 0.716
       });
+
+      // If mapped OSM buildings were provided, add them to the created project
+      if (mappedOsmBuildings && mappedOsmBuildings.length > 0) {
+        for (const b of mappedOsmBuildings) {
+          try {
+            await api.createBuilding(created.id, {
+              name: b.name,
+              category: b.category,
+              latitude: b.latitude,
+              longitude: b.longitude,
+              gross_roof_area: b.gross_roof_area,
+              usable_roof_percentage: Math.round((b.usable_roof_area / b.gross_roof_area) * 100),
+              monthly_consumption_kwh: Math.round((b.annual_generation_kwh / 12) * 1.2),
+              daytime_consumption_pct: 65,
+              shading_category: 'Minimal',
+              cost_per_kwp: 48000,
+              roof_polygon: b.polygon_coordinates
+            });
+          } catch (e) {
+            console.warn('Failed to add building to project:', e);
+          }
+        }
+      }
+
       onClose();
     } catch (err: any) {
       setError(err.message || 'Failed to create project');

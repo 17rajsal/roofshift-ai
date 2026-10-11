@@ -15,15 +15,8 @@ Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Seed demonstration campus data
-    db = SessionLocal()
-    try:
-        logger.info("Initializing RoofShift AI database and checking demo data...")
-        await seed_demo_project_if_needed(db)
-    except Exception as e:
-        logger.error(f"Error during startup demo check: {str(e)}")
-    finally:
-        db.close()
+    # Startup: Database verified ready
+    logger.info("Initializing RoofShift AI database...")
     yield
 
 from app.core.security_middleware import (

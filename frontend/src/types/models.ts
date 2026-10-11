@@ -535,3 +535,110 @@ export interface SampleCampusMetadata {
   purpose: string;
   role_in_platform: string;
 }
+
+export interface EnvironmentalProfileResponse {
+  status: string;
+  coordinates: { lat: number; lon: number };
+  in_india_bounds: boolean;
+  nearest_region: {
+    id: string;
+    name: string;
+    short_name: string;
+    zone: string;
+    zone_classification: string;
+  };
+  solar_irradiance: {
+    ghi_daily_kwh: number;
+    dni_daily_kwh: number;
+    dhi_daily_kwh: number;
+    monthly_ghi: Record<string, number>;
+    annual_yield_kwh_per_kwp: number;
+    performance_ratio: number;
+    thermal_derate_factor: number;
+    source: string;
+    source_label: string;
+  };
+  meteorological_conditions: {
+    ambient_temperature_celsius: number;
+    wind_speed_ms: number;
+    relative_humidity_pct: number;
+    cloud_cover_pct: number;
+    weather_condition: string;
+    weather_source: string;
+    is_climatological_fallback: boolean;
+  };
+  sun_ephemeris: {
+    solar_elevation_deg: number;
+    solar_zenith_deg: number;
+    solar_azimuth_deg: number;
+    solar_noon_elevation_deg: number;
+    solar_declination_deg: number;
+    equation_of_time_minutes: number;
+    sunrise_time: string;
+    sunset_time: string;
+    day_length_hours: number;
+    calculation_method: string;
+    shading_assessment_status: string;
+    shading_limitation_notice: string;
+  };
+  ai_suitability: {
+    rooftop_suitability_score: number;
+    open_land_suitability_score: number;
+    composite_score: number;
+    tier: string;
+  };
+  shading_disclaimer: string;
+}
+
+export interface OsmBuildingItem {
+  id: string;
+  name: string;
+  category: string;
+  gross_roof_area: number;
+  usable_roof_area: number;
+  latitude: number;
+  longitude: number;
+  polygon_coordinates: number[][];
+  max_pv_capacity_kwp: number;
+  annual_generation_kwh: number;
+  annual_savings_inr: number;
+  avoided_co2_kg_annual: number;
+  shading_loss_percentage: number;
+  shading_assessment_notice: string;
+  source: string;
+}
+
+export interface OsmBuildingsResponse {
+  status: string;
+  building_count: number;
+  buildings: OsmBuildingItem[];
+  total_gross_roof_area_sqm?: number;
+  total_usable_roof_area_sqm?: number;
+  total_pv_capacity_kwp?: number;
+  coordinates: { lat: number; lon: number };
+  radius_m: number;
+  message?: string;
+  action_required?: string;
+  source: string;
+}
+
+export interface OpenAreaScreeningResponse {
+  status: string;
+  coordinates: { lat: number; lon: number };
+  nearest_region_name: string;
+  zone_classification: string;
+  open_land_suitability_score: number;
+  suitability_tier: string;
+  screening_metrics: {
+    daily_ghi_kwh: number;
+    daily_dni_kwh: number;
+    estimated_terrain_slope_pct: number;
+    slope_suitability: string;
+    indicative_land_class: string;
+    annual_generation_mwh_per_mw: number;
+    hectares_required_per_mw: number;
+  };
+  regulatory_and_grid_disclaimer: string;
+  data_provenance: string;
+}
+

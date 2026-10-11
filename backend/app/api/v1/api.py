@@ -16,7 +16,8 @@ from app.api.v1 import (
     maintenance,
     thermal,
     solar_ml,
-    india_solar
+    india_solar,
+    geospatial
 )
 
 api_router = APIRouter()
@@ -41,3 +42,4 @@ api_router.include_router(inspections.router, tags=["Panel Inspection & Diagnost
 api_router.include_router(monitoring.router, tags=["Inverter Telemetry & Degradation"])
 api_router.include_router(maintenance.router, tags=["Maintenance Cases"])
 api_router.include_router(thermal.router, tags=["Solar Thermal Intelligence & Hotspots"])
+api_router.include_router(geospatial.router, tags=["Geospatial Intelligence"])

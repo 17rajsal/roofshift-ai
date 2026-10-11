@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { useProject } from '../context/ProjectContext';
 import { api } from '../services/api';
-import { Building as BuildingModel, IndiaSolarRegion, IndiaNationalSolarSummary } from '../types/models';
+import { Building as BuildingModel, IndiaSolarRegion, IndiaNationalSolarSummary, OsmBuildingItem } from '../types/models';
 import { formatINR, formatNumber, formatArea } from '../utils/formatters';
 import { BulkImportModal } from '../components/buildings/BulkImportModal';
 import { NewProjectModal } from '../components/layout/NewProjectModal';
@@ -42,13 +42,19 @@ import { IndiaSolarMap } from '../components/map/IndiaSolarMap';
 export const WorkspaceHub: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { activeProject, projects, setActiveProject, refreshProjects } = useProject();
+  const { activeProject, projects, setActiveProject, refreshProjects, loadDemoProject } = useProject();
 
   // Mode: 'india_map' (default flagship) vs 'site_planner' (portfolio/building level)
   const modeParam = searchParams.get('mode');
   const [workspaceMode, setWorkspaceMode] = useState<'india_map' | 'site_planner'>(
     modeParam === 'site' ? 'site_planner' : 'india_map'
   );
+  const [pendingProjectParams, setPendingProjectParams] = useState<{
+    city: string;
+    lat: number;
+    lng: number;
+    mappedBuildings?: OsmBuildingItem[];
+  } | null>(null);
 
   useEffect(() => {
     if (modeParam === 'site') {
@@ -183,9 +189,26 @@ export const WorkspaceHub: React.FC = () => {
     handleSwitchMode('site_planner');
   };
 
-  // Handle opening sample campus demo
-  const handleOpenSampleCampusDemo = () => {
+  // Handle opening sample campus demo on-demand
+  const handleOpenSampleCampusDemo = async () => {
+    const demo = projects.find((p) => p.is_demo === 'true');
+    if (!demo) {
+      await loadDemoProject();
+    } else {
+      setActiveProject(demo);
+    }
     handleSwitchMode('site_planner');
+  };
+
+  // Handle starting project from arbitrary clicked/searched coordinate
+  const handleStartProjectAtCoordinate = (params: {
+    city: string;
+    lat: number;
+    lng: number;
+    mappedBuildings?: OsmBuildingItem[];
+  }) => {
+    setPendingProjectParams(params);
+    setIsNewProjectModalOpen(true);
   };
 
   return (
@@ -390,6 +413,7 @@ export const WorkspaceHub: React.FC = () => {
             <IndiaSolarMap
               onDrillDownToSite={handleDrillDownFromIndiaMap}
               onOpenSampleCampus={handleOpenSampleCampusDemo}
+              onStartProjectAtCoordinate={handleStartProjectAtCoordinate}
             />
           </div>
 
@@ -533,8 +557,43 @@ export const WorkspaceHub: React.FC = () => {
       ) : (
         /* 3. MODE B: SITE & PORTFOLIO PLANNER (Detailed Building Analysis) */
         <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Back to National Map Banner */}
-          <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200/80 flex items-center justify-between gap-3 text-xs">
+          {!activeProject ? (
+            <div className="bg-white/85 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-8 sm:p-12 text-center shadow-sm space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-orange-500/10 text-[#FF6B16] flex items-center justify-center mx-auto mb-2">
+                <Building className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-extrabold text-[#0F172A]">No Active Site Project Selected</h3>
+              <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                RoofShift AI operates in nationwide intelligence mode by default. Inspect any location on the India Solar Map, start a new project with real satellite data, or load the Sample Campus Demo.
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                <button
+                  onClick={() => handleSwitchMode('india_map')}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#FF6B16] text-white text-xs font-bold shadow-md hover:bg-[#EA580C] transition-all cursor-pointer"
+                >
+                  <Globe className="w-4 h-4" />
+                  <span>Open India Solar Map</span>
+                </button>
+                <button
+                  onClick={() => setIsNewProjectModalOpen(true)}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white border border-slate-200 text-[#0F172A] text-xs font-bold hover:bg-slate-50 shadow-xs transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-[#FF6B16]" />
+                  <span>Create New Project</span>
+                </button>
+                <button
+                  onClick={handleOpenSampleCampusDemo}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 shadow-xs transition-all cursor-pointer"
+                >
+                  <School className="w-4 h-4 text-[#FF6B16]" />
+                  <span>Load Sample Campus Demo</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Back to National Map Banner */}
+              <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200/80 flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 text-blue-900 font-medium">
               <Globe className="w-4 h-4 text-blue-600 shrink-0" />
               <span>
@@ -938,6 +997,8 @@ export const WorkspaceHub: React.FC = () => {
               </div>
             )}
           </div>
+            </>
+          )}
         </div>
       )}
 
@@ -956,7 +1017,14 @@ export const WorkspaceHub: React.FC = () => {
 
       <NewProjectModal
         isOpen={isNewProjectModalOpen}
-        onClose={() => setIsNewProjectModalOpen(false)}
+        onClose={() => {
+          setIsNewProjectModalOpen(false);
+          setPendingProjectParams(null);
+        }}
+        initialCity={pendingProjectParams?.city}
+        initialLat={pendingProjectParams?.lat}
+        initialLon={pendingProjectParams?.lng}
+        mappedOsmBuildings={pendingProjectParams?.mappedBuildings}
       />
     </div>
   );

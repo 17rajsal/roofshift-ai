@@ -64,3 +64,46 @@ def get_solar_intelligence_methodology():
     provenance datasets, geographic resolution, and limitations.
     """
     return get_scoring_methodology()
+
+
+@router.get("/environmental-profile", response_model=Dict[str, Any])
+async def get_solar_environmental_profile(
+    lat: float = Query(..., ge=-90.0, le=90.0, description="Latitude in decimal degrees"),
+    lng: float = Query(..., ge=-180.0, le=180.0, description="Longitude in decimal degrees")
+):
+    """Retrieve coordinate-level environmental profile with solar irradiance,
+    meteorological data, deterministic sun position, and AI suitability.
+    """
+    from app.core.database import SessionLocal
+    from app.services.geospatial.environmental_profile import generate_environmental_profile
+    db = SessionLocal()
+    try:
+        return await generate_environmental_profile(lat, lng, db)
+    finally:
+        db.close()
+
+
+@router.get("/buildings", response_model=Dict[str, Any])
+async def get_solar_osm_buildings(
+    lat: float = Query(..., ge=-90.0, le=90.0, description="Latitude in decimal degrees"),
+    lng: float = Query(..., ge=-180.0, le=180.0, description="Longitude in decimal degrees"),
+    radius_m: int = Query(250, ge=50, le=1000, description="Search radius in meters")
+):
+    """Retrieve real OpenStreetMap mapped building footprints and solar PV potential."""
+    from app.services.geospatial.osm_buildings import fetch_osm_buildings
+    return await fetch_osm_buildings(lat, lng, radius_m)
+
+
+@router.get("/open-area-screening", response_model=Dict[str, Any])
+async def get_solar_open_area_screening(
+    lat: float = Query(..., ge=-90.0, le=90.0, description="Latitude in decimal degrees"),
+    lng: float = Query(..., ge=-180.0, le=180.0, description="Longitude in decimal degrees")
+):
+    """Evaluates utility-scale open area suitability with legal and grid disclaimers."""
+    from app.core.database import SessionLocal
+    from app.services.geospatial.environmental_profile import generate_open_area_screening
+    db = SessionLocal()
+    try:
+        return await generate_open_area_screening(lat, lng, db)
+    finally:
+        db.close()

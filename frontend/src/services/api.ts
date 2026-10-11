@@ -22,7 +22,10 @@ import {
   BulkImportSummaryResponse,
   IndiaSolarRegion,
   IndiaNationalSolarSummary,
-  SampleCampusMetadata
+  SampleCampusMetadata,
+  EnvironmentalProfileResponse,
+  OsmBuildingsResponse,
+  OpenAreaScreeningResponse
 } from '../types/models';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
@@ -444,5 +447,22 @@ export const api = {
 
   async getIndiaSolarMethodology(): Promise<any> {
     return fetchJson<any>('/solar-intelligence/methodology');
+  },
+
+  // Real Geospatial Dynamic Intelligence
+  async getEnvironmentalProfile(lat: number, lng: number): Promise<EnvironmentalProfileResponse> {
+    return fetchJson<EnvironmentalProfileResponse>(`/geospatial/environmental-profile?lat=${lat}&lng=${lng}`);
+  },
+
+  async getOsmBuildings(lat: number, lng: number, radiusM: number = 250): Promise<OsmBuildingsResponse> {
+    return fetchJson<OsmBuildingsResponse>(`/geospatial/buildings?lat=${lat}&lng=${lng}&radius_m=${radiusM}`);
+  },
+
+  async getOpenAreaScreening(lat: number, lng: number): Promise<OpenAreaScreeningResponse> {
+    return fetchJson<OpenAreaScreeningResponse>(`/geospatial/open-area-screening?lat=${lat}&lng=${lng}`);
+  },
+
+  async getSunPosition(lat: number, lng: number, tzOffset: number = 5.5): Promise<any> {
+    return fetchJson<any>(`/geospatial/sun-position?lat=${lat}&lng=${lng}&tz_offset_hours=${tzOffset}`);
   }
 };

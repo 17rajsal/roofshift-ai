@@ -37,10 +37,11 @@ export const ProjectProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const list = await api.getProjects();
       if (version !== requestVersion.current) return;
       setProjects(list);
-      updateActiveProject(current =>
-        list.find(p => p.id === (current?.id || storedProjectId()))
-        || list.find(p => p.is_demo === 'true') || list[0] || null
-      );
+      updateActiveProject(current => {
+        const stored = storedProjectId();
+        const targetId = current?.id || stored;
+        return list.find(p => p.id === targetId) || null;
+      });
     } catch (err: any) {
       if (version === requestVersion.current) setError(err.message || 'Failed to fetch projects');
     } finally {
