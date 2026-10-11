@@ -472,7 +472,19 @@ def generate_project_pdf_report(
 
     # Save to storage provider (Amazon S3 if enabled, local filesystem fallback)
     from app.services.storage.s3_adapter import storage_adapter
+    from app.core.monitoring import monitoring_adapter
     storage_url, provider_name, is_cloud = storage_adapter.save_report_file(file_path, filename)
+
+    monitoring_adapter.log_event(
+        "pdf_report_generated",
+        {
+            "project_id": project.id,
+            "filename": filename,
+            "file_size_bytes": file_size,
+            "storage_provider": provider_name,
+            "is_cloud_storage": is_cloud
+        }
+    )
 
     report_record = GeneratedReport(
         project_id=project.id,
@@ -483,5 +495,6 @@ def generate_project_pdf_report(
     db.add(report_record)
     db.commit()
     db.refresh(report_record)
+
 
     return report_record

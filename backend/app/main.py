@@ -17,6 +17,21 @@ Base.metadata.create_all(bind=engine)
 async def lifespan(app: FastAPI):
     # Startup: Database verified ready
     logger.info("Initializing RoofShift AI database...")
+    try:
+        from app.core.param_store import param_store_adapter
+        from app.core.monitoring import monitoring_adapter
+        env_val = param_store_adapter.get_parameter("/roofshift/environment", default_value=settings.APP_ENV)
+        monitoring_adapter.log_event(
+            "service_startup",
+            {
+                "version": settings.VERSION,
+                "environment": env_val,
+                "aws_region": settings.AWS_REGION,
+                "service": "roofshift-ai"
+            }
+        )
+    except Exception as e:
+        logger.warning(f"Startup AWS telemetry notice: {e}")
     yield
 
 from app.core.security_middleware import (
