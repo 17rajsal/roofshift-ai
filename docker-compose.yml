@@ -12,6 +12,14 @@ services:
       - REPORTS_DIR=/app/generated_reports
       - UPLOADS_DIR=/data/uploaded_demand
       - NASA_POWER_BASE_URL=https://power.larc.nasa.gov/api/temporal/climatology/point
+      - APP_ENV=production
+      - ENVIRONMENT=production
+      - AWS_ENABLED=true
+      - AWS_REGION=ap-southeast-2
+      - STORAGE_PROVIDER=s3
+      - S3_BUCKET_NAME=roofshift-reports-191611156592-syd
+      - MONITORING_PROVIDER=cloudwatch
+      - CLOUDWATCH_LOG_GROUP=/roofshift/backend
     volumes:
       - backend_data:/data
       - reports_data:/app/generated_reports
