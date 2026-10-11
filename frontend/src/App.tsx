@@ -84,66 +84,39 @@ function ApplicationShell() {
             </div>
           )}
 
-          {loading && !activeProject ? (
-            <div className="flex items-center justify-center p-12">
-              <div className="glass-panel p-6 rounded-2xl flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-[#FF6B16] border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm font-semibold text-[#0B1739]">
-                  Loading clean energy portfolio workspace…
-                </span>
-              </div>
-            </div>
-          ) : !activeProject ? (
-            <div className="glass-elevated p-8 text-center max-w-md mx-auto my-12 rounded-3xl shadow-xl border border-white/80">
-              <div className="w-12 h-12 rounded-2xl bg-orange-500/15 text-[#FF6B16] flex items-center justify-center mx-auto mb-4">
-                <SlidersHorizontal className="w-6 h-6" />
-              </div>
-              <h2 className="text-lg font-bold text-[#0B1739]">Portfolio Not Found</h2>
-              <p className="my-2.5 text-xs text-[#61708A] leading-relaxed">
-                Create a commercial rooftop solar planning portfolio to map buildings and optimize clean energy Capex allocations.
-              </p>
-              <button
-                onClick={() => setIsNewProjectModalOpen(true)}
-                className="glass-button-primary px-5 py-2.5 text-xs cursor-pointer shadow-md"
-              >
-                Create Solar Portfolio
-              </button>
-            </div>
-          ) : (
-            <Suspense
-              fallback={
-                <div className="flex items-center justify-center p-12">
-                  <div className="glass-panel p-6 rounded-2xl flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-[#FF6B16] border-t-transparent rounded-full animate-spin" />
-                    <span className="text-sm font-semibold text-[#0B1739]">
-                      Loading engineering workspace…
-                    </span>
-                  </div>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center p-12">
+                <div className="glass-panel p-6 rounded-2xl flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-[#FF6B16] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm font-semibold text-[#0B1739]">
+                    Loading solar intelligence workspace…
+                  </span>
                 </div>
-              }
-            >
-              <Routes key={activeProject.id}>
-                {/* V8 Simplified 4-Section SaaS Workspace */}
-                <Route path="/workspace" element={<WorkspaceHub />} />
-                <Route path="/workspace/explore" element={<ExploreAnalyzeSection />} />
-                <Route path="/workspace/plan" element={<PlanOptimizeSection />} />
-                <Route path="/workspace/monitor" element={<MonitorMaintainSection />} />
-                <Route path="/workspace/insights" element={<InsightsReportsSection />} />
+              </div>
+            }
+          >
+            <Routes key={activeProject?.id || 'global-workspace'}>
+              {/* Primary 4-Section Unified SaaS Workspace */}
+              <Route path="/workspace" element={<WorkspaceHub />} />
+              <Route path="/workspace/explore" element={<ExploreAnalyzeSection />} />
+              <Route path="/workspace/plan" element={<PlanOptimizeSection />} />
+              <Route path="/workspace/monitor" element={<MonitorMaintainSection />} />
+              <Route path="/workspace/insights" element={<InsightsReportsSection />} />
 
-                {/* Direct feature views maintained for seamless backward compatibility */}
-                <Route path="/map" element={<SolarMapPage />} />
-                <Route path="/buildings" element={<BuildingsPage />} />
-                <Route path="/optimize" element={<OptimizerPage />} />
-                <Route path="/insights" element={<EnergyInsightsPage />} />
-                <Route path="/scheduling" element={<SchedulingPage />} />
-                <Route path="/recommendations" element={<RecommendationsPage />} />
-                <Route path="/solar-features" element={<SolarFeaturesPage />} />
-                <Route path="/operations" element={<OperationsPage />} />
-                <Route path="/reports" element={<ReportPage />} />
-                <Route path="*" element={<Navigate to="/workspace" replace />} />
-              </Routes>
-            </Suspense>
-          )}
+              {/* Direct feature views maintained for seamless backward compatibility */}
+              <Route path="/map" element={<SolarMapPage />} />
+              <Route path="/buildings" element={<BuildingsPage />} />
+              <Route path="/optimize" element={<OptimizerPage />} />
+              <Route path="/insights" element={<EnergyInsightsPage />} />
+              <Route path="/scheduling" element={<SchedulingPage />} />
+              <Route path="/recommendations" element={<RecommendationsPage />} />
+              <Route path="/solar-features" element={<SolarFeaturesPage />} />
+              <Route path="/operations" element={<OperationsPage />} />
+              <Route path="/reports" element={<ReportPage />} />
+              <Route path="*" element={<Navigate to="/workspace" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
 

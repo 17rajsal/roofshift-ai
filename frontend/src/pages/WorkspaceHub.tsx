@@ -34,8 +34,16 @@ import {
 } from 'lucide-react';
 import { useProject } from '../context/ProjectContext';
 import { api } from '../services/api';
-import { Building as BuildingModel, IndiaSolarRegion, IndiaNationalSolarSummary, OsmBuildingItem } from '../types/models';
-import { formatINR, formatNumber, formatArea } from '../utils/formatters';
+import {
+  Building as BuildingModel,
+  IndiaSolarRegion,
+  IndiaNationalSolarSummary,
+  OsmBuildingItem,
+  EnvironmentalProfileResponse,
+  OsmBuildingsResponse,
+  OpenAreaScreeningResponse
+} from '../types/models';
+import { formatINR, formatNumber, formatArea, formatCO2 } from '../utils/formatters';
 import { BulkImportModal } from '../components/buildings/BulkImportModal';
 import { NewProjectModal } from '../components/layout/NewProjectModal';
 import { IndiaSolarMap } from '../components/map/IndiaSolarMap';
@@ -43,7 +51,14 @@ import { IndiaSolarMap } from '../components/map/IndiaSolarMap';
 export const WorkspaceHub: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { activeProject, projects, setActiveProject, refreshProjects, loadDemoProject } = useProject();
+  const {
+    activeProject,
+    projects,
+    setActiveProject,
+    refreshProjects,
+    loadDemoProject,
+    createProject
+  } = useProject();
 
   // Mode: 'india_map' (default flagship) vs 'site_planner' (portfolio/building level)
   const modeParam = searchParams.get('mode');
@@ -79,6 +94,205 @@ export const WorkspaceHub: React.FC = () => {
   const [recalculating, setRecalculating] = useState(false);
   const [recalculateMessage, setRecalculateMessage] = useState<string | null>(null);
   const [nationalSummary, setNationalSummary] = useState<IndiaNationalSolarSummary | null>(null);
+
+  const SUGGESTED_LOCATIONS = [
+    { name: 'Delhi', state: 'NCT', lat: 28.6139, lng: 77.2090 },
+    { name: 'Jaipur', state: 'Rajasthan', lat: 26.9124, lng: 75.7873 },
+    { name: 'Mumbai', state: 'Maharashtra', lat: 19.0760, lng: 72.8777 },
+    { name: 'Bengaluru', state: 'Karnataka', lat: 12.9716, lng: 77.5946 },
+    { name: 'Chennai', state: 'Tamil Nadu', lat: 13.0827, lng: 80.2707 },
+    { name: 'Leh', state: 'Ladakh', lat: 34.1526, lng: 77.5771 },
+  ];
+
+  const [selectedLocation, setSelectedLocation] = useState<{
+    city: string;
+    lat: number;
+    lng: number;
+    profile?: EnvironmentalProfileResponse | null;
+    osm?: OsmBuildingsResponse | null;
+    screening?: OpenAreaScreeningResponse | null;
+    loading: boolean;
+    error?: string | null;
+  } | null>(null);
+  const [searchLocationQuery, setSearchLocationQuery] = useState('');
+  const [searchingLocation, setSearchingLocation] = useState(false);
+  const [isAnalyzingLocation, setIsAnalyzingLocation] = useState(false);
+
+  const fetchLocationData = async (cityName: string, lat: number, lng: number) => {
+    setSelectedLocation({
+      city: cityName,
+      lat,
+      lng,
+      loading: true,
+    });
+
+    try {
+      const [profileRes, osmRes, screeningRes] = await Promise.all([
+        api.getEnvironmentalProfile(lat, lng),
+        api.getOsmBuildings(lat, lng, 300).catch(() => null),
+        api.getOpenAreaScreening(lat, lng).catch(() => null),
+      ]);
+
+      setSelectedLocation({
+        city: cityName || profileRes?.nearest_region?.name || 'Selected Location',
+        lat,
+        lng,
+        profile: profileRes,
+        osm: osmRes,
+        screening: screeningRes,
+        loading: false,
+      });
+    } catch (err: any) {
+      setSelectedLocation({
+        city: cityName,
+        lat,
+        lng,
+        loading: false,
+        error: err.message || 'Failed to retrieve environmental data for this location.',
+      });
+    }
+  };
+
+  const handleSearchLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchLocationQuery.trim()) return;
+    try {
+      setSearchingLocation(true);
+      const results = await api.searchLocation(searchLocationQuery.trim());
+      if (results && results.length > 0) {
+        const top = results[0];
+        const cityName = top.display_name.split(',')[0].trim();
+        await fetchLocationData(cityName, top.lat, top.lon);
+      }
+    } catch (err) {
+      console.warn('Geocoding search failed:', err);
+    } finally {
+      setSearchingLocation(false);
+    }
+  };
+
+  const handleSelectSuggestion = (city: string, lat: number, lng: number) => {
+    setSearchLocationQuery(city);
+    fetchLocationData(city, lat, lng);
+  };
+
+  const handleMapCoordinateClick = (coord: { lat: number; lng: number }) => {
+    fetchLocationData(`Coordinates (${coord.lat.toFixed(2)}, ${coord.lng.toFixed(2)})`, coord.lat, coord.lng);
+  };
+
+  const handleMapRegionClick = (reg: IndiaSolarRegion) => {
+    fetchLocationData(reg.name, reg.coordinates.lat, reg.coordinates.lng);
+  };
+
+  const handleAnalyzeLocation = async () => {
+    if (!selectedLocation || !selectedLocation.profile) return;
+    try {
+      setIsAnalyzingLocation(true);
+      const created = await createProject({
+        name: `${selectedLocation.city} Solar Project`,
+        organization_name: `${selectedLocation.city} Clean Energy Campus`,
+        city: selectedLocation.city,
+        latitude: selectedLocation.lat,
+        longitude: selectedLocation.lng,
+        budget: 1500000,
+        tariff_rate: 8.5,
+        export_tariff: 3.5,
+        co2_factor: 0.716,
+      });
+
+      if (selectedLocation.osm?.buildings && selectedLocation.osm.buildings.length > 0) {
+        for (const b of selectedLocation.osm.buildings.slice(0, 25)) {
+          try {
+            await api.createBuilding(created.id, {
+              name: b.name || `Building ${b.id}`,
+              category: b.category || 'Commercial',
+              latitude: b.latitude,
+              longitude: b.longitude,
+              gross_roof_area: b.gross_roof_area,
+              usable_roof_percentage: Math.round((b.usable_roof_area / b.gross_roof_area) * 100),
+              monthly_consumption_kwh: Math.round((b.annual_generation_kwh / 12) * 1.2),
+              daytime_consumption_pct: 65,
+              shading_category: 'Minimal',
+              cost_per_kwp: 48000,
+              roof_polygon: b.polygon_coordinates,
+            });
+          } catch (e) {
+            console.warn('Failed to add building to project:', e);
+          }
+        }
+      }
+
+      setActiveProject(created);
+      navigate('/workspace/explore');
+    } catch (err: any) {
+      console.error('Failed to analyze location:', err);
+    } finally {
+      setIsAnalyzingLocation(false);
+    }
+  };
+
+  const calculatedLocationMetrics = useMemo(() => {
+    if (!selectedLocation?.profile) return null;
+    const prof = selectedLocation.profile;
+    const osm = selectedLocation.osm;
+    const screening = selectedLocation.screening;
+
+    const ghi = prof.solar_irradiance.ghi_daily_kwh;
+    const dni = prof.solar_irradiance.dni_daily_kwh;
+    const dhi = prof.solar_irradiance.dhi_daily_kwh;
+    const yieldKwh = prof.solar_irradiance.annual_yield_kwh_per_kwp;
+    const prPct = (prof.solar_irradiance.performance_ratio * 100).toFixed(1);
+
+    const temp = prof.meteorological_conditions.ambient_temperature_celsius;
+    const wind = prof.meteorological_conditions.wind_speed_ms;
+    const cloud = prof.meteorological_conditions.cloud_cover_pct;
+    const coolingGain = (wind * 0.3).toFixed(1);
+    const thermalDerate = ((1 - prof.solar_irradiance.thermal_derate_factor) * 100).toFixed(1);
+
+    const buildingsCount = osm?.building_count ?? 0;
+    const usableRoofArea = osm?.buildings
+      ? osm.buildings.reduce((sum, b) => sum + (b.usable_roof_area || 0), 0)
+      : 0;
+
+    const estimatedArrayKwp = usableRoofArea > 0 ? Math.max(25, Math.round(usableRoofArea / 8.5)) : 50;
+    const annualGenKwh = Math.round(estimatedArrayKwp * yieldKwh);
+    const commercialTariffInr = 8.5;
+    const annualSavingsInr = Math.round(annualGenKwh * commercialTariffInr);
+    const estCapexInr = estimatedArrayKwp * 48000;
+    const paybackYears = (estCapexInr / (annualSavingsInr || 1)).toFixed(1);
+    const co2AvoidedKg = Math.round(annualGenKwh * 0.716);
+
+    const slopePct = screening?.screening_metrics?.estimated_terrain_slope_pct ?? 1.8;
+    const slopeClass = screening?.screening_metrics?.slope_suitability ?? 'Optimal';
+    const landClass = screening?.screening_metrics?.indicative_land_class ?? 'Flat / Industrial Plain';
+
+    const evidenceSummary = `${selectedLocation.city} exhibits ${ghi >= 5.5 ? 'superior' : 'strong'} solar potential with ${ghi} kWh/m²/day daily irradiance and estimated specific yield of ${yieldKwh} kWh/kWp/yr. Ambient temperatures of ${temp}°C combined with ${wind} m/s wind provide +${coolingGain}% convective cooling, while ${cloud}% cloud cover minimizes seasonal loss. ${buildingsCount > 0 ? `${buildingsCount} building footprints mapped in OSM (${formatArea(usableRoofArea)} usable area) offer immediate rooftop array deployment.` : 'Terrain screening indicates flat slope favorable for ground or industrial rooftop arrays.'}`;
+
+    return {
+      ghi,
+      dni,
+      dhi,
+      yieldKwh,
+      prPct,
+      temp,
+      wind,
+      cloud,
+      coolingGain,
+      thermalDerate,
+      buildingsCount,
+      usableRoofArea,
+      estimatedArrayKwp,
+      annualGenKwh,
+      annualSavingsInr,
+      estCapexInr,
+      paybackYears,
+      co2AvoidedKg,
+      slopePct,
+      slopeClass,
+      landClass,
+      evidenceSummary,
+    };
+  }, [selectedLocation]);
 
   // Fetch National India Solar Summary for real-time dynamic dashboard telemetry
   useEffect(() => {
@@ -221,7 +435,7 @@ export const WorkspaceHub: React.FC = () => {
             <div className="flex items-center gap-2 mb-2">
               <span className="text-[11px] font-extrabold tracking-wider uppercase text-[#FF6B16] bg-orange-500/10 border border-orange-500/20 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
                 <Globe className="w-3 h-3 text-[#FF6B16]" />
-                India Solar Intelligence v8.2
+                India Solar Intelligence
               </span>
               <span className="text-xs text-slate-400 font-medium">•</span>
               <span className="text-xs text-slate-500 font-semibold flex items-center gap-1">
@@ -234,13 +448,13 @@ export const WorkspaceHub: React.FC = () => {
 
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F172A] tracking-tight">
               {workspaceMode === 'india_map'
-                ? 'India Solar Intelligence Workspace'
+                ? "Explore India's Solar Potential"
                 : 'Site & Portfolio Solar Planner'}
             </h1>
 
             <p className="mt-1.5 text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
               {workspaceMode === 'india_map'
-                ? 'AI-powered nationwide solar opportunity mapping, environmental intelligence, and investment suitability across all 36 Indian States and Union Territories.'
+                ? 'Analyze real locations using solar resource data, environmental conditions and intelligent energy planning tools.'
                 : 'Design, optimize, and monitor commercial rooftop solar portfolios at any scale — from single campuses to 500+ building industrial parks.'}
             </p>
           </div>
@@ -280,10 +494,10 @@ export const WorkspaceHub: React.FC = () => {
                 <button
                   onClick={handleOpenSampleCampusDemo}
                   className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-[#0F172A] border border-slate-200 text-xs font-bold shadow-xs transition-all cursor-pointer"
-                  title="Inspect 5-building BITS Pilani sample portfolio"
+                  title="Inspect 5-building sample campus reference portfolio"
                 >
                   <School className="w-3.5 h-3.5 text-[#FF6B16]" />
-                  <span>Sample Campus Demo</span>
+                  <span>Explore Sample Portfolio (Optional Demo)</span>
                 </button>
 
                 <button
@@ -337,7 +551,294 @@ export const WorkspaceHub: React.FC = () => {
       {/* 2. MODE A: INDIA SOLAR INTELLIGENCE (Flagship Default) */}
       {workspaceMode === 'india_map' ? (
         <div className="space-y-6 animate-in fade-in duration-300">
-          {/* 4 National Summary Metric Cards */}
+          {/* A. PROMINENT SEARCH BAR & NEUTRAL SUGGESTIONS */}
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <div>
+                <h2 className="text-base sm:text-lg font-extrabold text-[#0F172A] flex items-center gap-2">
+                  <Search className="w-5 h-5 text-[#FF6B16]" />
+                  <span>Analyze Any Location in India</span>
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Search a city, address, landmark, or coordinates to retrieve real-time satellite climatology and rooftop footprints.
+                </p>
+              </div>
+              <div className="text-[11px] text-slate-500 font-semibold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>NASA POWER 20-Yr & OpenStreetMap Active</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSearchLocation} className="relative flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchLocationQuery}
+                  onChange={(e) => setSearchLocationQuery(e.target.value)}
+                  placeholder="Search a city, address, landmark or coordinates... (e.g. Jaipur, Connaught Place, 26.91, 75.78)"
+                  className="w-full pl-11 pr-24 py-3 text-xs sm:text-sm rounded-2xl bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200/80 focus:border-[#FF6B16] text-[#0F172A] placeholder:text-slate-400 focus:outline-hidden transition-all shadow-2xs"
+                />
+                {searchLocationQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchLocationQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={searchingLocation}
+                className="px-5 py-3 rounded-2xl bg-[#FF6B16] hover:bg-[#EA580C] text-white font-bold text-xs sm:text-sm shadow-md shadow-orange-500/20 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
+              >
+                {searchingLocation ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                <span>{searchingLocation ? 'Searching…' : 'Inspect'}</span>
+              </button>
+            </form>
+
+            {/* Neutral Suggestion Chips */}
+            <div className="flex items-center gap-2 flex-wrap pt-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Quick Suggestions:</span>
+              {SUGGESTED_LOCATIONS.map((loc) => (
+                <button
+                  key={loc.name}
+                  type="button"
+                  onClick={() => handleSelectSuggestion(loc.name, loc.lat, loc.lng)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    selectedLocation?.city === loc.name
+                      ? 'bg-orange-500/15 border-orange-500/40 text-[#FF6B16] font-bold shadow-xs'
+                      : 'bg-slate-100/90 hover:bg-orange-50 hover:border-orange-300 hover:text-[#FF6B16] border-slate-200/80 text-slate-700'
+                  }`}
+                >
+                  <MapPin className="w-3 h-3 text-[#FF6B16]" />
+                  <span>{loc.name}</span>
+                  <span className="text-[10px] text-slate-400">({loc.state})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* B. SELECTED LOCATION INTELLIGENCE OR WELCOME GUIDANCE */}
+          {selectedLocation ? (
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-6 shadow-md space-y-5 animate-in fade-in duration-200">
+              {/* Location Title Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-orange-500/10 text-[#FF6B16] border border-orange-500/20">
+                      Active Location
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono">
+                      {selectedLocation.lat.toFixed(4)}° N, {selectedLocation.lng.toFixed(4)}° E
+                    </span>
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-[#0F172A] tracking-tight flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-[#FF6B16]" />
+                    <span>{selectedLocation.city}</span>
+                  </h3>
+                </div>
+
+                <button
+                  onClick={() => setSelectedLocation(null)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-all cursor-pointer w-fit"
+                >
+                  Clear Selection
+                </button>
+              </div>
+
+              {selectedLocation.loading ? (
+                <div className="py-12 flex flex-col items-center justify-center text-center space-y-3">
+                  <div className="w-8 h-8 rounded-full border-3 border-orange-500/30 border-t-[#FF6B16] animate-spin" />
+                  <p className="text-xs font-bold text-slate-700">Connecting to NASA POWER Climatology & OpenStreetMap Overpass…</p>
+                  <p className="text-[11px] text-slate-400">Retrieving solar radiation grids, meteorological telemetry, and building footprints</p>
+                </div>
+              ) : selectedLocation.error ? (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-1">
+                  <div className="font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600" />
+                    <span>Could not retrieve complete satellite telemetry</span>
+                  </div>
+                  <p>{selectedLocation.error}</p>
+                </div>
+              ) : calculatedLocationMetrics ? (
+                <>
+                  {/* 4 PRIMARY RESULT CARDS */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                    {/* Card 1: Solar Resource */}
+                    <div className="p-4 rounded-2xl bg-slate-50/90 border border-slate-200/80 shadow-2xs hover:shadow-sm transition-all">
+                      <div className="flex items-center justify-between text-slate-400 mb-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                          1. Solar Resource
+                        </span>
+                        <div className="w-7 h-7 rounded-xl bg-orange-500/10 text-[#FF6B16] flex items-center justify-center">
+                          <SunMedium className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="text-2xl font-extrabold text-[#0F172A]">
+                        {calculatedLocationMetrics.ghi} <span className="text-xs font-semibold text-slate-500">kWh/m²/day</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-600 space-y-0.5">
+                        <div>DNI: {calculatedLocationMetrics.dni} • DHI: {calculatedLocationMetrics.dhi}</div>
+                        <div className="font-semibold text-emerald-700">Specific Yield: ~{calculatedLocationMetrics.yieldKwh} kWh/kWp/yr</div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-200/60 text-[10px] text-slate-400 font-medium">
+                        NASA POWER 20-Yr Baseline (PR {calculatedLocationMetrics.prPct}%)
+                      </div>
+                    </div>
+
+                    {/* Card 2: Weather Impact */}
+                    <div className="p-4 rounded-2xl bg-slate-50/90 border border-slate-200/80 shadow-2xs hover:shadow-sm transition-all">
+                      <div className="flex items-center justify-between text-slate-400 mb-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                          2. Weather Impact
+                        </span>
+                        <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center">
+                          <Thermometer className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="text-2xl font-extrabold text-[#0F172A]">
+                        {calculatedLocationMetrics.temp}°C <span className="text-xs font-semibold text-slate-500">ambient</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-600 space-y-0.5">
+                        <div>Wind: {calculatedLocationMetrics.wind} m/s (+{calculatedLocationMetrics.coolingGain}% cooling)</div>
+                        <div>Cloud Cover: {calculatedLocationMetrics.cloud}%</div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-200/60 text-[10px] text-slate-400 font-medium">
+                        Open-Meteo & IMD Climatological Normal
+                      </div>
+                    </div>
+
+                    {/* Card 3: Site Opportunity */}
+                    <div className="p-4 rounded-2xl bg-slate-50/90 border border-slate-200/80 shadow-2xs hover:shadow-sm transition-all">
+                      <div className="flex items-center justify-between text-slate-400 mb-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                          3. Site Opportunity
+                        </span>
+                        <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                          <Building2 className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="text-2xl font-extrabold text-[#0F172A]">
+                        {calculatedLocationMetrics.buildingsCount} <span className="text-xs font-semibold text-slate-500">mapped roofs</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-600 space-y-0.5">
+                        <div>Usable Roof: {calculatedLocationMetrics.usableRoofArea > 0 ? formatArea(calculatedLocationMetrics.usableRoofArea) : 'Survey needed'}</div>
+                        <div>Terrain Slope: {calculatedLocationMetrics.slopePct}% ({calculatedLocationMetrics.slopeClass})</div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-200/60 text-[10px] text-slate-400 font-medium">
+                        OpenStreetMap & SRTM Topography
+                      </div>
+                    </div>
+
+                    {/* Card 4: Potential Generation */}
+                    <div className="p-4 rounded-2xl bg-slate-50/90 border border-slate-200/80 shadow-2xs hover:shadow-sm transition-all">
+                      <div className="flex items-center justify-between text-slate-400 mb-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                          4. Potential Generation
+                        </span>
+                        <div className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                          <Zap className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <div className="text-2xl font-extrabold text-emerald-600">
+                        {formatNumber(calculatedLocationMetrics.annualGenKwh)} <span className="text-xs font-semibold text-slate-500">kWh/yr</span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-600 space-y-0.5">
+                        <div className="font-bold text-slate-900">{formatINR(calculatedLocationMetrics.annualSavingsInr)} / yr savings</div>
+                        <div>Est. Payback: ~{calculatedLocationMetrics.paybackYears} Years (at {calculatedLocationMetrics.estimatedArrayKwp} kWp)</div>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-slate-200/60 text-[10px] text-slate-400 font-medium">
+                        CEA Factor • Avoids {formatCO2(calculatedLocationMetrics.co2AvoidedKg)} CO₂
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PLAIN-ENGLISH EVIDENCE SUMMARY */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-orange-50/80 via-white to-amber-50/70 border border-orange-200/80 flex items-start gap-3.5">
+                    <div className="p-2 rounded-xl bg-orange-500/10 text-[#FF6B16] shrink-0 mt-0.5">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-1">
+                        Why this area may be suitable
+                      </div>
+                      <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                        {calculatedLocationMetrics.evidenceSummary}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* MAIN CTA ACTION BAR */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <button
+                        onClick={handleAnalyzeLocation}
+                        disabled={isAnalyzingLocation}
+                        className="px-6 py-3 rounded-2xl bg-[#FF6B16] hover:bg-[#EA580C] text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-orange-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {isAnalyzingLocation ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4" />
+                        )}
+                        <span>{isAnalyzingLocation ? 'Ingesting Location to Workspace…' : 'Analyze This Location →'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          handleStartProjectAtCoordinate({
+                            city: selectedLocation.city,
+                            lat: selectedLocation.lat,
+                            lng: selectedLocation.lng,
+                            mappedBuildings: selectedLocation.osm?.buildings
+                          });
+                        }}
+                        className="px-4 py-3 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold text-xs shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                      >
+                        <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Custom Project Settings</span>
+                      </button>
+                    </div>
+
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      One-click: Ingests {calculatedLocationMetrics.buildingsCount} mapped roofs into your active portfolio
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <div className="p-5 rounded-3xl bg-slate-50/90 border border-slate-200/80 flex items-center gap-3 text-xs text-slate-600">
+              <div className="p-2.5 rounded-2xl bg-white text-[#FF6B16] border border-slate-200/80 shrink-0 shadow-2xs">
+                <SunMedium className="w-5 h-5" />
+              </div>
+              <div className="flex-1">
+                <div className="font-extrabold text-slate-800 text-sm">
+                  Ready to analyze solar feasibility
+                </div>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  Select any location on the map, choose a city above, or enter coordinates to inspect real-time solar irradiance, weather conditions, rooftop density, and generation potential.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* C. FLAGSHIP COMPONENT: The Interactive India Solar Map */}
+          <div>
+            <IndiaSolarMap
+              selectedCoordinate={selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lng } : null}
+              onSelectCoordinate={handleMapCoordinateClick}
+              onSelectRegion={handleMapRegionClick}
+              onDrillDownToSite={handleDrillDownFromIndiaMap}
+              onOpenSampleCampus={handleOpenSampleCampusDemo}
+              onStartProjectAtCoordinate={handleStartProjectAtCoordinate}
+            />
+          </div>
+
+          {/* D. 4 National Summary Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             <div className="bg-white/85 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
               <div className="flex items-center justify-between text-slate-400 mb-2">
@@ -411,16 +912,7 @@ export const WorkspaceHub: React.FC = () => {
             </div>
           </div>
 
-          {/* FLAGSHIP COMPONENT: The Interactive India Solar Map */}
-          <div>
-            <IndiaSolarMap
-              onDrillDownToSite={handleDrillDownFromIndiaMap}
-              onOpenSampleCampus={handleOpenSampleCampusDemo}
-              onStartProjectAtCoordinate={handleStartProjectAtCoordinate}
-            />
-          </div>
-
-          {/* Featured High-Opportunity Solar Corridors Grid */}
+          {/* E. Featured High-Opportunity Solar Corridors Grid */}
           <div className="bg-white/85 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
@@ -434,13 +926,13 @@ export const WorkspaceHub: React.FC = () => {
               </div>
 
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                Click map marker to inspect full profile
+                Click corridor to inspect real profile
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               <div
-                onClick={() => setSearchQuery('Rajasthan')}
+                onClick={() => handleSelectSuggestion('Jaipur', 26.9124, 75.7873)}
                 className="p-3.5 rounded-2xl bg-slate-50 hover:bg-orange-50/60 border border-slate-200/80 hover:border-orange-300 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -456,7 +948,7 @@ export const WorkspaceHub: React.FC = () => {
               </div>
 
               <div
-                onClick={() => setSearchQuery('Gujarat')}
+                onClick={() => handleSelectSuggestion('Ahmedabad', 23.0225, 72.5714)}
                 className="p-3.5 rounded-2xl bg-slate-50 hover:bg-orange-50/60 border border-slate-200/80 hover:border-orange-300 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -472,7 +964,7 @@ export const WorkspaceHub: React.FC = () => {
               </div>
 
               <div
-                onClick={() => setSearchQuery('Ladakh')}
+                onClick={() => handleSelectSuggestion('Leh', 34.1526, 77.5771)}
                 className="p-3.5 rounded-2xl bg-slate-50 hover:bg-orange-50/60 border border-slate-200/80 hover:border-orange-300 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -488,7 +980,7 @@ export const WorkspaceHub: React.FC = () => {
               </div>
 
               <div
-                onClick={() => setSearchQuery('Karnataka')}
+                onClick={() => handleSelectSuggestion('Bengaluru', 12.9716, 77.5946)}
                 className="p-3.5 rounded-2xl bg-slate-50 hover:bg-orange-50/60 border border-slate-200/80 hover:border-orange-300 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -504,7 +996,7 @@ export const WorkspaceHub: React.FC = () => {
               </div>
 
               <div
-                onClick={() => setSearchQuery('Maharashtra')}
+                onClick={() => handleSelectSuggestion('Mumbai', 19.0760, 72.8777)}
                 className="p-3.5 rounded-2xl bg-slate-50 hover:bg-orange-50/60 border border-slate-200/80 hover:border-orange-300 transition-all cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-1.5">
@@ -515,11 +1007,13 @@ export const WorkspaceHub: React.FC = () => {
                 </div>
                 <div className="text-xs font-semibold text-slate-700">National C&I Epicenter</div>
                 <div className="text-[11px] text-slate-500 mt-1">
-                  5.25 kWh/m²/d • 58 GWp Rooftop Potential
+                  5.25 kWh/m²/d • Major Industrial Power Corridor
                 </div>
               </div>
             </div>
           </div>
+
+
 
           {/* Educational Multi-Scale Roadmap & Sample Demo Banner */}
           <div className="bg-gradient-to-r from-orange-50/90 via-amber-50/80 to-blue-50/80 border border-orange-200/80 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">

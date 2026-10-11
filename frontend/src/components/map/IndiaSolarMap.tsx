@@ -94,6 +94,9 @@ interface IndiaSolarMapProps {
     lng: number;
     mappedBuildings?: OsmBuildingItem[];
   }) => void;
+  selectedCoordinate?: { lat: number; lng: number } | null;
+  onSelectCoordinate?: (coord: { lat: number; lng: number }) => void;
+  onSelectRegion?: (region: IndiaSolarRegion) => void;
   className?: string;
 }
 
@@ -101,6 +104,9 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
   onDrillDownToSite,
   onOpenSampleCampus,
   onStartProjectAtCoordinate,
+  selectedCoordinate,
+  onSelectCoordinate,
+  onSelectRegion,
   className = '',
 }) => {
   const [regions, setRegions] = useState<IndiaSolarRegion[]>([]);
@@ -114,6 +120,14 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
   const [isProvenanceModalOpen, setIsProvenanceModalOpen] = useState(false);
   const [resetViewCount, setResetViewCount] = useState(0);
 
+  // Sync external selected coordinate when provided
+  useEffect(() => {
+    if (selectedCoordinate) {
+      setClickedCoord(selectedCoordinate);
+      setSelectedRegion(null);
+    }
+  }, [selectedCoordinate]);
+
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -123,6 +137,9 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
         const top = results[0];
         setClickedCoord({ lat: top.lat, lng: top.lon });
         setSelectedRegion(null);
+        if (onSelectCoordinate) {
+          onSelectCoordinate({ lat: top.lat, lng: top.lon });
+        }
       }
     } catch (err) {
       console.warn('Geocoding search failed:', err);
@@ -143,11 +160,6 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
         if (!cancelled) {
           setRegions(regionsData);
           setSummary(summaryData);
-          // Default selection to Rajasthan (highest solar corridor) if none selected
-          if (!selectedRegion && regionsData.length > 0) {
-            const defaultReg = regionsData.find((r) => r.id === 'rajasthan') || regionsData[0];
-            setSelectedRegion(defaultReg);
-          }
         }
       } catch (err) {
         console.error('Failed to load India solar regions:', err);
@@ -492,6 +504,7 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
             onMapClick={(lat, lng) => {
               setClickedCoord({ lat, lng });
               setSelectedRegion(null);
+              if (onSelectCoordinate) onSelectCoordinate({ lat, lng });
             }}
           />
 
@@ -527,6 +540,7 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
                     L.DomEvent.stopPropagation(e as any);
                     setSelectedRegion(region);
                     setClickedCoord(null);
+                    if (onSelectRegion) onSelectRegion(region);
                   },
                 }}
               >

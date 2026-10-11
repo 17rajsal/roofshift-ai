@@ -51,21 +51,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
   const navigationSections: NavSection[] = [
     {
-      title: 'Solar Intelligence',
+      title: 'Solar Intelligence Platform',
       items: [
         {
-          name: 'India Solar Map',
-          path: '/workspace?mode=india',
+          name: 'Explore India Map',
+          path: '/workspace',
           icon: Globe,
           badge: 'National',
           badgeVariant: 'orange'
-        },
-        {
-          name: 'Workspace Hub',
-          path: '/workspace',
-          icon: LayoutDashboard,
-          badge: 'Overview',
-          badgeVariant: 'neutral'
         },
         {
           name: 'Explore & Analyze',
@@ -98,37 +91,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       ]
     },
     {
-      title: 'Direct Tools',
+      title: 'Intelligence Suite & Portal',
       items: [
-        {
-          name: 'Rooftop Map',
-          path: '/map',
-          icon: Compass
-        },
-        {
-          name: 'Building Catalog',
-          path: '/buildings',
-          icon: Building
-        },
-        {
-          name: 'Budget Optimizer',
-          path: '/optimize',
-          icon: SlidersHorizontal
-        },
         {
           name: '12-Feature Suite',
           path: '/solar-features',
           icon: SunMedium,
-          badge: '12 Features',
+          badge: 'All Tools',
           badgeVariant: 'orange'
-        }
-      ]
-    },
-    {
-      title: 'Public Portal',
-      items: [
+        },
         {
-          name: 'Landing Home',
+          name: 'Public Landing Home',
           path: '/',
           icon: ExternalLink
         }
@@ -191,8 +164,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
             Active Portfolio
           </span>
           {activeProject?.is_demo === 'true' && (
-            <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-500/15 px-1.5 py-0.5 rounded-md">
-              Live Demo
+            <span className="text-[9px] font-semibold text-amber-700 bg-amber-500/15 px-1.5 py-0.5 rounded-md">
+              Sample Campus
             </span>
           )}
         </div>
@@ -266,7 +239,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 }}
                 className="w-full text-left px-2.5 py-2 text-xs text-amber-700 hover:text-amber-800 flex items-center gap-2 hover:bg-amber-500/15 rounded-xl transition-colors font-semibold cursor-pointer"
               >
-                <RefreshCw className="w-4 h-4 text-amber-600" /> Reload Delhi Campus Demo
+                <RefreshCw className="w-4 h-4 text-amber-600" /> Explore Sample Portfolio (Optional Demo)
               </button>
             </div>
           </div>

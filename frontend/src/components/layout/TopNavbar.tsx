@@ -84,8 +84,8 @@ export const TopNavbar: React.FC<{ onOpenNavigation: () => void }> = ({ onOpenNa
             <h1 className="text-sm sm:text-base font-bold text-[#0B1739] tracking-tight truncate flex items-center gap-2">
               <span>{getPageTitle()}</span>
               {activeProject?.is_demo === 'true' && (
-                <span className="hidden lg:inline-flex text-[10px] font-bold bg-orange-500/10 text-[#FF6B16] border border-orange-500/25 px-2 py-0.5 rounded-full">
-                  Verified Delhi Campus
+                <span className="hidden lg:inline-flex text-[10px] font-bold bg-amber-500/10 text-amber-700 border border-amber-500/25 px-2 py-0.5 rounded-full">
+                  Sample Campus
                 </span>
               )}
             </h1>

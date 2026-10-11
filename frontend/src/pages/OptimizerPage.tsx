@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
-import { OptimizationRunResponse, BuildingAllocationItem } from '../types/models';
+import { OptimizationRunResponse, BuildingAllocationItem, Building as BuildingModel } from '../types/models';
 import { api } from '../services/api';
 import {
   formatINR,
@@ -28,7 +28,9 @@ import {
   Layers,
   ChevronRight,
   Info,
-  Scale
+  Scale,
+  Building2,
+  Check
 } from 'lucide-react';
 
 export const OptimizerPage: React.FC = () => {
@@ -40,16 +42,38 @@ export const OptimizerPage: React.FC = () => {
   const [scenarioName, setScenarioName] = useState<string>('Base Scenario');
   const [capacityStep, setCapacityStep] = useState<number>(0.5);
 
+  const [buildings, setBuildings] = useState<BuildingModel[]>([]);
+  const [selectedBuildingIds, setSelectedBuildingIds] = useState<string[]>([]);
   const [optimizationResult, setOptimizationResult] = useState<OptimizationRunResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  const BUDGET_PRESETS = [
+    { label: '₹5L', value: 500000 },
+    { label: '₹10L', value: 1000000 },
+    { label: '₹25L', value: 2500000 },
+    { label: '₹50L', value: 5000000 },
+    { label: '₹1Cr', value: 10000000 },
+  ];
+
   useEffect(() => {
     if (activeProject) {
       setBudget(activeProject.budget);
+      loadProjectBuildings();
       loadPreviousRuns();
     }
   }, [activeProject]);
+
+  const loadProjectBuildings = async () => {
+    if (!activeProject) return;
+    try {
+      const list = await api.getBuildings(activeProject.id, { limit: 100 });
+      setBuildings(list);
+      setSelectedBuildingIds(list.map((b) => b.id));
+    } catch (err) {
+      console.warn('Failed to load project buildings:', err);
+    }
+  };
 
   const loadPreviousRuns = async () => {
     if (!activeProject) return;
@@ -58,7 +82,6 @@ export const OptimizerPage: React.FC = () => {
       if (runs.length > 0) {
         setOptimizationResult(runs[0]);
       } else {
-        // Trigger initial run
         handleRunOptimization();
       }
     } catch (err) {
@@ -105,12 +128,12 @@ export const OptimizerPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-[#61708A] mt-1.5 leading-relaxed">
-            Solves discrete capacity allocations across institutional rooftops under strict capital budget constraints.
+            4-Step Capital Allocation: Select candidate roofs, configure budget, and compute optimal solar installations using exact decimal dynamic programming.
           </p>
         </div>
 
         <button
-          onClick={() => navigate('/insights')}
+          onClick={() => navigate('/workspace/insights')}
           className="glass-button-primary px-4 py-2.5 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-md"
         >
           <span>Continue to Energy Balance</span>
@@ -118,121 +141,210 @@ export const OptimizerPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Solver Controls Panel */}
-      <div className="glass-panel rounded-3xl p-6 shadow-xl space-y-6">
-        <div className="border-b border-white/40 pb-3 flex items-center justify-between">
-          <h3 className="text-xs font-bold text-[#0B1739] uppercase tracking-wider flex items-center gap-2">
-            <Sliders className="w-3.5 h-3.5 text-[#FF6B16]" />
-            <span>Optimization Parameters &amp; Constraints</span>
-          </h3>
-          <span className="text-[11px] text-[#61708A] font-medium">Deterministic Integer Solver</span>
+      {/* STEP 1: SELECT CANDIDATE BUILDINGS & ROOFTOPS */}
+      <div className="glass-panel rounded-3xl p-6 shadow-md space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/60 pb-3">
+          <div>
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B16] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full w-fit mb-1">
+              Step 1 of 4
+            </div>
+            <h3 className="text-sm font-extrabold text-[#0B1739] flex items-center gap-2">
+              <span>Select Candidate Buildings &amp; Rooftops</span>
+              <span className="text-xs bg-white/70 text-[#0B1739] font-semibold px-2 py-0.5 rounded-full border border-white/80">
+                {selectedBuildingIds.length} of {buildings.length} Selected
+              </span>
+            </h3>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              type="button"
+              onClick={() => setSelectedBuildingIds(buildings.map((b) => b.id))}
+              className="px-2.5 py-1 rounded-xl bg-white hover:bg-slate-100 text-[#0B1739] font-semibold border border-white/80 shadow-2xs cursor-pointer"
+            >
+              Select All
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedBuildingIds([])}
+              className="px-2.5 py-1 rounded-xl bg-white hover:bg-slate-100 text-slate-500 font-semibold border border-white/80 shadow-2xs cursor-pointer"
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Budget Input & Quick Presets */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-[#0B1739]">
-              Capital Budget (INR)
-            </label>
-            <div className="relative">
-              <span className="absolute left-3.5 top-2 text-xs font-bold text-[#61708A]">₹</span>
-              <input
-                type="number"
-                min="50000"
-                step="50000"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                className="w-full glass-input pl-8 pr-3 py-1.5 text-xs font-bold text-[#0B1739] rounded-xl focus:outline-none tabular-nums"
-              />
-            </div>
-            {/* Presets */}
-            <div className="flex flex-wrap gap-1 pt-1">
-              {[500000, 1000000, 1500000, 2500000].map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setBudget(preset)}
-                  className={`text-[10px] px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                    budget === preset
-                      ? 'bg-[#FF6B16] text-white shadow-xs'
-                      : 'glass-surface-secondary text-[#0B1739] hover:bg-white/80'
+        {buildings.length === 0 ? (
+          <div className="p-4 rounded-2xl bg-white/60 border border-white/80 text-xs text-[#61708A] text-center">
+            No buildings currently in this portfolio. You can add buildings via the Explorer map or Building Catalog.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-56 overflow-y-auto pr-1">
+            {buildings.map((b) => {
+              const isSelected = selectedBuildingIds.includes(b.id);
+              return (
+                <div
+                  key={b.id}
+                  onClick={() => {
+                    setSelectedBuildingIds((prev) =>
+                      prev.includes(b.id) ? prev.filter((id) => id !== b.id) : [...prev, b.id]
+                    );
+                  }}
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                    isSelected
+                      ? 'bg-white/90 border-orange-500/40 shadow-xs'
+                      : 'bg-white/40 border-white/70 opacity-60 hover:opacity-100'
                   }`}
                 >
-                  {formatINRShort(preset)}
-                </button>
-              ))}
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-[#0B1739] truncate">{b.name}</div>
+                    <div className="text-[10px] text-[#61708A] mt-0.5">
+                      {formatArea(b.usable_roof_area)} usable • Max {b.solar_analysis ? formatPower(b.solar_analysis.max_pv_capacity_kwp) : '—'}
+                    </div>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-lg flex items-center justify-center border shrink-0 ${
+                      isSelected ? 'bg-[#FF6B16] border-[#FF6B16] text-white' : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* STEP 2: ENTER INVESTMENT BUDGET */}
+      <div className="glass-panel rounded-3xl p-6 shadow-md space-y-4">
+        <div className="border-b border-white/60 pb-3">
+          <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B16] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full w-fit mb-1">
+            Step 2 of 4
+          </div>
+          <h3 className="text-sm font-extrabold text-[#0B1739]">
+            Enter Available Investment Budget
+          </h3>
+          <p className="text-xs text-[#61708A] mt-0.5">
+            Set the capital ceiling for solar procurement. The knapsack algorithm will allocate modules strictly within this limit.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-extrabold text-[#61708A]">₹</span>
+            <input
+              type="number"
+              min="50000"
+              step="50000"
+              value={budget}
+              onChange={(e) => setBudget(Number(e.target.value))}
+              className="w-full glass-input pl-9 pr-4 py-3 text-sm font-black text-[#0B1739] rounded-2xl focus:outline-hidden tabular-nums"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Quick Presets:</span>
+            {BUDGET_PRESETS.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                onClick={() => setBudget(preset.value)}
+                className={`text-xs px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
+                  budget === preset.value
+                    ? 'bg-[#FF6B16] text-white shadow-xs'
+                    : 'bg-white/80 hover:bg-white text-[#0B1739] border border-white/90'
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* STEP 3: RUN KNAPSACK OPTIMIZER */}
+      <div className="glass-panel rounded-3xl p-6 shadow-md space-y-4">
+        <div className="border-b border-white/60 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B16] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full w-fit mb-1">
+              Step 3 of 4
             </div>
+            <h3 className="text-sm font-extrabold text-[#0B1739]">
+              Solve Exact Knapsack Solar Allocation
+            </h3>
           </div>
+        </div>
 
-          {/* Objective Selector */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-[#0B1739]">
-              Objective Function
-            </label>
-            <select
-              value={objective}
-              onChange={(e) => setObjective(e.target.value)}
-              className="w-full glass-input px-3 py-1.5 text-xs rounded-xl focus:outline-none text-[#0B1739] font-medium cursor-pointer"
-            >
-              <option value="MAXIMIZE_SAVINGS">Maximize Annual Bill Savings (INR)</option>
-              <option value="MAXIMIZE_ONSITE_UTILIZATION">Maximize Onsite Self-Consumption (kWh)</option>
-              <option value="MAXIMIZE_GENERATION">Maximize Clean Generation (kWh)</option>
-            </select>
-            <p className="text-[10px] text-[#61708A]">
-              Accounts for diminishing export feed-in tariffs.
-            </p>
-          </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <button
+            type="button"
+            onClick={handleRunOptimization}
+            disabled={loading}
+            className="px-6 py-3.5 rounded-2xl bg-[#FF6B16] hover:bg-[#EA580C] text-white font-black text-sm shadow-lg shadow-orange-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <Cpu className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>{loading ? 'Solving Dynamic Programming Grid…' : 'Find Best Solar Plan →'}</span>
+          </button>
 
-          {/* Scenario Sensitivity */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-[#0B1739]">
-              Sensitivity Scenario
-            </label>
-            <select
-              value={scenarioName}
-              onChange={(e) => setScenarioName(e.target.value)}
-              className="w-full glass-input px-3 py-1.5 text-xs rounded-xl focus:outline-none text-[#0B1739] font-medium cursor-pointer"
-            >
-              <option value="Base Scenario">Base Scenario (PR 75%)</option>
-              <option value="Conservative Scenario">Conservative (-10% yield, +10% cost)</option>
-              <option value="Optimistic Scenario">Optimistic (+5% yield, -8% cost)</option>
-            </select>
-            <p className="text-[10px] text-[#61708A]">
-              Stress-test financial outcomes against climate variance.
-            </p>
-          </div>
+          <span className="text-[11px] text-[#61708A]">
+            Evaluates discrete capacity combinations across selected rooftops in under 150ms.
+          </span>
+        </div>
 
-          {/* Discrete Capacity Step & Solve Button */}
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-[#0B1739]">
-              Discrete Capacity Step
-            </label>
-            <div className="flex gap-2">
+        {/* Collapsible Advanced Constraints in <details> */}
+        <details className="group mt-3 rounded-2xl bg-white/50 border border-white/80 p-4 transition-all">
+          <summary className="text-xs font-bold text-[#0B1739] flex items-center justify-between cursor-pointer select-none">
+            <span className="flex items-center gap-2">
+              <Sliders className="w-3.5 h-3.5 text-[#FF6B16]" />
+              <span>Advanced Solver Constraints &amp; Sensitivity</span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-slate-400 group-open:rotate-90 transition-transform" />
+          </summary>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 mt-2 border-t border-slate-200/50 text-xs">
+            <div>
+              <label className="block text-xs font-bold text-[#0B1739] mb-1">Objective Function</label>
+              <select
+                value={objective}
+                onChange={(e) => setObjective(e.target.value)}
+                className="w-full glass-input px-3 py-2 text-xs rounded-xl focus:outline-hidden text-[#0B1739] font-medium cursor-pointer"
+              >
+                <option value="MAXIMIZE_SAVINGS">Maximize Annual Bill Savings (INR)</option>
+                <option value="MAXIMIZE_ONSITE_UTILIZATION">Maximize Onsite Self-Consumption (kWh)</option>
+                <option value="MAXIMIZE_GENERATION">Maximize Clean Generation (kWh)</option>
+              </select>
+              <p className="text-[10px] text-[#61708A] mt-1">Directs value weighting during state transitions.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#0B1739] mb-1">Sensitivity Scenario</label>
+              <select
+                value={scenarioName}
+                onChange={(e) => setScenarioName(e.target.value)}
+                className="w-full glass-input px-3 py-2 text-xs rounded-xl focus:outline-hidden text-[#0B1739] font-medium cursor-pointer"
+              >
+                <option value="Base Scenario">Base Scenario (PR 75%)</option>
+                <option value="Conservative Scenario">Conservative (-10% yield, +10% cost)</option>
+                <option value="Optimistic Scenario">Optimistic (+5% yield, -8% cost)</option>
+              </select>
+              <p className="text-[10px] text-[#61708A] mt-1">Stress-tests yield and tariff against weather variance.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-[#0B1739] mb-1">Discrete Stepping Step</label>
               <select
                 value={capacityStep}
                 onChange={(e) => setCapacityStep(Number(e.target.value))}
-                className="w-1/2 glass-input px-2 py-1.5 text-xs rounded-xl focus:outline-none text-[#0B1739] font-medium cursor-pointer"
+                className="w-full glass-input px-3 py-2 text-xs rounded-xl focus:outline-hidden text-[#0B1739] font-medium cursor-pointer"
               >
-                <option value={0.5}>0.5 kWp</option>
-                <option value={1.0}>1.0 kWp</option>
-                <option value={2.0}>2.0 kWp</option>
+                <option value={0.5}>0.5 kWp (Standard granular)</option>
+                <option value={1.0}>1.0 kWp (Coarse)</option>
+                <option value={2.0}>2.0 kWp (Industrial block)</option>
               </select>
-
-              <button
-                type="button"
-                onClick={handleRunOptimization}
-                disabled={loading}
-                className="w-1/2 glass-button-primary font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              >
-                <Cpu className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                <span>{loading ? 'Solving…' : 'Execute'}</span>
-              </button>
+              <p className="text-[10px] text-[#61708A] mt-1">Quantization step for discrete multiple-choice candidates.</p>
             </div>
-            <p className="text-[10px] text-[#61708A]">
-              Discrete knapsack candidate stepping.
-            </p>
           </div>
-        </div>
+        </details>
 
         {error && (
           <div className="p-3.5 rounded-2xl bg-rose-50/80 border border-rose-200/80 text-xs text-rose-900 flex items-center gap-2.5 backdrop-blur-md shadow-xs">
@@ -242,9 +354,17 @@ export const OptimizerPage: React.FC = () => {
         )}
       </div>
 
-      {/* Solver Output Results */}
+      {/* STEP 4: SOLVER OUTPUT RESULTS */}
       {optimizationResult && (
         <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF6B16] bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-full">
+              Step 4 of 4
+            </span>
+            <h3 className="text-sm font-extrabold text-[#0B1739]">
+              Optimized Solar Allocation Results
+            </h3>
+          </div>
           {/* Key Optimization Metrics Strip */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
             <div className="glass-panel glass-panel-hover p-4 rounded-2xl">
@@ -480,6 +600,25 @@ export const OptimizerPage: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+
+          {/* Next Step Action Card */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-5 rounded-3xl bg-white/80 border border-white/90 shadow-sm">
+            <div>
+              <div className="text-xs font-extrabold text-[#0B1739]">
+                Optimal Plan Ready for Review
+              </div>
+              <p className="text-[11px] text-[#61708A] mt-0.5">
+                Review load shifting, hourly telemetry, and executive reports generated from this optimal allocation.
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/workspace/insights')}
+              className="px-5 py-2.5 rounded-2xl bg-[#0B1739] hover:bg-slate-800 text-white font-bold text-xs shadow-md flex items-center gap-2 transition-all cursor-pointer shrink-0"
+            >
+              <span>Review Savings and Financial Impact →</span>
+              <ArrowRight className="w-4 h-4 text-[#FF6B16]" />
+            </button>
           </div>
         </div>
       )}
