@@ -36,17 +36,28 @@ def test_india_regions_database_integrity():
         assert "module_technology" in r["ai_recommendations"]
         assert "monthly_ghi" in r
         assert len(r["monthly_ghi"]) == 12
+        assert "engineering_suitability_index" in r
+        assert r["engineering_suitability_index"] == r["ai_suitability_composite"]
+        assert "estimated_solar_radiation_potential_gw" in r
+        assert r["estimated_rooftop_potential_gw"] is None
+        assert r["estimated_openland_potential_gw"] is None
 
 
 def test_compute_national_summary():
-    """Verify national aggregation figures across all 36 States & UTs."""
+    """Verify national aggregation figures across all 36 States & UTs.
+    Accurately verifies 748.98 GWp NISE 2014 3% wasteland assessment and null rooftop potential.
+    """
     summary = compute_national_summary()
     assert summary["total_analyzed_regions"] == 36
-    assert summary["total_national_rooftop_potential_gw"] == 748.0
-    assert summary["total_national_openland_potential_gw"] == 1240.0
+    assert summary["national_solar_radiation_potential_gw"] == 748.98
+    assert summary["national_rooftop_potential_gw"] is None
+    assert summary["total_national_rooftop_potential_gw"] is None
+    assert summary["total_national_openland_potential_gw"] is None
+    assert "3% uncultivated wasteland" in summary["national_solar_radiation_potential_basis"]
     assert 4.5 <= summary["national_avg_daily_ghi_kwh"] <= 6.5
     assert len(summary["top_opportunity_regions"]) == 5
     assert summary["provenance_summary"]["satellite_climatology"].startswith("NASA POWER")
+    assert "748.98 GWp" in summary["provenance_summary"]["capacity_potential"]
 
 
 def test_api_get_national_summary():
@@ -54,8 +65,10 @@ def test_api_get_national_summary():
     response = client.get("/api/v1/solar-intelligence/summary")
     assert response.status_code == 200
     data = response.json()
-    assert "total_analyzed_regions" in data
-    assert "total_national_rooftop_potential_gw" in data
+    assert data["total_analyzed_regions"] == 36
+    assert data["national_solar_radiation_potential_gw"] == 748.98
+    assert data["national_rooftop_potential_gw"] is None
+    assert "national_solar_radiation_potential_basis" in data
     assert "national_avg_daily_ghi_kwh" in data
     assert len(data["top_opportunity_regions"]) == 5
 

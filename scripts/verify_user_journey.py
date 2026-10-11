@@ -43,12 +43,14 @@ def main():
     summary = get_json("/solar-intelligence/summary")
     print(f"\n[Step 2] National India Solar Intelligence Summary:")
     print(f"  • Total Analyzed Regions: {summary['total_analyzed_regions']} States & UTs")
-    print(f"  • National Rooftop Potential: {summary['total_national_rooftop_potential_gw']:.1f} GWp")
-    print(f"  • Utility Open-Land Potential: {summary['total_national_openland_potential_gw']:.1f} GWp")
+    print(f"  • National Solar Radiation Potential (3% Wasteland): {summary['national_solar_radiation_potential_gw']:.2f} GWp")
+    print(f"  • National Rooftop Potential: {summary['national_rooftop_potential_gw']} (Status: {summary.get('national_rooftop_potential_status')})")
     print(f"  • National Average GHI: {summary['national_avg_daily_ghi_kwh']} kWh/m²/day")
     assert summary["total_analyzed_regions"] == 36
-    assert summary["total_national_rooftop_potential_gw"] == 748.0
-    assert summary["total_national_openland_potential_gw"] == 1240.0
+    assert summary["national_solar_radiation_potential_gw"] == 748.98
+    assert summary["national_rooftop_potential_gw"] is None
+    assert summary["total_national_rooftop_potential_gw"] is None
+    assert summary["total_national_openland_potential_gw"] is None
 
     # [Step 2b] Scoring Methodology & Limitations
     methodology = get_json("/solar-intelligence/methodology")

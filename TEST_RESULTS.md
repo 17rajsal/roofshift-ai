@@ -3,7 +3,7 @@
 **Date:** October 11, 2026  
 **Environment:** Windows (PowerShell) / Node.js 20+ / Python 3.14  
 **Branch:** `feature/india-scale-solar-intelligence`  
-**Overall Result:** **228 / 228 Automated Tests Passing (100% Pass Rate)**  
+**Overall Result:** **233 / 233 Automated Tests Passing (100% Pass Rate)**  
 
 ---
 
@@ -11,7 +11,8 @@
 
 | Test Suite File | Focus Area | Tests Passed | Duration |
 | :--- | :--- | :---: | :---: |
-| `test_india_solar_intelligence.py` | 36 States & UTs DB integrity, national summary, scoring methodology, filters, alias support | 7 / 7 | 2.23s |
+| `test_india_solar_intelligence.py` | 36 States & UTs DB integrity, NISE 748.98 GWp wasteland potential, null rooftop status, filters | 7 / 7 | 2.20s |
+| `test_geospatial_real_data.py` | Overpass OSM footprints, Shoelace area, Spencer ephemeris, Open-Meteo & NASA POWER | 5 / 5 | 1.95s |
 | `test_portfolio_scalability.py` | 500+ building portfolio scaling, pagination, bulk import, single-pass cache | 5 / 5 | 2.15s |
 | `test_security_hardening.py` | Rate limiting, proxy trust, request size bounds, magic bytes, path traversal | 13 / 13 | 1.82s |
 | `test_solar_ml.py` | XGBoost diurnal solar generation prediction, benchmark comparisons | 5 / 5 | 0.94s |
@@ -25,11 +26,43 @@
 | `test_optimizer.py` | Multiple-choice knapsack algorithm accuracy under strict bounds | 14 / 14 | 0.45s |
 | `test_solar_engine.py` | Shading derate physics and geometrical obstacle formulas | 3 / 3 | 0.25s |
 | `test_v2_acceptance.py` | End-to-end integration acceptance tests | 8 / 8 | 0.60s |
-| **TOTAL** | **Comprehensive Full System Coverage** | **228 / 228** | **~15.6s** |
+| **TOTAL** | **Comprehensive Full System Coverage** | **233 / 233** | **~17.5s** |
 
 ---
 
-## 2. End-to-End User Journey Verification Execution
+## 2. Real Data Integrity & Provenance Audit
+
+| Parameter | Previous Value | Verified & Corrected Value | Official Source & Basis |
+| :--- | :--- | :--- | :--- |
+| **National Assessed Solar Potential** | 748.0 GW (misattributed to rooftop) | **748.98 GWp** (Wasteland Radiation Potential) | MNRE / National Institute of Solar Energy (NISE, 2014) based on 3% uncultivated wasteland area (*Wasteland Atlas of India 2010*). Reference: `https://mnre.gov.in/en/solar-overview/` |
+| **Utility Open-Land Potential** | 1,240.0 GWp (unverified figure) | **Removed / Set to None** | Eliminated unsupported 1,240 GW national claim. State radiation potentials now strictly report NISE 2014 tables. |
+| **State-Level Rooftop Potential** | Synthetic numbers | **"Not yet estimated" (`null`)** | MNRE has not published official state-by-state rooftop capacity totals. Academic estimates range 118–637 GW; individual sites require on-site LiDAR & structural survey. |
+| **Suitability Index Methodology** | "AI Suitability Composite" | **"Engineering Suitability Index"** | Multi-Criteria Decision Analysis (MCDA) deterministic engineering index weighting NASA POWER, IMD normals, temperature derating (-0.38%/°C), and convective wind cooling. |
+| **Machine Learning Scope** | Ambiguous | **XGBoost ML for Hourly Solar Forecasting** | ML is strictly utilized for time-series solar energy forecasting based on weather features; macro-regional suitability is deterministic MCDA. |
+| **Building Footprints Data** | Risk of synthetic shapes | **Real OpenStreetMap Overpass & Shoelace** | Real geodesic Shoelace polygon calculation. When unmapped, explicitly returns `"status": "empty"` and `"No mapped building footprints available in OpenStreetMap for these coordinates"` (Zero synthetic polygons). |
+
+---
+
+## 3. 6-City Real Geospatial & Environmental Verification
+
+Executed via `scripts/verify_six_cities_benchmark.py` against active local daemon servers:
+
+| Location | Coordinates | GHI (kWh/m²/d) | Ambient Temp | Wind Speed | OSM Footprints | Suitability Tier | Est. Annual Yield | Provider Notes |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Delhi (NCT)** | 28.61°N, 77.21°E | 4.89 | 30.8°C | 7.3 m/s | 1 building (268.6 m²) | Tier C (67.3) | 1,276 kWh/kWp/yr | NASA POWER satellite baseline; Open-Meteo ERA5 weather |
+| **Jaipur (RJ)** | 26.91°N, 75.79°E | 5.44 | 33.2°C | 2.8 m/s | 15 buildings (9,082 m² usable) | Tier C+ (65.1) | 1,405 kWh/kWp/yr | Arid High-Irradiance corridor; Overpass mapped clusters |
+| **Mumbai (MH)** | 19.08°N, 72.88°E | 5.29 | 36.9°C | 4.2 m/s | 0 (Unmapped in OSM) | Tier C (64.2) | 1,347 kWh/kWp/yr | Transparent `"status": "empty"`; zero synthetic polygons |
+| **Bengaluru (KA)** | 12.97°N, 77.59°E | 5.48 | 30.0°C | 16.2 m/s | 33 buildings (24,547 m² usable) | Tier B (73.9) | 1,436 kWh/kWp/yr | Strong wind convective cooling (+0.3%/m/s benefit) |
+| **Chennai (TN)** | 13.08°N, 80.27°E | 5.22 | 33.5°C | 14.5 m/s | 109 buildings (Victoria Public Hall) | Tier C (67.3) | 1,348 kWh/kWp/yr | Overpass mapped heritage & institutional polygon stock |
+| **Leh (Ladakh)** | 34.15°N, 77.58°E | 5.08 | 11.5°C | 6.4 m/s | 0 (Unmapped in OSM) | Tier B (67.5) | 1,436 kWh/kWp/yr | Cold-climate silicon boost (PR 77.4%); transparent empty OSM status |
+
+### Validation & Bounds Testing:
+- `lat = 95.0 (> 90.0)`: Correctly returned **HTTP 422 Unprocessable Content** (`Input should be less than or equal to 90`).
+- `lng = 195.0 (> 180.0)`: Correctly returned **HTTP 422 Unprocessable Content** (`Input should be less than or equal to 180`).
+
+---
+
+## 4. End-to-End User Journey Verification Execution
 
 Executed via `scripts/verify_user_journey.py` against active local daemon servers:
 
@@ -39,10 +72,10 @@ Executed via `scripts/verify_user_journey.py` against active local daemon server
 
 [Step 2] National India Solar Intelligence Summary:
   • Total Analyzed Regions: 36 States & UTs
-  • National Rooftop Potential: 748.0 GWp
-  • Utility Open-Land Potential: 1240.0 GWp
+  • National Solar Radiation Potential (3% Wasteland): 748.98 GWp
+  • National Rooftop Potential: None (Status: Not yet estimated by official government survey)
   • National Average GHI: 5.01 kWh/m²/day
-  • AI Scoring Methodology: RoofShift AI Climatology Engine v8.2 (0.5° × 0.5° spatial grid)
+  • AI Scoring Methodology: RoofShift AI Engineering Suitability Index v8.2 (0.5° × 0.5° spatial grid)
 
 [Step 3] Regional Intelligence Filters:
   • Total Loaded Regions: 36 (All 36 States & UTs)
@@ -51,7 +84,6 @@ Executed via `scripts/verify_user_journey.py` against active local daemon server
 
 [Step 4] Deep-Dive Climatology Profiles:
   • Rajasthan: 5.86 kWh/m²/d GHI | Tier A+ | Rooftop Score: 88/100 | Open-Land: 99/100
-    AI Advice: Bifacial TOPCon / Heterojunction (HJT) n-type modules with low temperature...
   • Ladakh: 5.85 kWh/m²/d GHI | Ambient Temp: 8.2°C (Cold Boost Yield: 1780 kWh/kWp/yr)
 
 [Step 5] Sample Campus Demo Metadata:
@@ -85,9 +117,9 @@ Executed via `scripts/verify_user_journey.py` against active local daemon server
 
 ---
 
-## 3. Empirical Portfolio Scalability Benchmark
+## 5. Empirical Portfolio Scalability Benchmark
 
-Executed via `scripts/benchmark_portfolio_scale.py` measuring full end-to-end API pipeline latency and RAM using `tracemalloc`:
+Executed via `scripts/benchmark_portfolio_scale.py`:
 
 | Buildings ($N$) | CSV Ingest Rate | Ingestion (s) | Solar Physics Recalc (s) | Knapsack 0/1 Solver (s) | Total Pipeline (s) | Peak Memory (MB) |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -95,15 +127,9 @@ Executed via `scripts/benchmark_portfolio_scale.py` measuring full end-to-end AP
 | **100** | 237.9 bldgs/s | 0.420s | 0.430s | 0.108s | 0.960s | 9.38 MB |
 | **500** | 270.6 bldgs/s | 1.848s | 2.186s | 0.242s | 4.281s | 45.41 MB |
 
-### Scalability Findings & Architectural Notes:
-- **Predictable Linear Complexity ($O(N)$):** Scaling from 50 to 500 buildings exhibits strictly linear execution time and memory growth (~0.09 MB RAM per building).
-- **Single-Pass Solar Geometry:** Pre-calculated NASA climatological caches eliminate redundant network roundtrips during portfolio recalculations.
-- **DP Knapsack Efficiency:** Dynamic programming 0/1 solver allocates budget constraints across 500 candidate rooftop capacities in **0.242 seconds**.
-- **No Unsubstantiated Claims:** We do not claim "infinite scalability"; portfolios up to 500 buildings execute within 4.3 seconds in single-threaded FastAPI execution.
-
 ---
 
-## 4. Frontend Production Build Telemetry
+## 6. Frontend Production Build Telemetry
 
 Executed via `npm --prefix frontend run build`:
 
@@ -112,14 +138,12 @@ Executed via `npm --prefix frontend run build`:
 > tsc -b && vite build
 
 vite v8.3.4 building client environment for production...
-✓ 2580 modules transformed.
-rendering chunks...
-computing gzip size...
+✓ 2581 modules transformed.
 dist/index.html                                   1.10 kB │ gzip:   0.56 kB
-dist/assets/index-JaVC-HiN.css                  131.28 kB │ gzip:  23.69 kB
-dist/assets/IndiaSolarMap-BpwzbIDd.js            37.74 kB │ gzip:   9.29 kB
-dist/assets/WorkspaceHub-DGZNTdJS.js             47.02 kB │ gzip:   9.25 kB
-dist/assets/HomePage-C_Lst72V.js                 71.27 kB │ gzip:  15.88 kB
-dist/assets/index-BUZFqn7A.js                   686.33 kB │ gzip: 202.68 kB
-✓ built in 954ms
+dist/assets/index-DAIawT0u.css                  133.32 kB │ gzip:  23.86 kB
+dist/assets/IndiaSolarMap-CaXRVEGS.js            55.07 kB │ gzip:  12.43 kB
+dist/assets/WorkspaceHub-Cg4XpsDd.js             49.21 kB │ gzip:   9.73 kB
+dist/assets/HomePage-BxTRS0Pm.js                 71.27 kB │ gzip:  15.87 kB
+dist/assets/index-Bn0qMLPE.js                   686.99 kB │ gzip: 202.95 kB
+✓ built in 703ms
 ```

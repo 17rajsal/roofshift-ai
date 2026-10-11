@@ -73,7 +73,7 @@ export const IndiaDataProvenanceModal: React.FC<IndiaDataProvenanceModalProps> =
               </li>
               <li className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span>MNRE (Ministry of New and Renewable Energy) state solar potential assessments</span>
+                <span>MNRE / NISE (2014) National Solar Radiation Potential Assessment (3% Wasteland Coverage, 748.98 GWp baseline, https://mnre.gov.in/en/solar-overview/)</span>
               </li>
             </ul>
           </div>
@@ -82,13 +82,13 @@ export const IndiaDataProvenanceModal: React.FC<IndiaDataProvenanceModalProps> =
           <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
             <div className="flex items-center gap-2 mb-2">
               <Cpu className="w-4 h-4 text-blue-600" />
-              <h3 className="font-bold text-sm text-[#0F172A]">2. AI Suitability Formulas & Weighting</h3>
+              <h3 className="font-bold text-sm text-[#0F172A]">2. Engineering Suitability Index (MCDA)</h3>
               <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                Computational Model v8.2
+                Deterministic Model v8.2
               </span>
             </div>
             <p className="text-slate-600 leading-relaxed mb-2.5">
-              Multi-variable decision formulas evaluate rooftop and ground-mount PV opportunity separately:
+              Deterministic Multi-Criteria Decision Analysis (MCDA) evaluates rooftop and ground-mount PV opportunity separately (XGBoost ML is strictly reserved for hourly solar generation forecasting):
             </p>
             <div className="space-y-2 font-mono text-[11px] bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-slate-700">
               <div>
@@ -100,7 +100,7 @@ export const IndiaDataProvenanceModal: React.FC<IndiaDataProvenanceModalProps> =
                 35% DNI + 30% BarrenLand + 20% ISTS Grid + 10% TempDerate − 5% TerrainSlope
               </div>
               <div className="text-slate-500 font-sans text-[10px] pt-1 border-t border-slate-200/70">
-                Composite Score = 50% Rooftop + 50% Open-Land (Tier A+: ≥93, Tier A: 88-92, Tier B+: 82-87)
+                Composite Index = 50% Rooftop + 50% Open-Land (Tier A+: ≥93, Tier A: 88-92, Tier B+: 82-87)
               </div>
             </div>
             <ul className="space-y-1 text-slate-500 mt-2.5">
@@ -145,7 +145,8 @@ export const IndiaDataProvenanceModal: React.FC<IndiaDataProvenanceModalProps> =
             <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 text-[10px] text-amber-900 leading-relaxed">
               <span className="font-bold">Engineering Limitations: </span>
               Macro regional scores represent 0.5° × 0.5° satellite climatology and state baselines.
-              They do not replace on-site shadow raytracing, local geotechnical soil tests, or DISCOM interconnection approvals.
+              Rooftop potential is not officially quantified state-by-state by MNRE.
+              Regional metrics do not replace site-level 3D shadow raytracing (LiDAR required), legal revenue land clearances, or DISCOM substation interconnection approvals.
             </div>
           </div>
         </div>

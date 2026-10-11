@@ -392,7 +392,7 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
           }`}
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span>AI Suitability Index</span>
+          <span>Engineering Suitability Index</span>
         </button>
 
         <button

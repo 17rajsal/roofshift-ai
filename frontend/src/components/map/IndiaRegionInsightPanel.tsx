@@ -95,7 +95,7 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
       <div className="p-3.5 rounded-2xl bg-gradient-to-br from-orange-50/80 via-white to-amber-50/60 border border-orange-200/60 mb-4 flex items-center justify-between">
         <div>
           <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            AI Suitability Index
+            Engineering Suitability Index
           </div>
           <div className="text-3xl font-black text-[#FF6B16] flex items-baseline gap-1 mt-0.5">
             <span>{region.ai_suitability_composite}</span>
@@ -223,11 +223,13 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
               />
             </div>
             <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-              <span>Estimated State Potential:</span>
-              <span className="font-semibold text-slate-700">{region.estimated_rooftop_potential_gw} GWp</span>
+              <span>State Rooftop Potential:</span>
+              <span className="font-semibold text-slate-700">
+                {region.estimated_rooftop_potential_gw != null ? `${region.estimated_rooftop_potential_gw} GWp` : 'Not yet estimated'}
+              </span>
             </div>
             <div className="text-[9px] text-slate-400 mt-0.5">
-              Reflects urban C&I demand density & available roof stock (excludes parapet shading)
+              Official MNRE state survey pending; building-level LiDAR/site survey required
             </div>
           </div>
 
@@ -248,11 +250,13 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
               />
             </div>
             <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-              <span>Estimated Ground Potential:</span>
-              <span className="font-semibold text-slate-700">{region.estimated_openland_potential_gw} GWp</span>
+              <span>MNRE Assessed Potential (3% Wasteland):</span>
+              <span className="font-semibold text-slate-700">
+                {region.estimated_solar_radiation_potential_gw != null ? `${region.estimated_solar_radiation_potential_gw} GWp` : 'Not quantified in NISE 2014'}
+              </span>
             </div>
             <div className="text-[9px] text-slate-400 mt-0.5">
-              Reflects wasteland parcels & ISTS grid access (penalizes terrain slope & forest restrictions)
+              NISE 2014 assessment based on 3% wasteland area (subject to grid interconnect & clearance)
             </div>
           </div>
         </div>

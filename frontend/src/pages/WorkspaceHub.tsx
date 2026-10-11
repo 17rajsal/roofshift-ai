@@ -11,6 +11,7 @@ import {
   MapPin,
   ArrowRight,
   TrendingUp,
+  Sun,
   SunMedium,
   Zap,
   ShieldCheck,
@@ -359,34 +360,36 @@ export const WorkspaceHub: React.FC = () => {
             <div className="bg-white/85 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  C&I Rooftop Potential
+                  Total National Solar Potential
                 </span>
-                <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                  <Building2 className="w-4 h-4" />
+                <div className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Sun className="w-4 h-4" />
                 </div>
               </div>
               <div className="text-2xl font-extrabold text-[#0F172A]">
-                {nationalSummary ? Math.round(nationalSummary.total_national_rooftop_potential_gw) : 748} <span className="text-sm font-semibold text-slate-500">GWp</span>
+                {nationalSummary?.national_solar_radiation_potential_gw ? nationalSummary.national_solar_radiation_potential_gw.toFixed(2) : '748.98'} <span className="text-sm font-semibold text-slate-500">GWp</span>
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                <span>Commercial & industrial roofs</span>
+                <span className="text-amber-600 font-bold">MNRE / NISE 2014</span>
+                <span>(3% wasteland assessment)</span>
               </div>
             </div>
 
             <div className="bg-white/85 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
               <div className="flex items-center justify-between text-slate-400 mb-2">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                  Utility Open-Land Potential
+                  Commercial Rooftop Potential
                 </span>
-                <div className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                  <Mountain className="w-4 h-4" />
+                <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <Building2 className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-extrabold text-[#0F172A]">
-                {nationalSummary ? Math.round(nationalSummary.total_national_openland_potential_gw) : 1240} <span className="text-sm font-semibold text-slate-500">GWp</span>
+              <div className="text-xl font-extrabold text-[#0F172A] tracking-tight">
+                Not yet estimated
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                <span>Arid & barren land suitable zones</span>
+                <span className="text-emerald-700 font-bold">Site Survey Required</span>
+                <span>(MNRE baseline pending)</span>
               </div>
             </div>
 

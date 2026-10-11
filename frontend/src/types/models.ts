@@ -484,10 +484,14 @@ export interface IndiaSolarRegion {
   rooftop_suitability_score: number;
   open_land_suitability_score: number;
   ai_suitability_composite: number;
+  engineering_suitability_index?: number;
   suitability_tier: string;
   zone_classification: string;
-  estimated_rooftop_potential_gw: number;
-  estimated_openland_potential_gw: number;
+  estimated_solar_radiation_potential_gw?: number | null;
+  solar_potential_basis?: string;
+  estimated_rooftop_potential_gw?: number | null;
+  rooftop_potential_status?: string;
+  estimated_openland_potential_gw?: number | null;
   annual_yield_kwh_per_kwp: number;
   monthly_ghi: Record<string, number>;
   key_corridors: string[];
@@ -502,8 +506,12 @@ export interface IndiaSolarRegion {
 
 export interface IndiaNationalSolarSummary {
   total_analyzed_regions: number;
-  total_national_rooftop_potential_gw: number;
-  total_national_openland_potential_gw: number;
+  national_solar_radiation_potential_gw: number;
+  national_solar_radiation_potential_basis: string;
+  national_rooftop_potential_gw: number | null;
+  national_rooftop_potential_status: string;
+  total_national_rooftop_potential_gw?: number | null;
+  total_national_openland_potential_gw?: number | null;
   national_avg_daily_ghi_kwh: number;
   national_avg_daily_dni_kwh: number;
   national_avg_ambient_temp_c: number;
@@ -511,16 +519,19 @@ export interface IndiaNationalSolarSummary {
     id: string;
     name: string;
     score: number;
+    engineering_suitability_index?: number;
     tier: string;
     zone_classification: string;
     ghi_daily_kwh: number;
     rooftop_score: number;
     openland_score: number;
+    assessed_solar_radiation_potential_gw?: number | null;
   }>;
   provenance_summary: {
     satellite_climatology: string;
     temperature_meteorology: string;
     capacity_potential: string;
+    rooftop_potential_note?: string;
     modeling_engine: string;
   };
 }
