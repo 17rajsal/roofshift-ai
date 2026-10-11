@@ -29,7 +29,7 @@ export const ThermalMapLegend: React.FC<ThermalMapLegendProps> = ({
 }) => {
   if (mode === 'satellite') {
     return (
-      <div className="rounded-xl border border-slate-200/80 bg-white/95 p-3 shadow-lg backdrop-blur-md text-xs max-w-[260px]">
+      <div className="glass-elevated rounded-2xl border border-white/80 p-3.5 shadow-xl text-xs max-w-[260px]">
         <div className="flex items-center gap-1.5 font-bold text-slate-800">
           <Layers className="w-3.5 h-3.5 text-slate-600" />
           <span>Satellite Base Layer</span>
@@ -43,7 +43,7 @@ export const ThermalMapLegend: React.FC<ThermalMapLegendProps> = ({
 
   if (mode === 'health') {
     return (
-      <div className="rounded-xl border border-slate-200/80 bg-white/95 p-3.5 shadow-lg backdrop-blur-md text-xs max-w-[280px]">
+      <div className="glass-elevated rounded-2xl border border-white/80 p-3.5 shadow-xl text-xs max-w-[280px]">
         <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
           <div className="flex items-center gap-1.5 font-bold text-slate-900">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -104,7 +104,7 @@ export const ThermalMapLegend: React.FC<ThermalMapLegendProps> = ({
 
   // Thermal Heatmap Mode Legend
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-white/95 p-3.5 shadow-xl backdrop-blur-md text-xs max-w-[310px]">
+    <div className="glass-elevated rounded-2xl border border-white/80 p-4 shadow-xl text-xs max-w-[310px]">
       <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
         <div className="flex items-center gap-1.5 font-bold text-slate-900">
           <Flame className="w-4 h-4 text-orange-500" />

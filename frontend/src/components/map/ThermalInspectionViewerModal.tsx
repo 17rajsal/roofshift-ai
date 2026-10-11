@@ -64,32 +64,32 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative flex flex-col w-full max-w-4xl max-h-[90vh] rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden text-slate-100">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0B1739]/60 p-4 backdrop-blur-md animate-fadeIn">
+      <div className="relative flex flex-col w-full max-w-4xl max-h-[90vh] rounded-3xl bg-[#0B1739]/90 border border-white/20 shadow-2xl overflow-hidden text-slate-100 backdrop-blur-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/60">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/10 bg-white/5 backdrop-blur-md">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20">
+            <div className="p-2.5 rounded-xl bg-orange-500/10 text-[#FF6B16] border border-orange-500/20">
               <Camera className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-white">{moduleTitle}</h3>
-              <p className="text-xs text-slate-400">
+              <h3 className="text-base font-black text-white tracking-tight">{moduleTitle}</h3>
+              <p className="text-xs text-slate-300">
                 Aerial Drone &amp; Handheld Infrared Thermography Inspection View
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Mandatory Scientific Disclaimer Banner */}
-        <div className="px-6 py-2.5 bg-amber-950/40 border-b border-amber-900/40 text-amber-300 text-xs flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+        <div className="px-6 py-3 bg-amber-500/10 border-b border-amber-500/20 text-amber-200 text-xs flex items-center gap-2.5">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-[#FF6B16]" />
           <span>
             <strong>Scientific Notice:</strong> Non-radiometric inspection image. Pixel color variations
             represent relative thermal contrast. Calibrated radiometric temperatures require raw FLIR /
@@ -100,28 +100,28 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
         {/* Workspace: Image Canvas + Controls */}
         <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-4 min-h-[420px]">
           {/* Main Inspection Canvas */}
-          <div className="lg:col-span-3 bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
+          <div className="lg:col-span-3 bg-slate-950/80 flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
             <div
-              className="relative max-w-full max-h-[500px] cursor-crosshair overflow-hidden rounded-lg shadow-2xl transition-transform duration-100"
+              className="relative max-w-full max-h-[500px] cursor-crosshair overflow-hidden rounded-2xl shadow-2xl transition-transform duration-100 border border-white/10"
               style={{ transform: `scale(${zoom})` }}
               onClick={handleImageClick}
             >
               <img
                 src={sampleThermalImage}
                 alt="Solar Panel Thermal Inspection"
-                className="max-h-[460px] object-contain rounded-lg"
+                className="max-h-[460px] object-contain rounded-2xl"
                 style={{ filter: getFilterStyle() }}
               />
 
               {/* Probe Point Pin */}
               {probePoint && (
                 <div
-                  className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center gap-1.5"
+                  className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 flex items-center gap-2"
                   style={{ left: `${probePoint.x}%`, top: `${probePoint.y}%` }}
                 >
-                  <span className="w-4 h-4 rounded-full border-2 border-red-500 bg-red-500/30 animate-ping absolute" />
-                  <span className="w-3 h-3 rounded-full border-2 border-white bg-red-600 shadow-md" />
-                  <div className="bg-slate-900/90 border border-slate-700 px-2 py-0.5 rounded text-[10px] text-white shadow-lg whitespace-nowrap">
+                  <span className="w-5 h-5 rounded-full border-2 border-red-500 bg-red-500/30 animate-ping absolute" />
+                  <span className="w-3.5 h-3.5 rounded-full border-2 border-white bg-red-600 shadow-md" />
+                  <div className="bg-[#0B1739]/90 border border-white/20 px-2.5 py-1 rounded-xl text-[10px] font-bold text-white shadow-xl whitespace-nowrap backdrop-blur-md">
                     Probe ({probePoint.x}%, {probePoint.y}%) · Relative High
                   </div>
                 </div>
@@ -129,23 +129,23 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
             </div>
 
             {/* Bottom Floating Canvas Toolbar */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-slate-900/90 border border-slate-700/80 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg text-xs text-slate-300">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 bg-[#0B1739]/80 border border-white/20 px-4 py-2 rounded-full backdrop-blur-xl shadow-2xl text-xs text-slate-200">
               <button
                 onClick={() => setZoom((z) => Math.min(2.5, z + 0.25))}
-                className="hover:text-white p-1"
+                className="hover:text-white p-1 hover:bg-white/10 rounded-lg transition-colors"
                 title="Zoom In"
               >
-                <ZoomIn className="w-4 h-4" />
+                <ZoomIn className="w-4 h-4 text-[#FF6B16]" />
               </button>
-              <span className="text-[11px] font-mono">{Math.round(zoom * 100)}%</span>
+              <span className="text-[11px] font-mono font-bold">{Math.round(zoom * 100)}%</span>
               <button
                 onClick={() => setZoom((z) => Math.max(0.75, z - 0.25))}
-                className="hover:text-white p-1"
+                className="hover:text-white p-1 hover:bg-white/10 rounded-lg transition-colors"
                 title="Zoom Out"
               >
-                <ZoomOut className="w-4 h-4" />
+                <ZoomOut className="w-4 h-4 text-[#FF6B16]" />
               </button>
-              <div className="w-px h-3 bg-slate-700 mx-1" />
+              <div className="w-px h-3.5 bg-white/20 mx-1" />
               <button
                 onClick={() => {
                   setZoom(1);
@@ -153,7 +153,7 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
                   setBrightness(100);
                   setContrast(110);
                 }}
-                className="hover:text-white flex items-center gap-1 text-[11px]"
+                className="hover:text-white flex items-center gap-1.5 text-[11px] font-bold p-1 hover:bg-white/10 rounded-lg transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Reset</span>
@@ -162,9 +162,9 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
           </div>
 
           {/* Right Inspection Settings Panel */}
-          <div className="bg-slate-900/95 border-t lg:border-t-0 lg:border-l border-slate-800 p-5 flex flex-col gap-5 text-xs">
+          <div className="bg-[#0B1739]/70 border-t lg:border-t-0 lg:border-l border-white/10 p-5 flex flex-col gap-5 text-xs backdrop-blur-md">
             <div>
-              <label className="font-bold text-slate-300 block mb-2 uppercase tracking-wider text-[10px]">
+              <label className="font-bold text-white block mb-2.5 uppercase tracking-wider text-[10px]">
                 Thermal Palette
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -179,28 +179,28 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
                   <button
                     key={p.id}
                     onClick={() => setPalette(p.id)}
-                    className={`flex flex-col items-start p-2 rounded-lg border text-left transition-all ${
+                    className={`flex flex-col items-start p-2.5 rounded-xl border text-left transition-all ${
                       palette === p.id
-                        ? 'border-orange-500 bg-orange-500/10 text-white'
-                        : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700'
+                        ? 'border-[#FF6B16] bg-orange-500/20 text-white shadow-xs'
+                        : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/30 hover:bg-white/10'
                     }`}
                   >
-                    <div className={`w-full h-2 rounded mb-1 bg-gradient-to-r ${p.gradient}`} />
-                    <span className="font-semibold text-[11px]">{p.label}</span>
+                    <div className={`w-full h-2 rounded mb-1.5 bg-gradient-to-r ${p.gradient}`} />
+                    <span className="font-bold text-[11px]">{p.label}</span>
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="font-bold text-slate-300 block mb-2 uppercase tracking-wider text-[10px]">
+              <label className="font-bold text-white block mb-2.5 uppercase tracking-wider text-[10px]">
                 Contrast Enhancement
               </label>
               <div className="space-y-3">
                 <div>
-                  <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                  <div className="flex justify-between text-[11px] text-slate-300 mb-1 font-semibold">
                     <span>Brightness</span>
-                    <span className="font-mono">{brightness}%</span>
+                    <span className="font-mono text-[#FF6B16] font-bold">{brightness}%</span>
                   </div>
                   <input
                     type="range"
@@ -208,13 +208,13 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
                     max="160"
                     value={brightness}
                     onChange={(e) => setBrightness(Number(e.target.value))}
-                    className="w-full accent-orange-500"
+                    className="w-full accent-[#FF6B16]"
                   />
                 </div>
                 <div>
-                  <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                  <div className="flex justify-between text-[11px] text-slate-300 mb-1 font-semibold">
                     <span>Contrast</span>
-                    <span className="font-mono">{contrast}%</span>
+                    <span className="font-mono text-[#FF6B16] font-bold">{contrast}%</span>
                   </div>
                   <input
                     type="range"
@@ -222,15 +222,15 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
                     max="180"
                     value={contrast}
                     onChange={(e) => setContrast(Number(e.target.value))}
-                    className="w-full accent-orange-500"
+                    className="w-full accent-[#FF6B16]"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-lg bg-slate-950/60 p-3 border border-slate-800 text-[11px] text-slate-400 space-y-1.5">
-              <p className="font-semibold text-slate-200 flex items-center gap-1">
-                <Info className="w-3.5 h-3.5 text-blue-400" />
+            <div className="rounded-2xl bg-white/5 p-4 border border-white/10 text-[11px] text-slate-300 space-y-1.5 shadow-2xs">
+              <p className="font-bold text-white flex items-center gap-1.5">
+                <Info className="w-3.5 h-3.5 text-[#FF6B16]" />
                 <span>Image Metadata</span>
               </p>
               <p>Type: High-Resolution Aerial JPEG</p>
@@ -241,11 +241,11 @@ export const ThermalInspectionViewerModal: React.FC<ThermalInspectionViewerModal
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs">
-          <span className="text-slate-400">Click on any panel cell to drop an inspection probe.</span>
+        <div className="px-6 py-4 border-t border-white/10 bg-white/5 backdrop-blur-md flex items-center justify-between text-xs">
+          <span className="text-slate-300">Click on any panel cell to drop an inspection probe.</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium transition-colors"
+            className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-all border border-white/20 shadow-xs"
           >
             Close Viewer
           </button>

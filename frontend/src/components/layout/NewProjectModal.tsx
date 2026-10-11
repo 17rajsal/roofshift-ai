@@ -68,70 +68,75 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
   };
 
   return (
-    <div role="dialog" aria-modal="true" aria-label="Create new solar planning project" className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg max-w-lg max-h-[90vh] overflow-y-auto w-full shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-        <div className="px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-amber-600" />
-            <h2 className="text-sm font-semibold text-slate-900">Initialize Solar Planning Project</h2>
+    <div role="dialog" aria-modal="true" aria-label="Create new solar planning project" className="fixed inset-0 z-50 bg-[#0B1739]/50 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+      <div className="glass-elevated rounded-3xl max-w-lg max-h-[90vh] overflow-y-auto w-full shadow-2xl border border-white/80">
+        <div className="px-6 py-5 border-b border-slate-200/50 bg-white/60 flex items-center justify-between backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-orange-500/10 text-[#FF6B16] border border-orange-500/20">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-base font-black text-[#0B1739] tracking-tight">Initialize Solar Planning Project</h2>
+              <p className="text-[11px] text-[#61708A]">Set campus boundary, location coordinates and fiscal constraints</p>
+            </div>
           </div>
-          <button onClick={onClose} aria-label="Close new project form" className="text-slate-400 hover:text-slate-700 p-1 rounded transition-colors">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} aria-label="Close new project form" className="text-[#61708A] hover:text-[#0B1739] p-2 rounded-xl hover:bg-white/80 transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200/80 rounded-md text-xs text-red-800">
+            <div className="p-3.5 bg-red-50/80 border border-red-200/80 rounded-2xl text-xs text-red-800 shadow-xs">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Project Portfolio Name *</label>
+            <label className="block text-xs font-bold text-[#0B1739] mb-1">Project Portfolio Name *</label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Rohini Campus Phase 1"
-              className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+              className="w-full px-3.5 py-2 text-xs border border-white/80 bg-white/80 rounded-xl focus:border-[#FF6B16] focus:ring-2 focus:ring-[#FF6B16]/20 focus:outline-none text-[#0B1739] shadow-2xs"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Organization / Institutional Client</label>
+            <label className="block text-xs font-bold text-[#0B1739] mb-1">Organization / Institutional Client</label>
             <input
               type="text"
               value={organization}
               onChange={(e) => setOrganization(e.target.value)}
               placeholder="e.g. Delhi Technological University"
-              className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+              className="w-full px-3.5 py-2 text-xs border border-white/80 bg-white/80 rounded-xl focus:border-[#FF6B16] focus:ring-2 focus:ring-[#FF6B16]/20 focus:outline-none text-[#0B1739] shadow-2xs"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Indian City / Region</label>
+              <label className="block text-xs font-bold text-[#0B1739] mb-1">Indian City / Region</label>
               <input
                 type="text"
                 value={city}
                 onChange={(e) => handleCityChange(e.target.value)}
                 placeholder="New Delhi, Mumbai, Pune..."
-                className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                className="w-full px-3.5 py-2 text-xs border border-white/80 bg-white/80 rounded-xl focus:border-[#FF6B16] focus:ring-2 focus:ring-[#FF6B16]/20 focus:outline-none text-[#0B1739] shadow-2xs"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Coordinates (Lat, Lon)</label>
-              <div className="text-xs text-slate-700 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-md truncate font-mono">
+              <label className="block text-xs font-bold text-[#0B1739] mb-1">Coordinates (Lat, Lon)</label>
+              <div className="text-xs text-[#0B1739] px-3.5 py-2 bg-white/60 border border-white/80 rounded-xl truncate font-mono font-bold shadow-2xs">
                 {latitude.toFixed(3)}° N, {longitude.toFixed(3)}° E
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Capital Budget (₹ INR) *</label>
+              <label className="block text-xs font-bold text-[#0B1739] mb-1">Capital Budget (₹ INR) *</label>
               <input
                 type="number"
                 min="10000"
@@ -139,11 +144,11 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
                 required
                 value={budget}
                 onChange={(e) => setBudget(Number(e.target.value))}
-                className="w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                className="w-full px-3.5 py-2 text-xs font-mono font-bold border border-white/80 bg-white/80 rounded-xl focus:border-[#FF6B16] focus:ring-2 focus:ring-[#FF6B16]/20 focus:outline-none text-[#0B1739] shadow-2xs"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Grid Tariff (₹ / kWh) *</label>
+              <label className="block text-xs font-bold text-[#0B1739] mb-1">Grid Tariff (₹ / kWh) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -151,28 +156,28 @@ export const NewProjectModal: React.FC<NewProjectModalProps> = ({ isOpen, onClos
                 required
                 value={tariff}
                 onChange={(e) => setTariff(Number(e.target.value))}
-                className="w-full px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-md focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                className="w-full px-3.5 py-2 text-xs font-mono font-bold border border-white/80 bg-white/80 rounded-xl focus:border-[#FF6B16] focus:ring-2 focus:ring-[#FF6B16]/20 focus:outline-none text-[#0B1739] shadow-2xs"
               />
             </div>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-600 leading-relaxed">
-            <strong className="text-slate-900 block mb-0.5 font-medium">NASA POWER Climatology:</strong>
+          <div className="p-4 glass-surface-secondary border border-white/60 rounded-2xl text-xs text-[#61708A] leading-relaxed shadow-2xs">
+            <strong className="text-[#0B1739] block mb-1 font-bold">NASA POWER Climatology Integration:</strong>
             Global horizontal and tilted solar irradiance will be retrieved deterministically for these geographic coordinates.
           </div>
 
-          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+          <div className="pt-4 flex items-center justify-end gap-3 border-t border-slate-200/50">
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
+              className="px-4 py-2.5 text-xs font-bold text-[#0B1739] hover:bg-white/80 rounded-xl border border-white/80 bg-white/60 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-4 py-1.5 text-xs font-medium text-white bg-slate-900 hover:bg-slate-800 rounded-md shadow-2xs transition-colors disabled:opacity-50"
+              className="px-5 py-2.5 text-xs font-bold text-white bg-[#FF6B16] hover:bg-[#EA580C] rounded-xl shadow-md transition-all disabled:opacity-50 hover:shadow-lg"
             >
               {loading ? 'Initializing Project...' : 'Initialize Project'}
             </button>

@@ -94,24 +94,24 @@ export const ThermalUploadModal: React.FC<ThermalUploadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="relative flex flex-col w-full max-w-lg rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden text-slate-800">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#0B1739]/50 p-4 backdrop-blur-md animate-fadeIn">
+      <div className="relative flex flex-col w-full max-w-lg rounded-3xl glass-elevated border border-white/80 shadow-2xl overflow-hidden text-[#0B1739]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-orange-100 text-orange-600">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-200/50 bg-white/60 backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-orange-500/10 text-[#FF6B16] border border-orange-500/20">
               <Flame className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900">Upload Thermal Readings</h3>
-              <p className="text-xs text-slate-500">
+              <h3 className="text-base font-black text-[#0B1739] tracking-tight">Upload Thermal Readings</h3>
+              <p className="text-[11px] text-[#61708A]">
                 Import calibrated surface temperatures from field thermography logs
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="p-2 rounded-xl text-[#61708A] hover:text-[#0B1739] hover:bg-white/80 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -121,10 +121,10 @@ export const ThermalUploadModal: React.FC<ThermalUploadModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           {/* Baseline Operating Temp Parameter */}
           <div>
-            <label className="font-semibold text-slate-700 block mb-1">
+            <label className="font-bold text-[#0B1739] block mb-1.5">
               Nominal Operating Baseline (°C)
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <input
                 type="number"
                 step="0.5"
@@ -132,9 +132,9 @@ export const ThermalUploadModal: React.FC<ThermalUploadModalProps> = ({
                 max="60"
                 value={baselineTempC}
                 onChange={(e) => setBaselineTempC(parseFloat(e.target.value) || 42.0)}
-                className="w-28 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none"
+                className="w-28 rounded-xl border border-white/80 bg-white/80 px-3.5 py-2 text-xs font-mono font-bold text-[#0B1739] focus:border-[#FF6B16] focus:ring-2 focus:ring-[#FF6B16]/20 focus:outline-none shadow-2xs"
               />
-              <span className="text-slate-500 text-[11px]">
+              <span className="text-[#61708A] text-[11px] leading-tight">
                 Nominal expected operating surface temp under current ambient &amp; irradiance conditions.
               </span>
             </div>
@@ -143,7 +143,7 @@ export const ThermalUploadModal: React.FC<ThermalUploadModalProps> = ({
           {/* Upload Area */}
           <div
             onClick={() => fileInputRef.current?.click()}
-            className="border-2 border-dashed border-slate-300 hover:border-orange-500 rounded-xl p-6 text-center cursor-pointer transition-colors bg-slate-50/50 hover:bg-orange-50/30"
+            className="border-2 border-dashed border-white/80 hover:border-[#FF6B16] rounded-2xl p-6 text-center cursor-pointer transition-all glass-surface-secondary hover:bg-white/70 shadow-2xs"
           >
             <input
               type="file"
@@ -152,21 +152,23 @@ export const ThermalUploadModal: React.FC<ThermalUploadModalProps> = ({
               onChange={handleFileChange}
               className="hidden"
             />
-            <Upload className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-[#FF6B16] flex items-center justify-center mx-auto mb-3 border border-orange-500/20">
+              <Upload className="w-6 h-6" />
+            </div>
             {file ? (
-              <div className="flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-800">
-                <FileText className="w-4 h-4 text-orange-500" />
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-[#0B1739]">
+                <FileText className="w-4 h-4 text-[#FF6B16]" />
                 <span>{file.name}</span>
-                <span className="text-xs text-slate-500 font-normal">
+                <span className="text-[11px] text-[#61708A] font-normal">
                   ({(file.size / 1024).toFixed(1)} KB)
                 </span>
               </div>
             ) : (
               <div>
-                <p className="font-medium text-slate-700">Click to choose a CSV file</p>
-                <p className="text-[11px] text-slate-500 mt-1">
-                  Required columns: <code className="bg-slate-200 px-1 py-0.5 rounded">panel_id</code>,{' '}
-                  <code className="bg-slate-200 px-1 py-0.5 rounded">surface_temp_c</code>
+                <p className="font-bold text-[#0B1739] text-xs">Click to choose a CSV file</p>
+                <p className="text-[11px] text-[#61708A] mt-1 font-mono">
+                  Required columns: <code className="bg-white/80 text-[#0B1739] px-1.5 py-0.5 rounded border border-white/80">panel_id</code>,{' '}
+                  <code className="bg-white/80 text-[#0B1739] px-1.5 py-0.5 rounded border border-white/80">surface_temp_c</code>
                 </p>
               </div>
             )}
@@ -177,44 +179,44 @@ export const ThermalUploadModal: React.FC<ThermalUploadModalProps> = ({
             <button
               type="button"
               onClick={handleDownloadSampleCsv}
-              className="text-[11px] text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1 underline underline-offset-2"
+              className="text-[11px] text-[#FF6B16] hover:text-[#EA580C] font-bold flex items-center gap-1.5 underline underline-offset-2 transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download sample CSV template</span>
             </button>
-            <span className="text-[10px] text-slate-400">Max file size: 5 MB</span>
+            <span className="text-[10px] text-[#61708A] font-medium">Max file size: 5 MB</span>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-red-700 flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="rounded-2xl bg-red-50/80 border border-red-200/80 p-4 text-red-800 flex items-start gap-2 shadow-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Success Message */}
           {successCount !== null && (
-            <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-emerald-800 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>Successfully ingested {successCount} calibrated panel temperature readings!</span>
+            <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-emerald-800 flex items-center gap-2 shadow-xs">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#16A34A]" />
+              <span className="font-bold">Successfully ingested {successCount} calibrated panel temperature readings!</span>
             </div>
           )}
 
           {/* Footer Actions */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <div className="pt-4 border-t border-slate-200/50 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
               disabled={loading}
-              className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-100 font-medium transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-white/80 bg-white/60 text-[#0B1739] hover:bg-white/80 font-bold transition-all text-xs"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !file}
-              className="px-5 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white font-semibold transition-colors shadow-sm flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-xl bg-[#FF6B16] hover:bg-[#EA580C] disabled:opacity-50 text-white font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2 text-xs"
             >
               {loading ? (
                 <span>Ingesting...</span>

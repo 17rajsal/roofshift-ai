@@ -30,10 +30,10 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ onRequestDemo }) => {
 
   return (
     <header
-      className={`sticky top-0 z-50 w-full transition-all duration-200 ${
+      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
         isScrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-xs border-b border-[#E8EDF4]'
-          : 'bg-white border-b border-[#E8EDF4]/60'
+          ? 'bg-white/75 backdrop-blur-2xl shadow-xs border-b border-white/80'
+          : 'bg-white/60 backdrop-blur-xl border-b border-white/60'
       }`}
     >
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -83,21 +83,21 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ onRequestDemo }) => {
         <div className="hidden md:flex items-center gap-3">
           <button
             onClick={onRequestDemo}
-            className="px-5 py-2.5 rounded-lg bg-[#FF6B16] hover:bg-[#EA580C] text-white font-semibold text-sm transition-all shadow-xs hover:shadow hover:-translate-y-0.5 cursor-pointer"
+            className="glass-button-primary px-5 py-2.5 text-sm cursor-pointer shadow-md"
           >
             Request Demo
           </button>
 
           <button
             onClick={() => navigate('/optimize')}
-            className="px-5 py-2.5 rounded-lg border border-[#E8EDF4] hover:border-slate-300 hover:bg-slate-50 text-[#0B1739] font-semibold text-sm transition-colors cursor-pointer flex items-center gap-1.5"
+            className="glass-button-secondary px-5 py-2.5 text-sm cursor-pointer shadow-xs"
           >
             <span>Sign In</span>
           </button>
 
           <button
             onClick={() => navigate('/map')}
-            className="ml-1 p-2.5 rounded-lg text-slate-500 hover:text-[#0B1739] hover:bg-slate-100 transition-colors cursor-pointer"
+            className="ml-1 p-2.5 rounded-xl bg-white/70 hover:bg-white text-[#61708A] hover:text-[#FF6B16] border border-white/80 transition-all cursor-pointer shadow-2xs"
             title="Open Full Workspace"
           >
             <LayoutDashboard className="w-4 h-4" />

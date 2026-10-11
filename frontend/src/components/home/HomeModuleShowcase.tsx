@@ -29,52 +29,52 @@ export const HomeModuleShowcase: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
 
         {/* Card A: Budget Optimization */}
-        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-[#E8EDF4] shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+        <div className="glass-panel glass-panel-hover rounded-3xl p-6 sm:p-7 border border-white/85 shadow-lg flex flex-col justify-between group">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 text-[#FF6B16] flex items-center justify-center">
+              <div className="w-11 h-11 rounded-2xl bg-orange-500/15 text-[#FF6B16] flex items-center justify-center shadow-2xs border border-white/70">
                 <Layers className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-bold text-[#0B1739]">Budget Optimization</h3>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
-              Compare supplied capacity choices and modeled energy values under a stated budget. Savings and payback depend on your inputs.
+            <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5 font-normal">
+              Compare discrete capacities and modeled energy values under a stated budget. 0/1 Knapsack dynamic programming maximizes Capex returns.
             </p>
 
             <button
               onClick={() => navigate('/optimize')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E8EDF4] hover:border-[#FF6B16] text-xs font-bold text-[#0B1739] hover:text-[#FF6B16] transition-colors cursor-pointer mb-6"
+              className="glass-button-secondary px-4 py-2 text-xs mb-6 cursor-pointer"
             >
-              <span>Learn More</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Launch Optimizer</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#FF6B16]" />
             </button>
           </div>
 
           {/* Mini Interactive Preview Chart */}
-          <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100 mt-2">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-2.5">
+          <div className="glass-surface-secondary rounded-2xl p-4 border border-white/70 mt-2">
+            <div className="flex items-center justify-between text-xs font-semibold text-[#61708A] mb-3">
               <span>Capital Scenarios</span>
-              <span className="text-blue-600 font-bold">+26.3% lift</span>
+              <span className="text-[#FF6B16] font-bold">+26.3% lift</span>
             </div>
             {/* Visual Bars */}
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <div className="space-y-1">
-                <div className="flex justify-between text-[10px] text-slate-400">
+                <div className="flex justify-between text-[10px] text-[#61708A] font-medium">
                   <span>Greedy Baseline</span>
-                  <span>₹2.96L/yr</span>
+                  <span className="num-font font-bold">₹2.96L/yr</span>
                 </div>
-                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-slate-200/60 rounded-full overflow-hidden">
                   <div className="h-full bg-slate-400 rounded-full" style={{ width: '65%' }}></div>
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-medium text-[#0B1739]">
+                <div className="flex justify-between text-[10px] font-bold text-[#0B1739]">
                   <span>Knapsack Optimized</span>
-                  <span className="text-[#FF6B16] font-bold">₹3.74L/yr</span>
+                  <span className="text-[#FF6B16] font-extrabold num-font">₹3.74L/yr</span>
                 </div>
-                <div className="h-2.5 w-full bg-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-[#FF6B16] rounded-full" style={{ width: '92%' }}></div>
+                <div className="h-2.5 w-full bg-slate-200/60 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-[#FF6B16] to-[#F05A0B] rounded-full shadow-xs" style={{ width: '92%' }}></div>
                 </div>
               </div>
             </div>
@@ -82,35 +82,35 @@ export const HomeModuleShowcase: React.FC = () => {
         </div>
 
         {/* Card B: Performance Monitoring */}
-        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-[#E8EDF4] shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+        <div className="glass-panel glass-panel-hover rounded-3xl p-6 sm:p-7 border border-white/85 shadow-lg flex flex-col justify-between group">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#16A34A] flex items-center justify-center">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center shadow-2xs border border-white/70">
                 <Tv2 className="w-5 h-5" />
               </div>
               <h3 className="text-lg font-bold text-[#0B1739]">Performance Monitoring</h3>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
-              Compare uploaded readings with declared expected output and review performance evidence.
+            <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5 font-normal">
+              Compare uploaded telemetry with declared expected output and track inverter efficiency and degradation profiles.
             </p>
 
             <button
-              onClick={() => navigate('/solar-features?feature=performance-monitoring')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E8EDF4] hover:border-[#16A34A] text-xs font-bold text-[#0B1739] hover:text-[#16A34A] transition-colors cursor-pointer mb-6"
+              onClick={() => navigate('/operations')}
+              className="glass-button-secondary px-4 py-2 text-xs mb-6 cursor-pointer"
             >
-              <span>Learn More</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Open Telemetry</span>
+              <ArrowRight className="w-3.5 h-3.5 text-emerald-600" />
             </button>
           </div>
 
           {/* Mini Interactive Preview Chart (Green Solar Curve) */}
-          <div className="bg-slate-50/80 rounded-xl p-4 border border-slate-100 mt-2">
+          <div className="glass-surface-secondary rounded-2xl p-4 border border-white/70 mt-2">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-slate-500">Illustrative Generation</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-[10px] font-bold text-[#16A34A]">
+              <span className="text-xs font-semibold text-[#61708A]">Diurnal Solar Curve</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-700 border border-emerald-500/25">
                 <TrendingUp className="w-3 h-3" />
-                428 kW
+                428 kW Peak
               </span>
             </div>
             {/* SVG Diurnal Curve */}
@@ -118,7 +118,7 @@ export const HomeModuleShowcase: React.FC = () => {
               <svg viewBox="0 0 200 60" className="w-full h-full overflow-visible">
                 <defs>
                   <linearGradient id="curveGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#16A34A" stopOpacity="0.3" />
+                    <stop offset="0%" stopColor="#16A34A" stopOpacity="0.35" />
                     <stop offset="100%" stopColor="#16A34A" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
@@ -135,39 +135,39 @@ export const HomeModuleShowcase: React.FC = () => {
                 <circle cx="100" cy="8" r="3.5" fill="#16A34A" />
               </svg>
             </div>
-            <div className="flex justify-between text-[9px] text-slate-400 mt-1 font-medium">
-              <span>6 AM</span>
-              <span>12 PM</span>
-              <span>6 PM</span>
+            <div className="flex justify-between text-[10px] text-[#61708A] mt-1 font-semibold">
+              <span>06:00</span>
+              <span>12:00</span>
+              <span>18:00</span>
             </div>
           </div>
         </div>
 
         {/* Card C: Panel Health / Fault Detection */}
-        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-[#E8EDF4] shadow-sm hover:shadow-md transition-all flex flex-col justify-between group">
+        <div className="glass-panel glass-panel-hover rounded-3xl p-6 sm:p-7 border border-white/85 shadow-lg flex flex-col justify-between group">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-2xl bg-rose-500/15 text-rose-600 flex items-center justify-center shadow-2xs border border-white/70">
                 <HeartPulse className="w-5 h-5" />
               </div>
-              <h3 className="text-lg font-bold text-[#0B1739]">Panel Health / Fault Detection</h3>
+              <h3 className="text-lg font-bold text-[#0B1739]">Thermal & Fault Detection</h3>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5">
-              Review rule-based fault findings from submitted measurements and inspection evidence.
+            <p className="text-xs sm:text-sm text-[#61708A] leading-relaxed mb-5 font-normal">
+              Detect module hot spots, diode failures, and string degradation early with our infrared thermal intelligence mapping.
             </p>
 
             <button
-              onClick={() => navigate('/solar-features?feature=panel-fault-detection')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E8EDF4] hover:border-rose-500 text-xs font-bold text-[#0B1739] hover:text-rose-500 transition-colors cursor-pointer mb-6"
+              onClick={() => navigate('/map')}
+              className="glass-button-secondary px-4 py-2 text-xs mb-6 cursor-pointer"
             >
-              <span>Learn More</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>View Thermal Map</span>
+              <ArrowRight className="w-3.5 h-3.5 text-rose-500" />
             </button>
           </div>
 
           {/* Mini Visual: Solar panel array with warning overlay */}
-          <div className="relative rounded-xl overflow-hidden border border-slate-100 aspect-[16/9] group-hover:scale-[1.01] transition-transform">
+          <div className="relative rounded-2xl overflow-hidden border border-white/80 aspect-[16/9] shadow-inner">
             <img
               src="/panel-inspection.jpg"
               alt="Rooftop solar panel diagnostic array"
@@ -177,9 +177,9 @@ export const HomeModuleShowcase: React.FC = () => {
             <div className="absolute inset-0 bg-rose-500/10 pointer-events-none" />
 
             {/* Warning pill badge */}
-            <div className="absolute bottom-2.5 right-2.5 bg-white/95 backdrop-blur-md px-2.5 py-1 rounded-md border border-rose-200 shadow-sm flex items-center gap-1.5 text-[10px] font-bold text-rose-600">
-              <AlertTriangle className="w-3 h-3 text-rose-500" />
-              <span>Performance Drop Detected</span>
+            <div className="absolute bottom-2.5 right-2.5 glass-elevated px-3 py-1 rounded-full border border-rose-200/80 shadow-md flex items-center gap-1.5 text-[10px] font-bold text-rose-700">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+              <span>Thermal Anomaly Detected</span>
             </div>
           </div>
         </div>

@@ -53,52 +53,58 @@ export const RecommendationsPage: React.FC = () => {
   const getPriorityBadge = (p: string) => {
     switch (p.toLowerCase()) {
       case 'high':
-        return 'bg-red-50 text-red-700 border-red-200/80';
+        return 'bg-red-500/10 text-red-700 border-red-500/20';
       case 'medium':
-        return 'bg-amber-50 text-amber-800 border-amber-200/80';
+        return 'bg-amber-500/10 text-amber-800 border-amber-500/20';
       default:
-        return 'bg-slate-100 text-slate-700 border-slate-200';
+        return 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20';
     }
   };
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-6 pb-16 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-slate-200 shadow-2xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-6 rounded-3xl shadow-sm">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-semibold text-slate-900 tracking-tight flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span>Decision Intelligence & Recommendations</span>
-            </h2>
-            <span className="text-[11px] font-medium px-2 py-0.5 rounded border bg-slate-100 text-slate-700 border-slate-200">
-              Deterministic Logic
-            </span>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-orange-500/10 text-[#FF6B16] border border-orange-500/20">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-xl font-black text-[#0B1739] tracking-tight">
+                  Decision Intelligence &amp; Recommendations
+                </h2>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 shadow-2xs">
+                  Deterministic Logic
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-[#61708A] mt-0.5">
+                Calculation-grounded advisory generated directly from knapsack solver outputs, irradiance geometry, and tariff models.
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Calculation-grounded advisory generated directly from knapsack solver outputs, irradiance geometry, and tariff models.
-          </p>
         </div>
 
         <button
           onClick={() => navigate('/reports')}
-          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-medium flex items-center gap-1.5 shadow-2xs transition-colors"
+          className="w-full sm:w-auto px-5 py-3 bg-[#FF6B16] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all"
         >
           <span>Generate Formal PDF Report</span>
-          <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+          <ArrowRight className="w-4 h-4 text-white" />
         </button>
       </div>
 
       {/* Category Filter Pills */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2.5">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1.5 rounded-md text-xs transition-colors ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               selectedCategory === cat
-                ? 'bg-slate-900 text-white font-medium shadow-2xs'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 font-normal'
+                ? 'bg-[#0B1739] text-white shadow-md'
+                : 'glass-panel text-[#61708A] hover:text-[#0B1739] hover:bg-white shadow-2xs'
             }`}
           >
             {cat}
@@ -107,59 +113,59 @@ export const RecommendationsPage: React.FC = () => {
       </div>
 
       {/* Recommendations Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {filtered.map((rec) => (
           <div
             key={rec.id}
-            className="bg-white rounded-lg border border-slate-200 p-5 shadow-2xs flex flex-col justify-between hover:border-slate-300 transition-colors space-y-3.5"
+            className="glass-panel p-6 rounded-3xl shadow-sm flex flex-col justify-between hover:scale-[1.01] transition-all space-y-4"
           >
             <div>
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <span className="text-[10px] font-mono font-medium uppercase tracking-wider bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider bg-white/80 text-[#0B1739] px-2.5 py-1 rounded-lg border border-white/80 shadow-2xs">
                   {rec.category}
                 </span>
-                <span className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded border ${getPriorityBadge(rec.priority)}`}>
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border shadow-2xs ${getPriorityBadge(rec.priority)}`}>
                   {rec.priority} Priority
                 </span>
               </div>
 
-              <h3 className="font-semibold text-sm text-slate-900 mb-0.5">{rec.title}</h3>
-              <div className="text-xs font-medium text-emerald-700 mb-2 font-mono">
+              <h3 className="font-black text-base text-[#0B1739] mb-1 tracking-tight">{rec.title}</h3>
+              <div className="text-xs font-bold text-[#16A34A] mb-2.5 font-mono">
                 Target: {rec.target}
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed mb-3">
+              <p className="text-xs text-[#61708A] leading-relaxed mb-3.5">
                 {rec.why_it_matters}
               </p>
 
               {/* Supporting calculation */}
-              <div className="p-3 bg-slate-50 rounded border border-slate-150 text-xs space-y-1 mb-2">
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+              <div className="p-4 rounded-2xl glass-surface-secondary border border-white/60 text-xs space-y-1.5 mb-3 shadow-2xs">
+                <span className="text-[10px] font-bold text-[#0B1739] uppercase tracking-wider block">
                   Supporting Solver Proof:
                 </span>
-                <p className="text-slate-800 font-mono text-[11px] leading-relaxed">{rec.supporting_calculation}</p>
+                <p className="text-[#0B1739] font-mono text-[11px] leading-relaxed">{rec.supporting_calculation}</p>
               </div>
 
               {/* Benefit & Confidence */}
-              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-100 text-slate-600">
-                <span>Expected Yield: <strong className="text-emerald-700 font-mono">{rec.expected_benefit}</strong></span>
-                <span className="text-[10px] font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+              <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-200/50 text-[#61708A]">
+                <span>Expected Yield: <strong className="text-[#16A34A] font-black font-mono">{rec.expected_benefit}</strong></span>
+                <span className="text-[10px] font-bold bg-white/80 text-[#0B1739] px-2.5 py-1 rounded-lg border border-white/80 shadow-2xs">
                   {rec.confidence_label}
                 </span>
               </div>
             </div>
 
             {/* Suggested Action Footer */}
-            <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-slate-500 italic truncate max-w-[70%]">
+            <div className="pt-3 border-t border-slate-200/50 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-[#61708A] font-medium truncate max-w-[70%]">
                 Action: {rec.suggested_next_action}
               </span>
               <button
                 onClick={() => navigate('/reports')}
-                className="text-xs font-medium text-slate-900 hover:text-amber-700 flex items-center gap-1 transition-colors"
+                className="text-xs font-bold text-[#FF6B16] hover:text-[#EA580C] flex items-center gap-1 transition-colors"
               >
                 <span>Include in Report</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronRight className="w-4 h-4 text-[#FF6B16]" />
               </button>
             </div>
           </div>

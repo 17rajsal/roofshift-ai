@@ -350,7 +350,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
       <div className="absolute top-3 left-3 right-3 z-[400] flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         {/* Search Input */}
         <form onSubmit={handleSearch} className="pointer-events-auto relative w-full sm:w-64">
-          <div className="flex items-center bg-white/95 backdrop-blur-md rounded-lg shadow-md border border-slate-200/90 overflow-hidden">
+          <div className="flex items-center glass-elevated rounded-xl shadow-lg border border-white/80 overflow-hidden">
             <Search className="w-3.5 h-3.5 text-slate-400 ml-2.5" />
             <input
               type="text"
@@ -358,24 +358,24 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search campus or city..."
               aria-label="Search map location"
-              className="w-full px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
+              className="w-full px-2.5 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none bg-transparent font-medium"
             />
             <button
               type="submit"
               disabled={isSearching}
-              className="bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1.5 text-xs font-semibold transition-colors"
+              className="bg-[#0B1739] hover:bg-[#182B53] text-white px-3 py-1.5 text-xs font-semibold transition-colors"
             >
               {isSearching ? '...' : 'Go'}
             </button>
           </div>
           {searchError && (
-            <p role="alert" className="mt-1 rounded-md bg-white p-1.5 text-[11px] text-red-700 shadow border border-red-200">
+            <p role="alert" className="mt-1 rounded-xl glass-elevated p-2 text-[11px] text-red-700 shadow-md border border-red-200/80">
               {searchError}
             </p>
           )}
 
           {searchResults.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden z-50">
+            <div className="absolute top-full left-0 right-0 mt-1 glass-elevated border border-white/80 rounded-2xl shadow-2xl overflow-hidden z-50">
               {searchResults.map((r, idx) => (
                 <button
                   key={idx}
@@ -385,9 +385,9 @@ export const SolarMap: React.FC<SolarMapProps> = ({
                     setMapZoom(16);
                     setSearchResults([]);
                   }}
-                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 border-b border-slate-100 last:border-b-0 flex items-center justify-between"
+                  className="w-full text-left px-3.5 py-2 text-xs hover:bg-white/60 border-b border-slate-100/60 last:border-b-0 flex items-center justify-between"
                 >
-                  <span className="truncate text-slate-700">{r.display_name}</span>
+                  <span className="truncate text-slate-800 font-medium">{r.display_name}</span>
                   <span className="text-[10px] text-emerald-600 font-semibold">{r.source}</span>
                 </button>
               ))}
@@ -396,17 +396,17 @@ export const SolarMap: React.FC<SolarMapProps> = ({
         </form>
 
         {/* 4 Map Modes Segmented Switcher (Center-Right) */}
-        <div className="pointer-events-auto flex items-center bg-slate-900/90 backdrop-blur-md p-1 rounded-xl border border-slate-700 shadow-xl text-xs">
+        <div className="pointer-events-auto flex items-center bg-[#0B1739]/85 backdrop-blur-xl p-1.5 rounded-2xl border border-white/20 shadow-xl text-xs">
           <button
             type="button"
             onClick={() => {
               setLocalThermalMode('satellite');
               onThermalModeChange?.('satellite');
             }}
-            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all ${
               activeThermalMode === 'satellite'
                 ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-300 hover:text-white hover:bg-white/10'
             }`}
           >
             <Layers className="w-3.5 h-3.5" />
@@ -419,10 +419,10 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               setLocalThermalMode('potential');
               onThermalModeChange?.('potential');
             }}
-            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all ${
               activeThermalMode === 'potential'
                 ? 'bg-amber-500 text-white shadow-md'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-300 hover:text-white hover:bg-white/10'
             }`}
           >
             <Sun className="w-3.5 h-3.5" />
@@ -435,10 +435,10 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               setLocalThermalMode('thermal');
               onThermalModeChange?.('thermal');
             }}
-            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all ${
               activeThermalMode === 'thermal'
-                ? 'bg-orange-600 text-white shadow-md'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                ? 'bg-[#FF6B16] text-white shadow-md shadow-orange-500/25'
+                : 'text-slate-300 hover:text-white hover:bg-white/10'
             }`}
           >
             <Flame className="w-3.5 h-3.5" />
@@ -451,10 +451,10 @@ export const SolarMap: React.FC<SolarMapProps> = ({
               setLocalThermalMode('health');
               onThermalModeChange?.('health');
             }}
-            className={`px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 transition-all ${
               activeThermalMode === 'health'
                 ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                : 'text-slate-300 hover:text-white hover:bg-white/10'
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
@@ -463,7 +463,7 @@ export const SolarMap: React.FC<SolarMapProps> = ({
         </div>
 
         {/* Quick Toolbar: Tiles, Opacity, Drawing */}
-        <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl shadow-md border border-slate-200/90 text-xs">
+        <div className="pointer-events-auto flex flex-wrap items-center gap-2 glass-elevated px-3 py-1.5 rounded-2xl shadow-xl border border-white/80 text-xs">
           {/* Base Tile Layer Switcher */}
           <div className="flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
             <button

@@ -77,7 +77,7 @@ export const SolarMapLegend: React.FC<SolarMapLegendProps> = ({ mode, tierCounts
   const tiers = getLegendTiers();
 
   return (
-    <div className="bg-white/95 backdrop-blur-md rounded-xl border border-slate-200/90 shadow-md p-2.5 text-xs select-none max-w-xs transition-all">
+    <div className="glass-elevated rounded-2xl border border-white/80 shadow-xl p-3 text-xs select-none max-w-xs transition-all">
       <div
         className="flex items-center justify-between gap-3 cursor-pointer"
         onClick={() => setCollapsed(!collapsed)}
