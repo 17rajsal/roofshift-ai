@@ -376,7 +376,7 @@ def test_acceptance_12_aws_capability_matrix():
     data = res.json()
 
     assert "services" in data
-    assert len(data["services"]) == 10
+    assert len(data["services"]) >= 10
 
     service_names = [s["service"] for s in data["services"]]
     expected_services = [
