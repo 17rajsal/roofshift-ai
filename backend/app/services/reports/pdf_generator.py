@@ -18,6 +18,7 @@ from app.models.optimization import OptimizationRun
 from app.models.scheduling import EnergyActivity
 from app.models.report import GeneratedReport
 from app.models.feature import FeatureAssessment
+from app.models.inspection import PanelInspection
 from app.services.reports.feature_sections import append_feature_sections
 from app.core.config import settings
 from app.schemas.scheduling import SchedulingOptimizationResponse
@@ -406,6 +407,55 @@ def generate_project_pdf_report(
     ]
     for n in notes_list:
         story.append(Paragraph(f"• {n}", style_body))
+
+    # ================= 7. SOLAR THERMAL INTELLIGENCE & HOTSPOT DIAGNOSTICS =================
+    b_ids = [b.id for b in buildings]
+    thermal_inspections = db.query(PanelInspection).filter(
+        PanelInspection.building_id.in_(b_ids)
+    ).order_by(PanelInspection.created_at.desc()).all() if b_ids else []
+
+    story.append(Spacer(1, 12))
+    story.append(Paragraph("7. Solar Thermal Intelligence & Hotspot Inspection Summary", style_h1))
+    if thermal_inspections:
+        story.append(Paragraph(
+            "The following module-level thermal defects and hotspot anomalies were recorded during calibrated field thermography surveys. "
+            "Surface temperature elevations (&Delta;T) are measured relative to nominal operating cell temperature (NOCT) baseline under IEC 62446-3.",
+            style_body
+        ))
+        th_data = [
+            ["Module ID / File", "Defect Type", "Severity", "ΔT (°C)", "Est. Loss", "Recommended Field Action"]
+        ]
+        for ti in thermal_inspections[:10]:
+            delta_str = f"+{ti.temperature_delta_c:.1f} °C" if ti.temperature_delta_c is not None else "N/A"
+            loss_str = f"{ti.estimated_power_loss_pct:.1f}%"
+            th_data.append([
+                Paragraph(escape(ti.filename[:20]), style_body),
+                escape(ti.defect_type),
+                escape(ti.severity),
+                delta_str,
+                loss_str,
+                Paragraph(escape(ti.recommended_action[:90]), style_body)
+            ])
+
+        t_therm = Table(th_data, colWidths=[90, 70, 55, 55, 55, 179], repeatRows=1)
+        t_therm.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), c_forest),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, c_light]),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+            ('TOPPADDING', (0, 0), (-1, -1), 3),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+        ]))
+        story.append(t_therm)
+    else:
+        story.append(Paragraph(
+            "<b>Field Thermal Status:</b> No physical or radiometric drone thermography inspection logs have been registered for this installation. "
+            "In accordance with engineering guidelines, illustrative simulation datasets are excluded from formal engineering investment reports. "
+            "Baseline thermal calculations apply standard crystalline-silicon temperature derate coefficients (-0.4%/°C above 25°C STC).",
+            style_body
+        ))
 
     if include_features:
         assessments = db.query(FeatureAssessment).filter(FeatureAssessment.project_id == project_id).order_by(FeatureAssessment.created_at.desc(), FeatureAssessment.id.desc()).all()

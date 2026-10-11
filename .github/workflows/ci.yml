@@ -1,5 +1,8 @@
 name: RoofShift AI CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:

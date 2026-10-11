@@ -100,6 +100,11 @@ def delete_project(project_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
     if p.name == "QA Campus":
         raise HTTPException(status_code=401, detail="Authentication required to delete shared projects.")
+    if p.is_demo == "true" or p.name == "IIT Delhi Hauz Khas Campus":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Protected institutional demo campus cannot be deleted in public demo mode."
+        )
     db.delete(p)
     db.commit()
     return None

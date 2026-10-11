@@ -14,7 +14,11 @@ import {
   PanelInspectionResponse,
   DefectSummaryResponse,
   SolarMonitoringResponse,
-  MaintenanceCaseResponse
+  MaintenanceCaseResponse,
+  SolarMLForecastRequest,
+  SolarMLForecastResponse,
+  SolarMLDiurnalRequest,
+  SolarMLDiurnalResponse
 } from '../types/models';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
@@ -300,5 +304,60 @@ export const api = {
 
   async deleteMaintenanceCase(caseId: string): Promise<void> {
     return fetchJson<void>(`/maintenance-cases/${caseId}`, { method: 'DELETE' });
+  },
+
+  // Thermal Intelligence & Hotspot Diagnostics
+  async getThermalSummary(projectId: string): Promise<any> {
+    return fetchJson<any>(`/projects/${projectId}/thermal-summary`);
+  },
+
+  async uploadThermalCsv(projectId: string, file: File, buildingId?: string, baselineTempC: number = 42.0): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const query = new URLSearchParams();
+    if (buildingId) query.set('building_id', buildingId);
+    query.set('baseline_temp_c', String(baselineTempC));
+    const res = await fetch(`${API_BASE}/projects/${projectId}/thermal-upload-csv?${query.toString()}`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      throw await responseError(res);
+    }
+    return res.json();
+  },
+
+  async createThermalMaintenanceTicket(projectId: string, data: {
+    panel_id: string;
+    building_id?: string;
+    surface_temp_c: number;
+    delta_temp_c: number;
+    suspected_cause: string;
+    priority?: string;
+    notes?: string;
+  }): Promise<any> {
+    return fetchJson<any>(`/projects/${projectId}/thermal-maintenance-ticket`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Machine Learning Solar Forecasting
+  async getSolarMLForecast(data: SolarMLForecastRequest): Promise<SolarMLForecastResponse> {
+    return fetchJson<SolarMLForecastResponse>('/solar-ml/forecast', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getSolarMLDiurnalForecast(data: SolarMLDiurnalRequest): Promise<SolarMLDiurnalResponse> {
+    return fetchJson<SolarMLDiurnalResponse>('/solar-ml/diurnal-forecast', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getSolarMLModelInfo(): Promise<any> {
+    return fetchJson<any>('/solar-ml/model-info');
   }
 };

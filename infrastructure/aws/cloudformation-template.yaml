@@ -94,11 +94,15 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
-  RoofShiftInstance:
+  RoofShiftWebServer:
     Type: AWS::EC2::Instance
     DependsOn:
       - PublicRoute
@@ -116,6 +120,7 @@ Resources:
           Ebs:
             VolumeSize: 30
             VolumeType: gp3
+            Encrypted: true
             DeleteOnTermination: true
       Tags:
         - Key: Name
@@ -125,23 +130,45 @@ Resources:
           #!/bin/bash
           set -euo pipefail
           exec > >(tee /var/log/roofshift-bootstrap.log) 2>&1
-          dnf install -y docker git curl
+          # Enable 2GB swap space for t3.micro memory safety during Docker build
+          dd if=/dev/zero of=/swapfile bs=128M count=16
+          chmod 600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
+          echo '/swapfile swap swap defaults 0 0' >> /etc/fstab
+          dnf install -y docker git
           systemctl enable --now docker
-          mkdir -p /usr/local/lib/docker/cli-plugins
-          curl -fSL --retry 3 https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+          mkdir -p /usr/local/lib/docker/cli-plugins /usr/local/bin /usr/libexec/docker/cli-plugins
+          curl -fSL --retry 5 https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
           chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+          cp /usr/local/lib/docker/cli-plugins/docker-compose /usr/libexec/docker/cli-plugins/docker-compose
+          ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+          ln -sf /usr/local/lib/docker/cli-plugins/docker-compose /usr/bin/docker-compose
+          curl -fSL --retry 5 https://github.com/docker/buildx/releases/download/v0.38.0/buildx-v0.38.0.linux-amd64 -o /usr/local/lib/docker/cli-plugins/docker-buildx
+          chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+          cp /usr/local/lib/docker/cli-plugins/docker-buildx /usr/libexec/docker/cli-plugins/docker-buildx
+          ln -sf /usr/local/lib/docker/cli-plugins/docker-buildx /usr/local/bin/docker-buildx
+          ln -sf /usr/local/lib/docker/cli-plugins/docker-buildx /usr/bin/docker-buildx
           git clone --depth 1 --branch '${RepositoryRef}' '${RepositoryUrl}' /opt/roofshift-ai
           cd /opt/roofshift-ai
-          docker compose up -d --build --wait --wait-timeout 300
-          curl -fsS --retry 10 --retry-delay 5 --retry-connrefused http://localhost/api/v1/health
+          docker compose up -d --build
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost/api/v1/health >/dev/null 2>&1; then
+              echo "RoofShift AI is healthy and operational!"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Healthcheck timeout after 300s"
+          exit 1
 
 Outputs:
   PublicIP:
     Description: 'Public IP address of the RoofShift AI server'
-    Value: !GetAtt RoofShiftInstance.PublicIp
+    Value: !GetAtt RoofShiftWebServer.PublicIp
   AppURL:
     Description: 'URL of the RoofShift AI Web Application'
-    Value: !Sub 'http://${RoofShiftInstance.PublicIp}'
+    Value: !Sub 'http://${RoofShiftWebServer.PublicIp}'
   ApiHealthURL:
     Description: 'Backend health through the frontend proxy'
-    Value: !Sub 'http://${RoofShiftInstance.PublicIp}/api/v1/health'
+    Value: !Sub 'http://${RoofShiftWebServer.PublicIp}/api/v1/health'

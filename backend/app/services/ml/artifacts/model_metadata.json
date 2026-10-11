@@ -1,0 +1,97 @@
+{
+  "model_name": "RoofShift Solar Forecaster",
+  "model_version": "1.0.0",
+  "champion_algorithm": "XGBoost_Regressor",
+  "artifact_file": "solar_xgboost_v1.joblib",
+  "training_timestamp_utc": "2026-10-11T03:30:19.312939+00:00",
+  "dataset_provenance": {
+    "name": "Gandikota Solar Power Plant 1 Operational Dataset",
+    "region": "Andhra Pradesh, India",
+    "date_range": "2020-05-15 to 2020-06-17",
+    "resolution": "15-minute intervals",
+    "total_intervals": 3157,
+    "license": "Public Domain / Open Research (CC0)",
+    "monitored_capacity_kw": 29150.21
+  },
+  "split_configuration": {
+    "train_samples": 2209,
+    "train_date_range": [
+      "2020-05-15 00:00:00",
+      "2020-06-08 02:15:00"
+    ],
+    "val_samples": 474,
+    "val_date_range": [
+      "2020-06-08 02:30:00",
+      "2020-06-13 00:45:00"
+    ],
+    "test_samples": 474,
+    "test_date_range": [
+      "2020-06-13 01:00:00",
+      "2020-06-17 23:45:00"
+    ],
+    "methodology": "Chronological (Zero Future Leakage)"
+  },
+  "feature_schema": {
+    "inputs": [
+      "IRRADIATION",
+      "AMBIENT_TEMPERATURE",
+      "MODULE_TEMPERATURE",
+      "temp_diff",
+      "hour",
+      "hour_sin",
+      "hour_cos",
+      "irrad_sq",
+      "irrad_temp_interaction"
+    ],
+    "target": "specific_power (kW_actual / kWp_rated)",
+    "output_range": "[0.0, 1.0]"
+  },
+  "evaluation_on_held_out_test_data": {
+    "physics_baseline_iec61724": {
+      "mae": 0.06855,
+      "rmse": 0.11243,
+      "r2_score": 0.84116,
+      "nmae_pct": 31.34
+    },
+    "candidate_models": {
+      "Ridge_Regression": {
+        "mae": 0.02634,
+        "rmse": 0.03948,
+        "r2_score": 0.98042,
+        "nmae_pct": 12.04,
+        "mae_improvement_over_physics_pct": 61.58,
+        "rmse_improvement_over_physics_pct": 64.89
+      },
+      "Random_Forest": {
+        "mae": 0.0087,
+        "rmse": 0.01847,
+        "r2_score": 0.99571,
+        "nmae_pct": 3.98,
+        "mae_improvement_over_physics_pct": 87.32,
+        "rmse_improvement_over_physics_pct": 83.57
+      },
+      "XGBoost_Regressor": {
+        "mae": 0.00883,
+        "rmse": 0.01737,
+        "r2_score": 0.99621,
+        "nmae_pct": 4.04,
+        "mae_improvement_over_physics_pct": 87.12,
+        "rmse_improvement_over_physics_pct": 84.55
+      }
+    },
+    "champion_test_metrics": {
+      "mae": 0.00883,
+      "rmse": 0.01737,
+      "r2_score": 0.99621,
+      "nmae_pct": 4.04,
+      "mae_improvement_over_physics_pct": 87.12,
+      "rmse_improvement_over_physics_pct": 84.55
+    },
+    "empirical_95_percent_error_margin": 0.03366
+  },
+  "reproducibility": {
+    "training_script": "ml/train_solar_forecast.py",
+    "download_script": "ml/download_data.py",
+    "command": "python ml/train_solar_forecast.py"
+  }
+}

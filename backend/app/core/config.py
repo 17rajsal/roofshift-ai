@@ -11,6 +11,12 @@ class Settings(BaseModel):
     VERSION: str = "2.0.0"
     API_V1_STR: str = "/api/v1"
     APP_ENV: str = os.getenv("APP_ENV", "development")
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "development"))
+    TRUSTED_PROXIES: List[str] = [
+        p.strip() for p in os.getenv("TRUSTED_PROXIES", "127.0.0.1,::1,localhost,testclient,testserver").split(",") if p.strip()
+    ]
+    RATE_LIMIT_ENABLED: bool = os.getenv("RATE_LIMIT_ENABLED", "true").lower() in ("true", "1", "yes")
+    MAX_REQUEST_SIZE_BYTES: int = int(os.getenv("MAX_REQUEST_SIZE_BYTES", str(15 * 1024 * 1024)))
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./roofshift.db")
@@ -23,6 +29,8 @@ class Settings(BaseModel):
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8000",
+    ] if not os.getenv("BACKEND_CORS_ORIGINS") else [
+        o.strip() for o in os.getenv("BACKEND_CORS_ORIGINS", "").split(",") if o.strip()
     ]
     
     # NASA POWER API

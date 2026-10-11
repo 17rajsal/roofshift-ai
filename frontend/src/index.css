@@ -5,35 +5,31 @@
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Menlo, monospace;
 
-  /* Surfaces & Neutrals */
-  --surface-bg: #F8FAFC;
-  --surface-card: #FFFFFF;
-  --surface-muted: #F1F5F9;
-  --border-default: #E2E8F0;
-  --border-subtle: #F1F5F9;
+  /* Glassmorphism Color Palette */
+  --color-solar-orange: #FF6B16;
+  --color-orange-hover: #F05A0B;
+  --color-deep-navy: #0B1739;
+  --color-text-secondary: #61708A;
+  --color-bg-white: #F8FBFF;
+  --color-soft-blue: #EAF3FF;
+  --color-mint-green: #E9F8F0;
+  --color-success-green: #16A34A;
 
-  /* Typography Colors */
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
+  /* Surface Tokens */
+  --surface-bg: #F8FBFF;
+  --surface-glass-primary: rgba(255, 255, 255, 0.72);
+  --surface-glass-secondary: rgba(255, 255, 255, 0.50);
+  --surface-glass-elevated: rgba(255, 255, 255, 0.88);
+  --surface-glass-border: rgba(255, 255, 255, 0.75);
+  --surface-glass-border-subtle: rgba(255, 255, 255, 0.55);
 
-  /* Intentional Brand Tokens */
-  --accent-solar: #D97706; /* Solar Amber/Ochre */
-  --accent-solar-hover: #B45309;
-  --accent-solar-subtle: #FEF3C7;
-  --accent-pine: #059669; /* Clean Energy Emerald */
-  --accent-pine-hover: #047857;
-  --accent-pine-subtle: #ECFDF5;
-
-  /* Sidebar Tokens */
-  --nav-bg: #0F172A; /* Crisp deep charcoal slate-900 */
-  --nav-surface: #1E293B;
-  --nav-border: #334155;
-  --nav-text: #F8FAFC;
-  --nav-text-muted: #94A3B8;
+  /* Shadows */
+  --shadow-glass: 0 12px 36px rgba(24, 45, 80, 0.07);
+  --shadow-glass-elevated: 0 20px 50px rgba(11, 23, 57, 0.12);
+  --shadow-orange-glow: 0 4px 18px rgba(255, 107, 22, 0.35);
 
   font-family: var(--font-sans);
-  color: var(--text-primary);
+  color: var(--color-deep-navy);
   background-color: var(--surface-bg);
 }
 
@@ -46,7 +42,13 @@ body {
   padding: 0;
   min-height: 100vh;
   background-color: var(--surface-bg);
-  color: var(--text-primary);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(234, 243, 255, 0.8) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(255, 245, 235, 0.6) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(233, 248, 240, 0.6) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(240, 246, 255, 0.7) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--color-deep-navy);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -56,6 +58,113 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* Glassmorphism Surface Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 12px 36px rgba(24, 45, 80, 0.07);
+  border-radius: 1.25rem;
+}
+
+.glass-panel-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 18px 42px rgba(24, 45, 80, 0.11);
+  border-color: rgba(255, 255, 255, 0.95);
+}
+
+.glass-surface-secondary {
+  background: rgba(255, 255, 255, 0.50);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.60);
+  border-radius: 1rem;
+}
+
+.glass-elevated {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 20px 50px rgba(11, 23, 57, 0.12);
+  border-radius: 1.5rem;
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(203, 213, 225, 0.80);
+  border-radius: 0.75rem;
+  color: var(--color-deep-navy);
+  transition: all 0.2s ease;
+}
+.glass-input:focus {
+  outline: none;
+  border-color: var(--color-solar-orange);
+  box-shadow: 0 0 0 3px rgba(255, 107, 22, 0.15);
+  background: #ffffff;
+}
+
+.glass-button-primary {
+  background: linear-gradient(135deg, #FF6B16 0%, #F05A0B 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(255, 107, 22, 0.32);
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-button-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 22px rgba(255, 107, 22, 0.44);
+  background: linear-gradient(135deg, #FF7626 0%, #F05A0B 100%);
+}
+.glass-button-primary:active {
+  transform: translateY(0);
+}
+
+.glass-button-secondary {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(203, 213, 225, 0.70);
+  color: var(--color-deep-navy);
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.glass-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(148, 163, 184, 0.8);
+  box-shadow: 0 4px 14px rgba(24, 45, 80, 0.05);
+}
+
+.glass-badge {
+  background: rgba(255, 255, 255, 0.70);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(24, 45, 80, 0.04);
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+  }
+  .glass-surface-secondary {
+    background: rgba(255, 255, 255, 0.92);
+  }
+  .glass-elevated {
+    background: #ffffff;
+  }
 }
 
 /* Tabular numbers for numerical accuracy */
@@ -71,25 +180,25 @@ body {
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: rgba(241, 245, 249, 0.6);
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
-  border-radius: 4px;
+  background: rgba(203, 213, 225, 0.8);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: rgba(148, 163, 184, 0.9);
 }
 
 /* Leaflet map overrides */
 .leaflet-container {
   width: 100%;
   height: 100%;
-  border-radius: 0.5rem;
+  border-radius: 1.25rem;
   z-index: 10;
   font-family: var(--font-sans);
 }

@@ -392,3 +392,60 @@ export interface MaintenanceCaseResponse {
   created_at: string;
   resolved_at?: string;
 }
+
+export interface SolarMLForecastRequest {
+  capacity_kwp: number;
+  irradiance_w_per_m2: number;
+  ambient_temperature_c: number;
+  cell_temperature_c?: number;
+  hour_of_day: number;
+}
+
+export interface SolarMLForecastResponse {
+  capacity_kwp: number;
+  irradiance_w_per_m2: number;
+  ambient_temperature_c: number;
+  cell_temperature_c: number;
+  hour_of_day: number;
+  ml_predicted_power_kw: number;
+  physics_baseline_kw: number;
+  delta_kw: number;
+  confidence_lower_kw: number;
+  confidence_upper_kw: number;
+  model_name: string;
+  model_version: string;
+  model_algorithm: string;
+  model_status: string;
+  dataset_provenance: string;
+  test_r2_score: number;
+  test_nmae_pct: number;
+  prediction_timestamp_utc: string;
+}
+
+export interface SolarMLDiurnalRequest {
+  capacity_kwp: number;
+  peak_irradiance_w_m2: number;
+  ambient_temperature_c: number;
+}
+
+export interface DiurnalIntervalPrediction {
+  hour: number;
+  irradiance_w_per_m2: number;
+  ambient_temp_c: number;
+  ml_power_kw: number;
+  physics_power_kw: number;
+  delta_kw: number;
+  confidence_lower_kw: number;
+  confidence_upper_kw: number;
+}
+
+export interface SolarMLDiurnalResponse {
+  capacity_kwp: number;
+  peak_irradiance_w_m2: number;
+  intervals: DiurnalIntervalPrediction[];
+  total_daily_ml_kwh: number;
+  total_daily_physics_kwh: number;
+  energy_difference_pct: number;
+  model_version: string;
+  model_status: string;
+}

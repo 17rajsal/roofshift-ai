@@ -67,10 +67,10 @@ export const HomeRecommendations: React.FC = () => {
 
         <button
           onClick={() => navigate('/recommendations')}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#E8EDF4] hover:border-slate-300 bg-white text-xs font-bold text-[#0B1739] hover:text-[#FF6B16] transition-colors cursor-pointer self-start sm:self-auto shadow-2xs"
+          className="glass-button-secondary px-4 py-2 text-xs cursor-pointer self-start sm:self-auto shadow-2xs"
         >
           <span>View All</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <ArrowRight className="w-3.5 h-3.5 text-[#FF6B16]" />
         </button>
       </div>
 
@@ -83,7 +83,7 @@ export const HomeRecommendations: React.FC = () => {
               key={item.id}
               to={item.route}
               aria-label={`Open ${item.title}`}
-              className="bg-white rounded-2xl p-5 border border-[#E8EDF4] shadow-xs hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer flex flex-col justify-between group"
+              className="glass-panel glass-panel-hover p-6 rounded-3xl border border-white/85 shadow-sm cursor-pointer flex flex-col justify-between group"
             >
               <div>
                 <div className={`w-10 h-10 rounded-xl ${item.iconBg} flex items-center justify-center mb-4`}>
