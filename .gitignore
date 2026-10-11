@@ -81,3 +81,7 @@ pytest-cache-files-*/
 # Machine Learning Raw Datasets
 ml/data/
 *.csv.gz
+
+# Local Production Backups
+backups/
+

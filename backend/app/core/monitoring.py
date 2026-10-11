@@ -57,16 +57,38 @@ class CloudWatchMonitoringAdapter:
         if self.is_cloudwatch_active():
             try:
                 stream_name = getattr(settings, "CLOUDWATCH_LOG_STREAM", "api-stream")
-                self.cloudwatch_client.put_log_events(
-                    logGroupName=settings.CLOUDWATCH_LOG_GROUP,
-                    logStreamName=stream_name,
-                    logEvents=[
-                        {
-                            "timestamp": int(time.time() * 1000),
-                            "message": json.dumps(payload)
-                        }
-                    ]
-                )
+                try:
+                    self.cloudwatch_client.put_log_events(
+                        logGroupName=settings.CLOUDWATCH_LOG_GROUP,
+                        logStreamName=stream_name,
+                        logEvents=[
+                            {
+                                "timestamp": int(time.time() * 1000),
+                                "message": json.dumps(payload)
+                            }
+                        ]
+                    )
+                except Exception as inner_e:
+                    if "ResourceNotFoundException" in str(inner_e):
+                        try:
+                            self.cloudwatch_client.create_log_stream(
+                                logGroupName=settings.CLOUDWATCH_LOG_GROUP,
+                                logStreamName=stream_name
+                            )
+                        except Exception:
+                            pass
+                        self.cloudwatch_client.put_log_events(
+                            logGroupName=settings.CLOUDWATCH_LOG_GROUP,
+                            logStreamName=stream_name,
+                            logEvents=[
+                                {
+                                    "timestamp": int(time.time() * 1000),
+                                    "message": json.dumps(payload)
+                                }
+                            ]
+                        )
+                    else:
+                        raise inner_e
                 self._last_operation_timestamp = datetime.utcnow().isoformat()
                 self._last_operation_type = "PUT_LOG_EVENTS"
                 self._last_operation_success = True
