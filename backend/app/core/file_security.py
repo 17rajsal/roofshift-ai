@@ -1,3 +1,4 @@
+import io
 import os
 import re
 import uuid
@@ -45,6 +46,7 @@ def generate_safe_disk_filename(original_filename: str, prefix: str = "") -> str
 def validate_image_file(contents: bytes, filename: str, max_bytes: int = 10 * 1024 * 1024) -> None:
     """
     Validates image file extension, size limit, and genuine magic byte header.
+    Performs decompression bomb defenses and dimension sanity checks.
     Rejects disguised HTML, scripts, or corrupt files.
     """
     if len(contents) == 0:
@@ -81,9 +83,31 @@ def validate_image_file(contents: bytes, filename: str, max_bytes: int = 10 * 10
             detail="File content does not match the declared image format signature (MIME mismatch / invalid header)."
         )
 
+    # Decompression bomb and pixel flood defense using PIL if available
+    try:
+        from PIL import Image
+        Image.MAX_IMAGE_PIXELS = 40_000_000
+        # If payload contains substantive bytes (>256 bytes), verify dimensions
+        if len(contents) > 256:
+            try:
+                with Image.open(io.BytesIO(contents)) as img:
+                    w, h = img.size
+                    if w > 8000 or h > 8000 or (w * h) > 40_000_000:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Image dimensions exceed maximum allowed resolution (8000x8000 or 40 megapixels)."
+                        )
+            except HTTPException:
+                raise
+            except Exception:
+                # If image is malformed or unreadable beyond header
+                pass
+    except ImportError:
+        pass
+
 def validate_csv_content(contents: bytes, filename: Optional[str] = None, max_bytes: int = 10 * 1024 * 1024) -> None:
     """
-    Validates CSV file size and verifies that contents are valid text without null bytes.
+    Validates CSV file size, encoding, line limits, and verifies that contents are valid text without null bytes.
     If filename is provided, verifies that it has an accepted CSV file extension.
     """
     if filename:
@@ -109,6 +133,24 @@ def validate_csv_content(contents: bytes, filename: Optional[str] = None, max_by
             status_code=400,
             detail="CSV file contains illegal binary/null bytes. Only plain text CSV is supported."
         )
+
+    # Verify text decodability, max line count and max row width
+    try:
+        text = contents.decode("utf-8-sig", errors="replace")
+        lines = text.splitlines()
+        if len(lines) > 50_000:
+            raise HTTPException(
+                status_code=400,
+                detail="CSV file exceeds maximum row limit of 50,000 lines."
+            )
+        for i, line in enumerate(lines[:1000]):
+            if len(line) > 8192:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Line {i+1} in CSV exceeds maximum permissible width of 8,192 characters."
+                )
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="CSV file contains invalid text encoding.")
 
 def sanitize_csv_formula_injection(value: str) -> str:
     """

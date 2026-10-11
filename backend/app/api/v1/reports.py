@@ -87,8 +87,9 @@ def download_report(report_id: str, db: Session = Depends(get_db)):
                 Params={"Bucket": settings.S3_BUCKET_NAME, "Key": s3_key},
                 ExpiresIn=3600
             )
-            from fastapi.responses import RedirectResponse
-            return RedirectResponse(url=presigned_url)
+            if presigned_url and presigned_url.startswith("https://"):
+                from fastapi.responses import RedirectResponse
+                return RedirectResponse(url=presigned_url)
         except Exception:
             pass  # Fall through to local filesystem copy
 
