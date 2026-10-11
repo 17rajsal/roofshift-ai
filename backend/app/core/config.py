@@ -50,7 +50,7 @@ class Settings(BaseModel):
 
     # AWS Capability & Fallback Matrix Flags
     AWS_ENABLED: bool = os.getenv("AWS_ENABLED", "false").lower() in ("true", "1", "yes")
-    AWS_REGION: str = os.getenv("AWS_REGION", "ap-south-1")
+    AWS_REGION: str = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "ap-southeast-2"))
     
     STORAGE_PROVIDER: str = os.getenv("STORAGE_PROVIDER", "local") # "local" or "s3"
     S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "roofshift-reports-storage")

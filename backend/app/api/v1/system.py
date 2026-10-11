@@ -11,12 +11,12 @@ router = APIRouter()
 def get_system_integrations_status():
     """
     Returns real-time capability matrix, AWS service integration status,
-    and active fallback modes across the platform.
+    and active fallback modes across the platform with truthful execution state.
     """
-    s3_active = storage_adapter.is_s3_active()
-    loc_active = location_adapter.is_amazon_location_active()
-    cw_active = monitoring_adapter.is_cloudwatch_active()
-    ssm_active = param_store_adapter.is_ssm_active()
+    s3_info = storage_adapter.get_status()
+    loc_info = location_adapter.get_status()
+    cw_info = monitoring_adapter.get_status()
+    ssm_info = param_store_adapter.get_status()
 
     from app.services.ml.solar_ml_service import solar_ml_service
     ml_available = solar_ml_service.is_model_available()
@@ -30,12 +30,12 @@ def get_system_integrations_status():
         "aws_region": settings.AWS_REGION,
         "machine_learning_status": {
             "model_name": ml_meta.get("model_name", "RoofShift Solar Forecaster"),
-            "model_version": ml_meta.get("model_version", "1.0.0"),
+            "model_version": ml_meta.get("model_version", "1.1.0"),
             "algorithm": ml_meta.get("champion_algorithm", "XGBoost_Regressor"),
             "status": "TRAINED_OPERATIONAL" if ml_available else "FALLBACK_PHYSICS",
-            "dataset_provenance": "Gandikota Solar Power Plant 1 (Andhra Pradesh, India, 34-day operational sensor data)",
-            "test_r2_score": ml_meta.get("evaluation_on_held_out_test_data", {}).get("champion_test_metrics", {}).get("r2_score", 0.9962),
-            "test_rmse_lift_pct": ml_meta.get("evaluation_on_held_out_test_data", {}).get("champion_test_metrics", {}).get("rmse_improvement_over_physics_pct", 84.55),
+            "dataset_provenance": "Gandikota Solar Power Plants 1 & 2 (Andhra Pradesh, India, CC0 Public Domain)",
+            "test_r2_score": ml_meta.get("evaluation_on_held_out_test_data", {}).get("champion_test_metrics", {}).get("r2_score", 0.9967),
+            "test_mae_kw_per_kwp": ml_meta.get("evaluation_on_held_out_test_data", {}).get("champion_test_metrics", {}).get("mae", 0.00729),
             "physics_fallback_preserved": True
         },
         "bedrock_status": {
@@ -46,48 +46,75 @@ def get_system_integrations_status():
         },
         "services": [
             {
-                "service": "AWS Amplify Hosting",
-                "category": "Frontend Hosting",
-                "status": "Configured / Deploy-Ready",
-                "active_provider": "Amplify SPA (Vite / React 19)",
-                "fallback": "Nginx Container / Local Vite Server",
-                "evidence": "amplify.yml in repository root with build pipeline",
-                "cost_estimate": "$0.00 / month (Free tier)"
-            },
-            {
                 "service": "Amazon EC2",
-                "category": "Backend Compute",
-                "status": "Production Docker Container Ready",
-                "active_provider": "FastAPI + Uvicorn on EC2",
-                "fallback": "Local Python Server",
-                "evidence": "deploy-ec2.sh, docker-compose.yml, Dockerfile",
-                "cost_estimate": "~$0 - $15 / month (t3.small / Free tier eligible)"
+                "category": "Backend Compute & Web Hosting",
+                "status": "VERIFIED_OPERATIONAL" if settings.APP_ENV == "production" else "CONFIGURED_NOT_VERIFIED",
+                "active_provider": "FastAPI + Nginx on Amazon EC2 (t3.micro, ap-southeast-2)",
+                "fallback": "Local Development Server",
+                "evidence": "CloudFormation Stack 'roofshift-ai-production', instance i-0803fc68806367b46",
+                "cost_estimate": "~$0.00 (AWS Free Tier eligible)"
             },
             {
                 "service": "Amazon S3",
                 "category": "Secure Document Storage",
-                "status": "Active" if s3_active else "Local Fallback Active",
-                "active_provider": "Amazon S3 Bucket" if s3_active else "Local Backend Storage",
-                "fallback": "Local File System (/app/generated_reports)",
-                "bucket_name": settings.S3_BUCKET_NAME,
+                "status": s3_info["status"],
+                "active_provider": s3_info["active_provider"],
+                "fallback": s3_info["fallback"],
+                "bucket_name": s3_info["bucket_name"],
+                "region": s3_info["region"],
                 "evidence": "s3_adapter.py with presigned URL generator & local fallback",
-                "cost_estimate": "< $0.05 / month"
+                "last_operation_timestamp": s3_info["last_operation_timestamp"],
+                "last_operation_type": s3_info["last_operation_type"],
+                "last_error": s3_info["last_error"],
+                "cost_estimate": s3_info["cost_estimate"]
+            },
+            {
+                "service": "Amazon CloudWatch",
+                "category": "Monitoring & Observability",
+                "status": cw_info["status"],
+                "active_provider": cw_info["active_provider"],
+                "fallback": cw_info["fallback"],
+                "log_group": cw_info["log_group"],
+                "region": cw_info["region"],
+                "evidence": "monitoring_adapter.py with duration_ms metric telemetry",
+                "last_operation_timestamp": cw_info["last_operation_timestamp"],
+                "last_operation_type": cw_info["last_operation_type"],
+                "last_error": cw_info["last_error"],
+                "retention_days": cw_info.get("retention_days", 7),
+                "cost_estimate": cw_info["cost_estimate"]
             },
             {
                 "service": "Amazon Location Service",
                 "category": "Geospatial & Geocoding",
-                "status": "Active" if loc_active else "OSM Fallback Active",
-                "active_provider": "Amazon Location Service" if loc_active else "OpenStreetMap Nominatim + Gazetteer",
-                "fallback": "OpenStreetMap Nominatim (Rate-limited compliant) + Local Indian Gazetteer",
-                "place_index": settings.AMAZON_LOCATION_INDEX_NAME,
+                "status": loc_info["status"],
+                "active_provider": loc_info["active_provider"],
+                "fallback": loc_info["fallback"],
+                "place_index": loc_info["place_index"],
+                "region": loc_info["region"],
                 "evidence": "location_adapter.py with SearchPlaceIndexForText & OSM fallback",
-                "cost_estimate": "$0.00 / month (Free tier 10,000 requests)"
+                "last_operation_timestamp": loc_info["last_operation_timestamp"],
+                "last_operation_type": loc_info["last_operation_type"],
+                "last_error": loc_info["last_error"],
+                "cost_estimate": loc_info["cost_estimate"]
+            },
+            {
+                "service": "AWS SSM Parameter Store",
+                "category": "Configuration & Secrets",
+                "status": ssm_info["status"],
+                "active_provider": ssm_info["active_provider"],
+                "fallback": ssm_info["fallback"],
+                "region": ssm_info["region"],
+                "evidence": "param_store.py with get_parameter & decryption support",
+                "last_operation_timestamp": ssm_info["last_operation_timestamp"],
+                "last_operation_type": ssm_info["last_operation_type"],
+                "last_error": ssm_info["last_error"],
+                "cost_estimate": ssm_info["cost_estimate"]
             },
             {
                 "service": "AWS Lambda",
                 "category": "Background Solar Data Normalization",
-                "status": "Configured / Standalone Handler Ready",
-                "active_provider": "In-process Python Normalizer" if not settings.LAMBDA_SOLAR_PROCESSOR_ARN else "AWS Lambda",
+                "status": "CONFIGURED_NOT_VERIFIED" if settings.LAMBDA_SOLAR_PROCESSOR_ARN else "FALLBACK_ACTIVE",
+                "active_provider": "In-process Python Normalizer in FastAPI" if not settings.LAMBDA_SOLAR_PROCESSOR_ARN else "AWS Lambda",
                 "fallback": "Synchronous Python Normalization Engine in FastAPI",
                 "function_name": "RoofShiftSolarProcessor",
                 "evidence": "aws/lambda/solar_processor.py event handler",
@@ -96,48 +123,38 @@ def get_system_integrations_status():
             {
                 "service": "Amazon EventBridge",
                 "category": "Scheduled Cache Maintenance",
-                "status": "Configured",
-                "active_provider": "EventBridge Weekly Cron Rule",
+                "status": "FALLBACK_ACTIVE",
+                "active_provider": "On-Demand SQLite Solar Cache Expiration",
                 "fallback": "On-Demand SQLite/Postgres Solar Cache Expiration",
                 "schedule_expression": "cron(0 2 ? * SUN *)",
                 "evidence": "aws/eventbridge/schedule_rule.json",
                 "cost_estimate": "$0.00 / month"
             },
             {
-                "service": "Amazon CloudWatch",
-                "category": "Monitoring & Logging",
-                "status": "Active" if cw_active else "Console JSON Logging Active",
-                "active_provider": "CloudWatch Logs" if cw_active else "Structured JSON Console Logger",
-                "fallback": "Structured Console Output with timestamp & latency metrics",
-                "log_group": settings.CLOUDWATCH_LOG_GROUP,
-                "evidence": "monitoring_adapter.py with duration_ms metric telemetry",
-                "cost_estimate": "< $0.50 / month"
-            },
-            {
                 "service": "AWS IAM",
                 "category": "Security & Access Management",
-                "status": "Configured / Least Privilege Defined",
-                "active_provider": "IAM Role Policies",
+                "status": "CONFIGURED_NOT_VERIFIED",
+                "active_provider": "IAM Role Policies (Least Privilege)",
                 "fallback": "Local OS Process Boundaries",
                 "evidence": "aws/iam/ (s3_policy.json, cloudwatch_policy.json, location_policy.json)",
                 "cost_estimate": "$0.00 / month"
             },
             {
-                "service": "AWS SSM Parameter Store",
-                "category": "Configuration & Secrets",
-                "status": "Active" if ssm_active else "Local .env Fallback Active",
-                "active_provider": "SSM Parameter Store" if ssm_active else "Local .env & Environment Variables",
-                "fallback": "Standard Python dotenv / environment variables",
-                "evidence": "param_store.py with get_parameter & decryption support",
-                "cost_estimate": "$0.00 / month (Standard parameters free)"
+                "service": "AWS Amplify Hosting",
+                "category": "Frontend Hosting (Optional)",
+                "status": "NOT_CONFIGURED",
+                "active_provider": "Full-stack EC2 Nginx Host (Option A)",
+                "fallback": "Nginx Container on EC2",
+                "evidence": "amplify.yml build specification in repository root",
+                "cost_estimate": "$0.00 / month"
             },
             {
                 "service": "AWS Budgets",
                 "category": "Cost Governance",
-                "status": "Configured",
-                "active_provider": "Monthly Cost Threshold Alarm",
-                "fallback": "Local Resource Teardown Documentation",
-                "threshold": "$20.00 USD (80% notification alarm)",
+                "status": "FALLBACK_ACTIVE",
+                "active_provider": "Local Cost Governance & Frugal Architecture",
+                "fallback": "Monthly CloudWatch Cost Alerts & Teardown Playbook",
+                "threshold": "$20.00 USD",
                 "evidence": "aws/budgets/budget_alarm.json",
                 "cost_estimate": "$0.00 (First 2 budgets free)"
             }

@@ -32,6 +32,10 @@ class LocationProviderAdapter:
     """
     def __init__(self):
         self.location_client = None
+        self._last_operation_timestamp = None
+        self._last_operation_type = None
+        self._last_error = None
+        self._last_operation_success = None
         self._initialize_client()
 
     def _initialize_client(self):
@@ -42,13 +46,76 @@ class LocationProviderAdapter:
                     "location",
                     region_name=settings.AWS_REGION
                 )
-                logger.info(f"Initialized Amazon Location Service with index '{settings.AMAZON_LOCATION_INDEX_NAME}'")
+                logger.info(f"Initialized Amazon Location Service with index '{settings.AMAZON_LOCATION_INDEX_NAME}' in region '{settings.AWS_REGION}'")
             except Exception as e:
                 logger.warning(f"Could not initialize Amazon Location Service: {str(e)}. Using OSM fallback.")
                 self.location_client = None
+                self._last_error = str(e)
 
     def is_amazon_location_active(self) -> bool:
         return self.location_client is not None
+
+    def get_status(self) -> Dict[str, Any]:
+        """Returns truthful operational status and execution evidence."""
+        if not settings.AWS_ENABLED or settings.GEOCODING_PROVIDER != "amazon_location":
+            return {
+                "status": "FALLBACK_ACTIVE",
+                "active_provider": "OpenStreetMap Nominatim + Local Indian Gazetteer",
+                "fallback": "OpenStreetMap Nominatim (Rate-limited compliant)",
+                "place_index": settings.AMAZON_LOCATION_INDEX_NAME,
+                "region": settings.AWS_REGION,
+                "last_operation_timestamp": self._last_operation_timestamp,
+                "last_operation_type": self._last_operation_type,
+                "last_error": None,
+                "cost_estimate": "$0.00 / month (Free tier)"
+            }
+        if self.location_client is None:
+            return {
+                "status": "ERROR",
+                "active_provider": "OpenStreetMap Nominatim",
+                "fallback": "OpenStreetMap Nominatim",
+                "place_index": settings.AMAZON_LOCATION_INDEX_NAME,
+                "region": settings.AWS_REGION,
+                "last_operation_timestamp": self._last_operation_timestamp,
+                "last_operation_type": self._last_operation_type,
+                "last_error": self._last_error,
+                "cost_estimate": "$0.00 / month"
+            }
+        if self._last_operation_success is True:
+            return {
+                "status": "VERIFIED_OPERATIONAL",
+                "active_provider": "Amazon Location Service",
+                "fallback": "OpenStreetMap Nominatim",
+                "place_index": settings.AMAZON_LOCATION_INDEX_NAME,
+                "region": settings.AWS_REGION,
+                "last_operation_timestamp": self._last_operation_timestamp,
+                "last_operation_type": self._last_operation_type,
+                "last_error": None,
+                "cost_estimate": "$0.00 / month"
+            }
+        if self._last_operation_success is False:
+            return {
+                "status": "DEGRADED",
+                "active_provider": "OSM Nominatim (Amazon Location Fallback Active)",
+                "fallback": "OpenStreetMap Nominatim",
+                "place_index": settings.AMAZON_LOCATION_INDEX_NAME,
+                "region": settings.AWS_REGION,
+                "last_operation_timestamp": self._last_operation_timestamp,
+                "last_operation_type": self._last_operation_type,
+                "last_error": self._last_error,
+                "cost_estimate": "$0.00 / month"
+            }
+        return {
+            "status": "CONFIGURED_NOT_VERIFIED",
+            "active_provider": "Amazon Location Service (Awaiting First Query)",
+            "fallback": "OpenStreetMap Nominatim",
+            "place_index": settings.AMAZON_LOCATION_INDEX_NAME,
+            "region": settings.AWS_REGION,
+            "last_operation_timestamp": None,
+            "last_operation_type": None,
+            "last_error": None,
+            "cost_estimate": "$0.00 / month"
+        }
 
     async def search_places(self, query: str) -> List[Dict[str, Any]]:
         """
