@@ -2,6 +2,12 @@ import boto3
 import time
 import sys
 
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except Exception:
+    pass
+
 session = boto3.Session(profile_name='roofshift-ai', region_name='ap-southeast-2')
 ssm = session.client('ssm')
 instance_id = 'i-0803fc68806367b46'
@@ -35,7 +41,19 @@ def run_remote_commands(commands, timeout_sec=120):
     return False, "", "Timeout"
 
 if __name__ == '__main__':
-    cmds = sys.argv[1:] if len(sys.argv) > 1 else ['uptime']
-    success, out, err = run_remote_commands(cmds)
+    timeout = 300
+    cmds = []
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '--timeout' and i + 1 < len(sys.argv):
+            timeout = int(sys.argv[i+1])
+            i += 2
+        else:
+            cmds.append(sys.argv[i])
+            i += 1
+    if not cmds:
+        cmds = ['uptime']
+    success, out, err = run_remote_commands(cmds, timeout_sec=timeout)
     if not success:
         sys.exit(1)
+
