@@ -15,7 +15,8 @@ import {
   RefreshCw,
   X,
   ExternalLink,
-  SunMedium
+  SunMedium,
+  LayoutDashboard
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { formatINRShort } from '../../utils/formatters';
@@ -49,22 +50,65 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
   const navigationSections: NavSection[] = [
     {
-      title: 'Workspace',
+      title: 'Solar Intelligence',
       items: [
         {
-          name: 'Solar Explorer',
-          path: '/map',
+          name: 'Workspace Hub',
+          path: '/workspace',
+          icon: LayoutDashboard,
+          badge: 'Overview',
+          badgeVariant: 'orange'
+        },
+        {
+          name: 'Explore & Analyze',
+          path: '/workspace/explore',
           icon: Compass,
           badge: activeProject ? `${activeProject.building_count} roofs` : undefined,
           badgeVariant: 'neutral'
         },
         {
-          name: 'Building Analysis',
+          name: 'Plan & Optimize',
+          path: '/workspace/plan',
+          icon: SlidersHorizontal,
+          badge: 'Knapsack DP',
+          badgeVariant: 'orange'
+        },
+        {
+          name: 'Monitor & Maintain',
+          path: '/workspace/monitor',
+          icon: Activity,
+          badge: 'Telemetry',
+          badgeVariant: 'green'
+        },
+        {
+          name: 'Insights & Reports',
+          path: '/workspace/insights',
+          icon: FileCheck2,
+          badge: 'Executive',
+          badgeVariant: 'blue'
+        }
+      ]
+    },
+    {
+      title: 'Direct Tools',
+      items: [
+        {
+          name: 'Rooftop Map',
+          path: '/map',
+          icon: Compass
+        },
+        {
+          name: 'Building Catalog',
           path: '/buildings',
           icon: Building
         },
         {
-          name: 'Solar Capabilities',
+          name: 'Budget Optimizer',
+          path: '/optimize',
+          icon: SlidersHorizontal
+        },
+        {
+          name: '12-Feature Suite',
           path: '/solar-features',
           icon: SunMedium,
           badge: '12 Features',
@@ -73,56 +117,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       ]
     },
     {
-      title: 'Planning & Optimization',
+      title: 'Public Portal',
       items: [
         {
-          name: 'Energy Prediction',
-          path: '/insights',
-          icon: Activity
-        },
-        {
-          name: 'Budget Optimizer',
-          path: '/optimize',
-          icon: SlidersHorizontal,
-          badge: 'Knapsack DP',
-          badgeVariant: 'orange'
-        },
-        {
-          name: 'Smart Scheduling',
-          path: '/scheduling',
-          icon: CalendarClock
-        }
-      ]
-    },
-    {
-      title: 'Operations',
-      items: [
-        {
-          name: 'Solar Monitoring',
-          path: '/operations',
-          icon: Wrench,
-          badge: 'Telemetry',
-          badgeVariant: 'green'
-        },
-        {
-          name: 'Advisory Insights',
-          path: '/recommendations',
-          icon: Sparkles
-        }
-      ]
-    },
-    {
-      title: 'Intelligence & Reports',
-      items: [
-        {
-          name: 'Executive Reports',
-          path: '/reports',
-          icon: FileCheck2,
-          badge: 'PDF',
-          badgeVariant: 'blue'
-        },
-        {
-          name: 'Public SaaS Portal',
+          name: 'Landing Home',
           path: '/',
           icon: ExternalLink
         }

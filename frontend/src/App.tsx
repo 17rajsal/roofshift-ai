@@ -8,6 +8,12 @@ import { SlidersHorizontal } from 'lucide-react';
 
 // Pages
 const HomePage = lazy(() => import('./pages/HomePage').then(m => ({ default: m.HomePage })));
+const WorkspaceHub = lazy(() => import('./pages/WorkspaceHub').then(m => ({ default: m.WorkspaceHub })));
+const ExploreAnalyzeSection = lazy(() => import('./pages/ExploreAnalyzeSection').then(m => ({ default: m.ExploreAnalyzeSection })));
+const PlanOptimizeSection = lazy(() => import('./pages/PlanOptimizeSection').then(m => ({ default: m.PlanOptimizeSection })));
+const MonitorMaintainSection = lazy(() => import('./pages/MonitorMaintainSection').then(m => ({ default: m.MonitorMaintainSection })));
+const InsightsReportsSection = lazy(() => import('./pages/InsightsReportsSection').then(m => ({ default: m.InsightsReportsSection })));
+
 const SolarMapPage = lazy(() => import('./pages/SolarMapPage').then(m => ({ default: m.SolarMapPage })));
 const BuildingsPage = lazy(() => import('./pages/BuildingsPage').then(m => ({ default: m.BuildingsPage })));
 const OptimizerPage = lazy(() => import('./pages/OptimizerPage').then(m => ({ default: m.OptimizerPage })));
@@ -117,6 +123,14 @@ function ApplicationShell() {
               }
             >
               <Routes key={activeProject.id}>
+                {/* V8 Simplified 4-Section SaaS Workspace */}
+                <Route path="/workspace" element={<WorkspaceHub />} />
+                <Route path="/workspace/explore" element={<ExploreAnalyzeSection />} />
+                <Route path="/workspace/plan" element={<PlanOptimizeSection />} />
+                <Route path="/workspace/monitor" element={<MonitorMaintainSection />} />
+                <Route path="/workspace/insights" element={<InsightsReportsSection />} />
+
+                {/* Direct feature views maintained for seamless backward compatibility */}
                 <Route path="/map" element={<SolarMapPage />} />
                 <Route path="/buildings" element={<BuildingsPage />} />
                 <Route path="/optimize" element={<OptimizerPage />} />
@@ -126,7 +140,7 @@ function ApplicationShell() {
                 <Route path="/solar-features" element={<SolarFeaturesPage />} />
                 <Route path="/operations" element={<OperationsPage />} />
                 <Route path="/reports" element={<ReportPage />} />
-                <Route path="*" element={<Navigate to="/map" replace />} />
+                <Route path="*" element={<Navigate to="/workspace" replace />} />
               </Routes>
             </Suspense>
           )}

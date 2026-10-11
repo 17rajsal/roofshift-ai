@@ -449,3 +449,21 @@ export interface SolarMLDiurnalResponse {
   model_version: string;
   model_status: string;
 }
+
+export interface BulkImportRowError {
+  row_number?: number;
+  identifier?: string;
+  reason: string;
+}
+
+export interface BulkImportSummaryResponse {
+  total_processed: number;
+  imported: number;
+  updated: number;
+  failed: number;
+  errors: BulkImportRowError[];
+  total_buildings_in_project: number;
+  total_usable_area_sqm: number;
+  total_potential_kwp: number;
+  total_annual_generation_kwh: number;
+}

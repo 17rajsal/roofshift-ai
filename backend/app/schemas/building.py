@@ -135,3 +135,28 @@ class BuildingResponse(BuildingBase):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class BulkImportRowError(BaseModel):
+    row: Optional[int] = None
+    row_number: Optional[int] = None
+    building_name: Optional[str] = None
+    identifier: Optional[str] = None
+    error: Optional[str] = None
+    reason: Optional[str] = None
+
+class BulkImportSummaryResponse(BaseModel):
+    total_processed: int = 0
+    imported: int = 0
+    updated: int = 0
+    failed: int = 0
+    total_rows: int = 0
+    imported_count: int = 0
+    error_count: int = 0
+    errors: List[BulkImportRowError] = []
+    imported_buildings: List[BuildingResponse] = []
+    total_buildings_in_project: int = 0
+    total_usable_area_sqm: float = 0.0
+    total_potential_kwp: float = 0.0
+    total_annual_generation_kwh: float = 0.0
+    message: str = ""
+

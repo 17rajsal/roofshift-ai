@@ -27,6 +27,16 @@ export const TopNavbar: React.FC<{ onOpenNavigation: () => void }> = ({ onOpenNa
     switch (location.pathname) {
       case '/':
         return 'Portfolio Overview';
+      case '/workspace':
+        return 'Solar Intelligence Workspace';
+      case '/workspace/explore':
+        return 'Section 1 — Explore & Analyze';
+      case '/workspace/plan':
+        return 'Section 2 — Plan & Optimize';
+      case '/workspace/monitor':
+        return 'Section 3 — Monitor & Maintain';
+      case '/workspace/insights':
+        return 'Section 4 — Insights & Reports';
       case '/map':
         return 'Solar Explorer & Thermal Intelligence';
       case '/buildings':

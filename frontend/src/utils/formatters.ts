@@ -47,3 +47,9 @@ export function formatCO2(val?: number | null): string {
   }
   return `${Math.round(val).toLocaleString('en-IN')} kg CO₂`;
 }
+
+export function formatNumber(val?: number | null, decimals: number = 0): string {
+  if (val === undefined || val === null || isNaN(val)) return '0';
+  return Number(val.toFixed(decimals)).toLocaleString('en-IN');
+}
+

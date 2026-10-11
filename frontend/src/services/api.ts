@@ -18,7 +18,8 @@ import {
   SolarMLForecastRequest,
   SolarMLForecastResponse,
   SolarMLDiurnalRequest,
-  SolarMLDiurnalResponse
+  SolarMLDiurnalResponse,
+  BulkImportSummaryResponse
 } from '../types/models';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
@@ -97,8 +98,59 @@ export const api = {
   },
 
   // Buildings
-  async getBuildings(projectId: string): Promise<Building[]> {
-    return fetchJson<Building[]>(`/projects/${projectId}/buildings`);
+  async getBuildings(
+    projectId: string,
+    params?: { limit?: number; offset?: number; category?: string; search?: string }
+  ): Promise<Building[]> {
+    const query = new URLSearchParams();
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    if (params?.category) query.set('category', params.category);
+    if (params?.search) query.set('search', params.search);
+    const qs = query.toString();
+    return fetchJson<Building[]>(`/projects/${projectId}/buildings${qs ? `?${qs}` : ''}`);
+  },
+
+  async bulkImportBuildings(projectId: string, fileOrPayload: File | any): Promise<BulkImportSummaryResponse> {
+    if (fileOrPayload instanceof File) {
+      const formData = new FormData();
+      formData.append('file', fileOrPayload);
+      const res = await fetch(`${API_BASE}/projects/${projectId}/buildings/bulk-import`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        throw await responseError(res);
+      }
+      return res.json();
+    } else {
+      return fetchJson<BulkImportSummaryResponse>(`/projects/${projectId}/buildings/bulk-import`, {
+        method: 'POST',
+        body: JSON.stringify(fileOrPayload),
+      });
+    }
+  },
+
+  async recalculateProjectBuildings(projectId: string): Promise<{
+    project_id: string;
+    total_buildings: number;
+    recalculated: number;
+    failed: number;
+    total_usable_area_sqm: number;
+    total_potential_kwp: number;
+    total_annual_generation_kwh: number;
+  }> {
+    return fetchJson<{
+      project_id: string;
+      total_buildings: number;
+      recalculated: number;
+      failed: number;
+      total_usable_area_sqm: number;
+      total_potential_kwp: number;
+      total_annual_generation_kwh: number;
+    }>(`/projects/${projectId}/recalculate`, {
+      method: 'POST',
+    });
   },
 
   async getBuilding(buildingId: string): Promise<Building> {
