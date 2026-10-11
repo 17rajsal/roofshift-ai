@@ -33,15 +33,25 @@ def _annual(monthly):
     return sum(monthly[m] * days for m, days in zip(MONTH_KEYS, DAYS_IN_MONTH)) / 365
 
 
+class InsufficientSolarDataError(ValueError):
+    """Raised when authentic satellite solar data cannot be retrieved and illustrative fallback is disallowed."""
+    pass
+
+
 def _label(source):
     if 'Composite' in source:
-        return 'Mixed NASA POWER model and illustrative fallback; not measured data'
+        return 'Mixed NASA POWER model and illustrative fallback; not measured ground site data'
     if 'Illustrative' in source:
-        return 'Illustrative planning fallback; not location-verified irradiance'
-    return 'NASA POWER satellite/model climatology; not measured site data'
+        return 'Illustrative planning fallback (Developer defaults); not location-verified satellite observations. Do not use for financial signoff.'
+    return 'NASA POWER 20-Yr satellite/model climatology; not measured ground site data'
 
 
-async def fetch_solar_irradiance(lat: float, lon: float, db: Session) -> Tuple[Dict[str, float], float, str, str]:
+async def fetch_solar_irradiance(
+    lat: float,
+    lon: float,
+    db: Session,
+    allow_illustrative: bool = True
+) -> Tuple[Dict[str, float], float, str, str]:
     finite(lat, 'latitude', -90, 90)
     finite(lon, 'longitude', -180, 180)
     # Query and cache the same coordinate precision. No 0.1-degree ambiguity.
@@ -50,10 +60,14 @@ async def fetch_solar_irradiance(lat: float, lon: float, db: Session) -> Tuple[D
     if cached and cached.source and cached.source.startswith(CACHE_SOURCE_PREFIX):
         monthly = cached.ghi_monthly
         if isinstance(monthly, dict) and all(m in monthly and _valid(monthly[m]) is not None for m in MONTH_KEYS):
-            ttl = timedelta(hours=1) if 'Illustrative' in cached.source or 'Composite' in cached.source else timedelta(days=30)
-            if cached.fetched_at and datetime.utcnow() - cached.fetched_at <= ttl:
-                values = {m: float(monthly[m]) for m in MONTH_KEYS}
-                return values, _annual(values), cached.source, _label(cached.source) + ' (cached)'
+            is_fallback = 'Illustrative' in cached.source or 'Composite' in cached.source
+            if is_fallback and not allow_illustrative:
+                pass  # Do not return cached illustrative data if strictly disallowed
+            else:
+                ttl = timedelta(hours=1) if is_fallback else timedelta(days=30)
+                if cached.fetched_at and datetime.utcnow() - cached.fetched_at <= ttl:
+                    values = {m: float(monthly[m]) for m in MONTH_KEYS}
+                    return values, _annual(values), cached.source, _label(cached.source) + ' (cached)'
     observed = {}
     try:
         async with httpx.AsyncClient(timeout=settings.NASA_REQUEST_TIMEOUT_SECONDS) as client:
@@ -66,7 +80,18 @@ async def fetch_solar_irradiance(lat: float, lon: float, db: Session) -> Tuple[D
             if isinstance(data, dict):
                 observed = {m: value for m in MONTH_KEYS if (value := _valid(data.get(m))) is not None}
     except (httpx.HTTPError, ValueError, TypeError, AttributeError) as exc:
-        logger.warning('NASA POWER unavailable: %s; using illustrative planning fallback', type(exc).__name__)
+        logger.warning('NASA POWER unavailable: %s; fallback requested=%s', type(exc).__name__, allow_illustrative)
+        if not allow_illustrative:
+            raise InsufficientSolarDataError(
+                f"Authentic satellite irradiance observations could not be retrieved from NASA POWER for coordinates "
+                f"({grid_lat}, {grid_lon}), and unverified illustrative fallback is disallowed."
+            ) from exc
+
+    if not observed and not allow_illustrative:
+        raise InsufficientSolarDataError(
+            f"No verified solar irradiance records returned by NASA POWER for coordinates ({grid_lat}, {grid_lon})."
+        )
+
     monthly = {m: observed.get(m, DEFAULT_INDIA_MONTHLY_GHI[m]) for m in MONTH_KEYS}
     if len(observed) == 12:
         source = CACHE_SOURCE_PREFIX + 'NASA POWER Climatology (Satellite/Model)'

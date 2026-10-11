@@ -215,4 +215,118 @@ class SolarMLService:
             })
         return profile
 
+    async def predict_weather_based_forecast(
+        self,
+        latitude: float,
+        longitude: float,
+        capacity_kwp: float,
+        forecast_days: int = 2
+    ) -> Dict[str, Any]:
+        """
+        Retrieves real-time NWP numerical weather forecast from Open-Meteo,
+        extracts hourly solar shortwave radiation, ambient temperature, and wind speed (in m/s),
+        and generates genuine dated solar generation forecasts comparing ML vs IEC 61724 physics.
+        """
+        import httpx
+
+        url = (
+            f"https://api.open-meteo.com/v1/forecast"
+            f"?latitude={round(latitude, 4)}&longitude={round(longitude, 4)}"
+            f"&hourly=temperature_2m,shortwave_radiation,wind_speed_10m"
+            f"&wind_speed_unit=ms&timezone=auto&forecast_days={min(7, max(1, forecast_days))}"
+        )
+
+        try:
+            async with httpx.AsyncClient(timeout=6.0) as client:
+                resp = await client.get(url, headers={"User-Agent": "RoofShift-AI/2.0"})
+                resp.raise_for_status()
+                data = resp.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch Open-Meteo hourly weather forecast: {str(e)}")
+            raise RuntimeError(f"Unable to retrieve real-time weather forecast for coordinates ({latitude}, {longitude}): {str(e)}")
+
+        hourly = data.get("hourly", {})
+        times = hourly.get("time", [])
+        rads = hourly.get("shortwave_radiation", [])
+        temps = hourly.get("temperature_2m", [])
+        winds = hourly.get("wind_speed_10m", [])
+        tz = data.get("timezone", "UTC")
+
+        points = []
+        total_ml_kwh = 0.0
+        total_phys_kwh = 0.0
+
+        for t_str, rad, temp, wind in zip(times, rads, temps, winds):
+            dt = datetime.fromisoformat(t_str)
+            hour_float = dt.hour + dt.minute / 60.0
+            rad_w_m2 = max(0.0, float(rad or 0.0))
+            temp_c = float(temp or 25.0)
+            wind_ms = float(wind or 3.0)
+
+            # Standard cell temp estimation with wind cooling factor:
+            # T_cell = T_ambient + ((NOCT - 20) / 800) * G * (1 - 0.05 * (wind - 1))
+            wind_factor = max(0.6, min(1.4, 1.0 - 0.05 * (wind_ms - 1.0)))
+            cell_temp_c = temp_c + ((45.0 - 20.0) / 800.0) * rad_w_m2 * wind_factor
+
+            res = self.predict_point(
+                capacity_kwp=capacity_kwp,
+                irradiance_w_m2=rad_w_m2,
+                ambient_temperature_c=temp_c,
+                cell_temperature_c=cell_temp_c,
+                hour_of_day=hour_float
+            )
+
+            ml_kw = res["ml_predicted_power_kw"]
+            phys_kw = res["physics_baseline_kw"]
+            delta_kw = res["delta_kw"]
+            in_domain = (rad_w_m2 >= 15.0) and (-10.0 <= temp_c <= 50.0)
+
+            # Hourly power integrates to energy in kWh (1 hour interval)
+            total_ml_kwh += ml_kw
+            total_phys_kwh += phys_kw
+
+            points.append({
+                "timestamp_iso": t_str,
+                "hour_of_day": round(hour_float, 2),
+                "shortwave_radiation_w_m2": round(rad_w_m2, 1),
+                "ambient_temp_c": round(temp_c, 1),
+                "wind_speed_ms": round(wind_ms, 2),
+                "cell_temp_c": round(cell_temp_c, 1),
+                "ml_predicted_power_kw": ml_kw,
+                "physics_baseline_kw": phys_kw,
+                "delta_kw": delta_kw,
+                "confidence_lower_kw": res["confidence_lower_kw"],
+                "confidence_upper_kw": res["confidence_upper_kw"],
+                "in_domain": in_domain
+            })
+
+        meta = self.get_metadata()
+        diff_pct = round(((total_ml_kwh - total_phys_kwh) / max(0.001, total_phys_kwh) * 100.0), 2) if total_phys_kwh > 0 else 0.0
+
+        return {
+            "latitude": round(latitude, 6),
+            "longitude": round(longitude, 6),
+            "capacity_kwp": round(capacity_kwp, 2),
+            "timezone": tz,
+            "weather_provider": "Open-Meteo High-Resolution NWP (DWD ICON / ECMWF Models)",
+            "total_forecast_hours": len(points),
+            "hourly_forecast": points,
+            "total_predicted_energy_kwh": round(total_ml_kwh, 2),
+            "total_physics_energy_kwh": round(total_phys_kwh, 2),
+            "energy_difference_pct": diff_pct,
+            "model_version": meta.get("model_version", "1.1.0"),
+            "model_algorithm": meta.get("champion_algorithm", "XGBoost_Regressor"),
+            "provenance_note": (
+                "Forecast uses dated numerical weather prediction (NWP) solar radiation from Open-Meteo. "
+                "Inputs inside operational bounds (G >= 15 W/m²) are predicted via trained XGBoost regressor, "
+                "benchmarked against IEC 61724 PR physics derating."
+            ),
+            "uncertainties_and_limitations": (
+                "Uncertainty margins reflect empirical 95% confidence intervals from held-out operational test data. "
+                "Cloud variability and sub-hourly ramping dynamics may cause transient deviations. "
+                "Module tilt, azimuth deviation, and local horizon shading obstacles are not modeled in macro NWP radiation."
+            )
+        }
+
+
 solar_ml_service = SolarMLService()

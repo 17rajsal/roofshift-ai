@@ -8,7 +8,9 @@ from app.schemas.solar_ml import (
     SolarMLForecastRequest,
     SolarMLForecastResponse,
     SolarMLDiurnalRequest,
-    SolarMLDiurnalResponse
+    SolarMLDiurnalResponse,
+    SolarMLDatedWeatherForecastRequest,
+    SolarMLDatedWeatherForecastResponse
 )
 from app.services.ml.solar_ml_service import solar_ml_service
 
@@ -57,11 +59,31 @@ def get_ml_diurnal_forecast(payload: SolarMLDiurnalRequest):
             total_daily_ml_kwh=round(total_ml, 2),
             total_daily_physics_kwh=round(total_phys, 2),
             energy_difference_pct=diff_pct,
-            model_version=metadata.get("model_version", "1.0.0"),
+            model_version=metadata.get("model_version", "1.1.0"),
             model_status="TRAINED_OPERATIONAL" if solar_ml_service.is_model_available() else "FALLBACK_PHYSICS"
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Diurnal ML forecasting error: {str(e)}")
+
+
+@router.post("/dated-forecast", response_model=SolarMLDatedWeatherForecastResponse)
+async def get_ml_dated_weather_forecast(payload: SolarMLDatedWeatherForecastRequest):
+    """
+    Computes a real-world dated solar generation forecast using real-time Open-Meteo
+    numerical weather prediction (NWP) radiation, ambient temperature, and wind speed (m/s).
+    Compares the trained XGBoost model side-by-side with the IEC 61724 physics baseline.
+    """
+    try:
+        result = await solar_ml_service.predict_weather_based_forecast(
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+            capacity_kwp=payload.capacity_kwp,
+            forecast_days=payload.forecast_days
+        )
+        return SolarMLDatedWeatherForecastResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Dated weather forecast error: {str(e)}")
+
 
 @router.get("/model-info")
 def get_ml_model_info():

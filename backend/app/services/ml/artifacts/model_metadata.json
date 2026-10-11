@@ -1,32 +1,39 @@
 {
   "model_name": "RoofShift Solar Forecaster",
-  "model_version": "1.0.0",
+  "model_version": "1.1.0",
   "champion_algorithm": "XGBoost_Regressor",
   "artifact_file": "solar_xgboost_v1.joblib",
-  "training_timestamp_utc": "2026-10-11T03:30:19.312939+00:00",
+  "training_timestamp_utc": "2026-10-11T08:28:32.265518+00:00",
+  "scientific_integrity": {
+    "validation_selection": "Algorithm selected strictly using validation split (zero test set tuning).",
+    "test_set_isolation": "Held-out test set evaluated once on final champion model.",
+    "normalization_method": "Rated peak capacity normalization (kW_actual / kW_peak_observed).",
+    "unseen_site_validation": "Evaluated on distinct physical plant (Plant 2) with separate inverters/sensors."
+  },
   "dataset_provenance": {
-    "name": "Gandikota Solar Power Plant 1 Operational Dataset",
+    "primary_plant": "Gandikota Solar Power Plant 1 Operational Dataset",
+    "unseen_plant": "Gandikota Solar Power Plant 2 Operational Dataset",
     "region": "Andhra Pradesh, India",
-    "date_range": "2020-05-15 to 2020-06-17",
+    "date_range": "2020-05-15 to 2020-06-17 (34 consecutive days)",
     "resolution": "15-minute intervals",
-    "total_intervals": 3157,
+    "total_intervals": 2102,
     "license": "Public Domain / Open Research (CC0)",
     "monitored_capacity_kw": 29150.21
   },
   "split_configuration": {
-    "train_samples": 2209,
+    "train_samples": 1471,
     "train_date_range": [
       "2020-05-15 00:00:00",
-      "2020-06-08 02:15:00"
+      "2020-05-31 09:30:00"
     ],
-    "val_samples": 474,
+    "val_samples": 315,
     "val_date_range": [
-      "2020-06-08 02:30:00",
-      "2020-06-13 00:45:00"
+      "2020-05-31 09:45:00",
+      "2020-06-14 16:15:00"
     ],
-    "test_samples": 474,
+    "test_samples": 316,
     "test_date_range": [
-      "2020-06-13 01:00:00",
+      "2020-06-14 16:30:00",
       "2020-06-17 23:45:00"
     ],
     "methodology": "Chronological (Zero Future Leakage)"
@@ -48,46 +55,85 @@
   },
   "evaluation_on_held_out_test_data": {
     "physics_baseline_iec61724": {
-      "mae": 0.06855,
-      "rmse": 0.11243,
-      "r2_score": 0.84116,
-      "nmae_pct": 31.34
+      "mae": 0.05858,
+      "rmse": 0.09982,
+      "r2_score": 0.8422,
+      "nmae_pct": 32.09,
+      "nrmse_pct": 54.68
     },
-    "candidate_models": {
+    "validation_selection_metrics": {
       "Ridge_Regression": {
-        "mae": 0.02634,
-        "rmse": 0.03948,
-        "r2_score": 0.98042,
-        "nmae_pct": 12.04,
-        "mae_improvement_over_physics_pct": 61.58,
-        "rmse_improvement_over_physics_pct": 64.89
+        "mae": 0.03417,
+        "rmse": 0.05785,
+        "r2_score": 0.96411,
+        "nmae_pct": 13.5,
+        "nrmse_pct": 22.85,
+        "mae_improvement_over_physics_pct": 55.61,
+        "rmse_improvement_over_physics_pct": 52.74
       },
       "Random_Forest": {
-        "mae": 0.0087,
-        "rmse": 0.01847,
-        "r2_score": 0.99571,
-        "nmae_pct": 3.98,
-        "mae_improvement_over_physics_pct": 87.32,
-        "rmse_improvement_over_physics_pct": 83.57
+        "mae": 0.01307,
+        "rmse": 0.02502,
+        "r2_score": 0.99329,
+        "nmae_pct": 5.16,
+        "nrmse_pct": 9.88,
+        "mae_improvement_over_physics_pct": 83.02,
+        "rmse_improvement_over_physics_pct": 79.56
       },
       "XGBoost_Regressor": {
-        "mae": 0.00883,
-        "rmse": 0.01737,
-        "r2_score": 0.99621,
-        "nmae_pct": 4.04,
-        "mae_improvement_over_physics_pct": 87.12,
-        "rmse_improvement_over_physics_pct": 84.55
+        "mae": 0.01311,
+        "rmse": 0.02472,
+        "r2_score": 0.99345,
+        "nmae_pct": 5.18,
+        "nrmse_pct": 9.76,
+        "mae_improvement_over_physics_pct": 82.97,
+        "rmse_improvement_over_physics_pct": 79.81
       }
     },
     "champion_test_metrics": {
-      "mae": 0.00883,
-      "rmse": 0.01737,
-      "r2_score": 0.99621,
-      "nmae_pct": 4.04,
-      "mae_improvement_over_physics_pct": 87.12,
-      "rmse_improvement_over_physics_pct": 84.55
+      "mae": 0.00729,
+      "rmse": 0.01437,
+      "r2_score": 0.99673,
+      "nmae_pct": 4.0,
+      "nrmse_pct": 7.87,
+      "mae_improvement_over_physics_pct": 87.56,
+      "rmse_improvement_over_physics_pct": 85.6
     },
-    "empirical_95_percent_error_margin": 0.03366
+    "weather_regime_stratification": {
+      "clear_sky_metrics": {
+        "mae": 0.02485,
+        "rmse": 0.03218,
+        "r2_score": 0.91249,
+        "nmae_pct": 3.71,
+        "nrmse_pct": 4.81
+      },
+      "cloudy_diffuse_metrics": {
+        "mae": 0.01058,
+        "rmse": 0.0138,
+        "r2_score": 0.99108,
+        "nmae_pct": 3.71,
+        "nrmse_pct": 4.83
+      }
+    },
+    "unseen_site_generalization": {
+      "plant_2_ml_metrics": {
+        "mae": 0.05719,
+        "rmse": 0.12559,
+        "r2_score": 0.73322,
+        "nmae_pct": 29.64,
+        "nrmse_pct": 65.1
+      },
+      "plant_2_physics_metrics": {
+        "mae": 0.0562,
+        "rmse": 0.1021,
+        "r2_score": 0.82369,
+        "nmae_pct": 29.13,
+        "nrmse_pct": 52.92
+      },
+      "unseen_site_r2": 0.73322,
+      "unseen_site_nmae_pct": 29.64
+    },
+    "empirical_95_percent_error_margin": 0.02716
   },
   "reproducibility": {
     "training_script": "ml/train_solar_forecast.py",

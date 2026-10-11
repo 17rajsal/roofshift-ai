@@ -55,3 +55,43 @@ class SolarMLDiurnalResponse(BaseModel):
     energy_difference_pct: float
     model_version: str
     model_status: str
+    simulation_notice: str = "Simulated synthetic solar diurnal profile for conceptual sensitivity analysis. Use /dated-forecast for real NWP weather-driven generation."
+
+
+class DatedHourlyForecastPoint(BaseModel):
+    timestamp_iso: str
+    hour_of_day: float
+    shortwave_radiation_w_m2: float
+    ambient_temp_c: float
+    wind_speed_ms: float
+    cell_temp_c: float
+    ml_predicted_power_kw: float
+    physics_baseline_kw: float
+    delta_kw: float
+    confidence_lower_kw: float
+    confidence_upper_kw: float
+    in_domain: bool
+
+
+class SolarMLDatedWeatherForecastRequest(BaseModel):
+    latitude: float = Field(..., ge=-90.0, le=90.0, description="Site latitude")
+    longitude: float = Field(..., ge=-180.0, le=180.0, description="Site longitude")
+    capacity_kwp: float = Field(..., gt=0.0, le=100000.0, description="Installed or modeled solar PV capacity in kWp")
+    forecast_days: int = Field(2, ge=1, le=7, description="Number of forecast days (1 to 7)")
+
+
+class SolarMLDatedWeatherForecastResponse(BaseModel):
+    latitude: float
+    longitude: float
+    capacity_kwp: float
+    timezone: str
+    weather_provider: str
+    total_forecast_hours: int
+    hourly_forecast: List[DatedHourlyForecastPoint]
+    total_predicted_energy_kwh: float
+    total_physics_energy_kwh: float
+    energy_difference_pct: float
+    model_version: str
+    model_algorithm: str
+    provenance_note: str
+    uncertainties_and_limitations: str

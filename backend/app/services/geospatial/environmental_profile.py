@@ -59,14 +59,14 @@ def find_nearest_indian_region(lat: float, lon: float) -> Dict[str, Any]:
 
 
 async def fetch_meteorological_data(lat: float, lon: float, nearest_region: Dict[str, Any]) -> Dict[str, Any]:
-    """Fetches real-time / climatological weather from Open-Meteo API,
-    falling back truthfully to nearest IMD regional normals on failure.
+    """Fetches real-time / NWP modeled weather from Open-Meteo API with explicit m/s wind speed units,
+    falling back truthfully to representative IMD regional normals on network failure.
     """
     url = (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={round(lat, 4)}&longitude={round(lon, 4)}"
         f"&current=temperature_2m,relative_humidity_2m,wind_speed_10m,cloud_cover,weather_code"
-        f"&daily=sunshine_duration&timezone=auto"
+        f"&daily=sunshine_duration&wind_speed_unit=ms&timezone=auto"
     )
 
     try:
@@ -75,15 +75,30 @@ async def fetch_meteorological_data(lat: float, lon: float, nearest_region: Dict
             if resp.status_code == 200:
                 data = resp.json()
                 current = data.get("current", {})
+                current_units = data.get("current_units", {})
                 w_code = current.get("weather_code", 0)
                 condition = WMO_WEATHER_CODES.get(w_code, "Fair")
+                
+                # Verify wind speed unit from provider: ensure m/s, never km/h
+                raw_wind = float(current.get("wind_speed_10m", 3.5))
+                unit_str = str(current_units.get("wind_speed_10m", "m/s")).strip().lower()
+                if "km/h" in unit_str or "kmh" in unit_str:
+                    wind_speed_ms = round(raw_wind / 3.6, 2)
+                else:
+                    wind_speed_ms = round(raw_wind, 2)
+
+                provider_time = current.get("time")
+
                 return {
                     "ambient_temperature_celsius": round(float(current.get("temperature_2m", 28.0)), 1),
-                    "wind_speed_ms": round(float(current.get("wind_speed_10m", 3.5)), 1),
+                    "wind_speed_ms": wind_speed_ms,
+                    "wind_speed_unit_verified": "m/s",
                     "relative_humidity_pct": round(float(current.get("relative_humidity_2m", 50.0)), 1),
                     "cloud_cover_pct": round(float(current.get("cloud_cover", 20.0)), 1),
                     "weather_condition": condition,
-                    "weather_source": "Open-Meteo High-Resolution Climatology (ERA5/ECMWF)",
+                    "weather_data_type": "current_modeled_forecast",
+                    "weather_source": "Open-Meteo Real-Time NWP (DWD ICON / ECMWF Models)",
+                    "provider_timestamp": provider_time,
                     "is_climatological_fallback": False
                 }
     except Exception as e:
@@ -93,10 +108,14 @@ async def fetch_meteorological_data(lat: float, lon: float, nearest_region: Dict
     return {
         "ambient_temperature_celsius": float(nearest_region.get("ambient_temp_celsius", 28.5)),
         "wind_speed_ms": float(nearest_region.get("wind_speed_ms", 3.8)),
+        "wind_speed_unit_verified": "m/s",
         "relative_humidity_pct": 52.0,
         "cloud_cover_pct": float(nearest_region.get("cloud_monsoon_pct", 25.0)),
         "weather_condition": "Regional Climatological Normal",
-        "weather_source": f"IMD 30-Year Climatological Normals (Station Reference: {nearest_region.get('name')})",
+        "weather_data_type": "regional_planning_normal",
+        "weather_source": f"IMD Regional Normals Baseline (Representative State Reference: {nearest_region.get('name')})",
+        "provider_timestamp": None,
+        "fallback_reason": "Real-time Open-Meteo API query unavailable; utilizing regional representative meteorological normal for planning.",
         "is_climatological_fallback": True
     }
 
@@ -149,21 +168,28 @@ async def generate_environmental_profile(lat: float, lon: float, db: Session) ->
     wind_factor = min(100.0, max(0.0, (meteo["wind_speed_ms"] / 5.5) * 100.0))
     cloud_penalty = min(100.0, max(0.0, monsoon_cloud_pct * 1.5))
 
-    # Rooftop score combines local GHI + regional building baseline + temperature + wind - monsoon cloud
-    rooftop_score = round(
-        0.35 * norm_ghi + 0.30 * reg_rooftop_base + 0.15 * temp_factor + 0.10 * wind_factor - 0.10 * (cloud_penalty * 0.5), 1
-    )
-    rooftop_score = max(35.0, min(99.0, rooftop_score))
+    # Engineering Suitability Index: combines local GHI + regional building baseline + temperature + wind - monsoon cloud
+    rooftop_raw = 0.35 * norm_ghi + 0.30 * reg_rooftop_base + 0.15 * temp_factor + 0.10 * wind_factor - 0.10 * (cloud_penalty * 0.5)
+    rooftop_score = round(max(0.0, min(100.0, rooftop_raw)), 1)
 
     # Open land score combines DNI + regional wasteland/grid readiness + temperature
-    openland_score = round(
-        0.35 * norm_dni + 0.40 * reg_openland_base + 0.15 * temp_factor + 0.10 * wind_factor, 1
-    )
-    openland_score = max(30.0, min(99.0, openland_score))
+    openland_raw = 0.35 * norm_dni + 0.40 * reg_openland_base + 0.15 * temp_factor + 0.10 * wind_factor
+    openland_score = round(max(0.0, min(100.0, openland_raw)), 1)
 
     composite_score = round(0.50 * rooftop_score + 0.50 * openland_score, 1)
 
     tier = "A+" if composite_score >= 93 else ("A" if composite_score >= 88 else ("B+" if composite_score >= 82 else ("B" if composite_score >= 75 else ("C+" if composite_score >= 70 else "C"))))
+
+    engineering_suitability_meta = {
+        "rooftop_suitability_score": rooftop_score,
+        "open_land_suitability_score": openland_score,
+        "composite_score": composite_score,
+        "tier": tier,
+        "methodology": "Deterministic Engineering Suitability Index (ESI v8.3) combining solar resource, thermal derate, wind cooling, and monsoon attenuation. Not an AI model prediction.",
+        "is_ai_predicted": False,
+        "geographic_resolution": "0.5° x 0.5° satellite grid cell (~55 km x 55 km)",
+        "limitations": "Macro-level planning score. Does not measure individual rooftop geometry, tilt/azimuth, structural load, or 3D shading obstacles."
+    }
 
     return {
         "status": "success",
@@ -189,11 +215,13 @@ async def generate_environmental_profile(lat: float, lon: float, db: Session) ->
         },
         "meteorological_conditions": meteo,
         "sun_ephemeris": sun_ephemeris,
+        "engineering_suitability": engineering_suitability_meta,
         "ai_suitability": {
             "rooftop_suitability_score": rooftop_score,
             "open_land_suitability_score": openland_score,
             "composite_score": composite_score,
-            "tier": tier
+            "tier": tier,
+            "note": "Deterministic Engineering Suitability Index (ESI v8.3)"
         },
         "shading_disclaimer": (
             "Detailed 3D shading assessment unavailable — additional site geometry, "
@@ -209,7 +237,6 @@ async def generate_open_area_screening(lat: float, lon: float, db: Session) -> D
     """
     profile = await generate_environmental_profile(lat, lon, db)
     irr = profile["solar_irradiance"]
-    meteo = profile["meteorological_conditions"]
     nearest = profile["nearest_region"]
 
     ghi = irr["ghi_daily_kwh"]
@@ -236,11 +263,15 @@ async def generate_open_area_screening(lat: float, lon: float, db: Session) -> D
         "screening_metrics": {
             "daily_ghi_kwh": ghi,
             "daily_dni_kwh": dni,
+            "terrain_slope": "Not verified (Requires local LiDAR / SRTM parcel elevation survey)",
             "estimated_terrain_slope_pct": terrain_slope_pct,
             "slope_suitability": "Ideal (< 5%)" if terrain_slope_pct < 5.0 else "Challenging (> 10%)",
+            "land_use_eligibility": "Not established (Requires cadastral & revenue land records verification)",
+            "grid_connection": "Not verified (Requires CTU/STU substation bay capacity check)",
             "indicative_land_class": land_type_indicator,
             "annual_generation_mwh_per_mw": round(ghi * 365.0 * 0.79, 1),
-            "hectares_required_per_mw": 1.6
+            "hectares_required_per_mw": 1.6,
+            "preliminary_screening_available": True
         },
         "regulatory_and_grid_disclaimer": (
             "Ground-mount suitability is an indicative macro-screening score. Grid substation "

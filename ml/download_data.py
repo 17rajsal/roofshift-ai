@@ -15,12 +15,16 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 
 SOURCES = {
     "Plant_1_Generation_Data.csv": "https://raw.githubusercontent.com/eshan-kaul/Regression-Voting-Ensemble-for-Solar-Power-Prediction/master/Plant_1_Generation_Data.csv",
-    "Plant_1_Weather_Sensor_Data.csv": "https://raw.githubusercontent.com/eshan-kaul/Regression-Voting-Ensemble-for-Solar-Power-Prediction/master/Plant_1_Weather_Sensor_Data.csv"
+    "Plant_1_Weather_Sensor_Data.csv": "https://raw.githubusercontent.com/eshan-kaul/Regression-Voting-Ensemble-for-Solar-Power-Prediction/master/Plant_1_Weather_Sensor_Data.csv",
+    "Plant_2_Generation_Data.csv": "https://raw.githubusercontent.com/eshan-kaul/Regression-Voting-Ensemble-for-Solar-Power-Prediction/master/Plant_2_Generation_Data.csv",
+    "Plant_2_Weather_Sensor_Data.csv": "https://raw.githubusercontent.com/eshan-kaul/Regression-Voting-Ensemble-for-Solar-Power-Prediction/master/Plant_2_Weather_Sensor_Data.csv"
 }
 
 EXPECTED_MIN_BYTES = {
     "Plant_1_Generation_Data.csv": 4_000_000,
-    "Plant_1_Weather_Sensor_Data.csv": 250_000
+    "Plant_1_Weather_Sensor_Data.csv": 250_000,
+    "Plant_2_Generation_Data.csv": 4_000_000,
+    "Plant_2_Weather_Sensor_Data.csv": 250_000
 }
 
 def download_solar_data(force: bool = False):

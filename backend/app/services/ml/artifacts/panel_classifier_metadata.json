@@ -1,0 +1,132 @@
+{
+  "model_name": "RoofShift Photovoltaic Surface Inspection Classifier",
+  "model_version": "1.0.0",
+  "model_architecture": "MobileNetV3_Small",
+  "parameters_count": 1519906,
+  "weights_artifact_file": "panel_mobilenet_v3.pt",
+  "training_timestamp_utc": "2026-10-11T08:40:04.279122+00:00",
+  "task": "Binary Visual Surface Classification (Clean Module vs Visibly Soiled/Dusty Module)",
+  "classes": [
+    "CLEAN",
+    "SOILED"
+  ],
+  "abstain_confidence_threshold": 0.65,
+  "dataset_provenance": {
+    "name": "Solar-Panel-Fault-Detection RGB Inspection Dataset",
+    "repository": "https://github.com/djdhairya/Solar-Panel-Fault-Detection",
+    "license": "MIT License (Copyright 2024 Dhairya Hindoriya)",
+    "image_modality": "Standard RGB Digital Camera Photography (Visible Spectrum)",
+    "total_images": 383,
+    "class_distribution": {
+      "clean": 193,
+      "soiled": 190
+    }
+  },
+  "split_configuration": {
+    "train_samples": 268,
+    "val_samples": 56,
+    "test_samples": 59,
+    "split_ratio": "70% Train / 15% Validation / 15% Held-out Test (Stratified)"
+  },
+  "training_hyperparameters": {
+    "epochs_trained": 6,
+    "batch_size": 16,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0005,
+    "weight_decay": 0.0001,
+    "input_resolution": "224x224x3",
+    "normalization_mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "normalization_std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "evaluation_on_held_out_test_set": {
+    "accuracy": 0.8644,
+    "macro_f1": 0.8641,
+    "macro_precision": 0.8663,
+    "macro_recall": 0.8638,
+    "per_class_metrics": {
+      "CLEAN": {
+        "precision": 0.8438,
+        "recall": 0.9,
+        "f1_score": 0.871
+      },
+      "SOILED": {
+        "precision": 0.8889,
+        "recall": 0.8276,
+        "f1_score": 0.8571
+      }
+    },
+    "confusion_matrix": {
+      "true_clean_pred_clean": 27,
+      "true_clean_pred_soiled": 3,
+      "true_soiled_pred_clean": 5,
+      "true_soiled_pred_soiled": 24
+    },
+    "failure_cases": [
+      {
+        "file": "Clean (81).jpg",
+        "true_label": "CLEAN",
+        "predicted_label": "SOILED",
+        "clean_probability": 0.3762,
+        "soiled_probability": 0.6238
+      },
+      {
+        "file": "Dust (155).jpg",
+        "true_label": "SOILED",
+        "predicted_label": "CLEAN",
+        "clean_probability": 0.9819,
+        "soiled_probability": 0.0181
+      },
+      {
+        "file": "Dust (124).jpg",
+        "true_label": "SOILED",
+        "predicted_label": "CLEAN",
+        "clean_probability": 0.9995,
+        "soiled_probability": 0.0005
+      },
+      {
+        "file": "Clean (64).jpg",
+        "true_label": "CLEAN",
+        "predicted_label": "SOILED",
+        "clean_probability": 0.3116,
+        "soiled_probability": 0.6884
+      },
+      {
+        "file": "Dust (30).jpg",
+        "true_label": "SOILED",
+        "predicted_label": "CLEAN",
+        "clean_probability": 0.9995,
+        "soiled_probability": 0.0005
+      },
+      {
+        "file": "Clean (130).jpg",
+        "true_label": "CLEAN",
+        "predicted_label": "SOILED",
+        "clean_probability": 0.108,
+        "soiled_probability": 0.892
+      },
+      {
+        "file": "Dust (15).jpg",
+        "true_label": "SOILED",
+        "predicted_label": "CLEAN",
+        "clean_probability": 0.9533,
+        "soiled_probability": 0.0467
+      },
+      {
+        "file": "Dust (162).jpg",
+        "true_label": "SOILED",
+        "predicted_label": "CLEAN",
+        "clean_probability": 0.999,
+        "soiled_probability": 0.001
+      }
+    ]
+  },
+  "scientific_limitations_and_disclaimer": "This model operates on standard visible RGB imagery and detects surface dirt, dust, and soiling. It DOES NOT detect sub-surface cell micro-cracks, PID (Potential-Induced Degradation), or internal diode short-circuits, which require thermal infrared (IR) or electroluminescence (EL) testing."
+}

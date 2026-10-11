@@ -51,10 +51,22 @@ def calculate_polygon_area_sqm(coords: List[List[float]]) -> float:
     return round(min(area, 250000.0), 1)
 
 
+DEFAULT_OSM_PLANNING_ASSUMPTIONS = {
+    "usable_roof_fraction": 0.75,         # 75% obstacle clearance (HVAC, parapets, maintenance pathways)
+    "power_density_kwp_per_sqm": 0.18,    # 180 W/m² (standard 550W mono-PERC @ 21.0% STC module efficiency)
+    "default_annual_yield_kwh_per_kwp": 1500.0,  # Macro benchmark yield if local GHI is unspecified
+    "grid_tariff_inr_per_kwh": 7.50,      # Commercial/Industrial state tariff baseline
+    "default_shading_loss_pct": 10.0,     # Horizontal obstacle & row-to-row spacing loss
+    "co2_emissions_factor_kg_per_kwh": 0.716  # CEA India CO2 baseline emissions factor (v19)
+}
+
+
 async def fetch_osm_buildings(
     lat: float,
     lon: float,
-    radius_m: int = 250
+    radius_m: int = 250,
+    planning_assumptions: Optional[Dict[str, float]] = None,
+    location_annual_ghi: Optional[float] = None
 ) -> Dict[str, Any]:
     """Queries OpenStreetMap Overpass API for real mapped building footprints.
     
@@ -62,10 +74,31 @@ async def fetch_osm_buildings(
         lat: Center latitude (-90 to 90)
         lon: Center longitude (-180 to 180)
         radius_m: Search radius in meters (50m to 1000m)
+        planning_assumptions: Optional overrides for usable area fraction, power density, etc.
+        location_annual_ghi: Optional verified NASA POWER annual daily GHI (kWh/m²/day) to compute location-specific generation
         
     Returns:
-        Structured dictionary of real building polygons or explicit 'empty' status.
+        Structured dictionary of real building polygons with transparent planning estimates.
     """
+    assumptions = dict(DEFAULT_OSM_PLANNING_ASSUMPTIONS)
+    if planning_assumptions:
+        assumptions.update(planning_assumptions)
+
+    usable_fraction = float(assumptions.get("usable_roof_fraction", 0.75))
+    power_density = float(assumptions.get("power_density_kwp_per_sqm", 0.18))
+    tariff = float(assumptions.get("grid_tariff_inr_per_kwh", 7.50))
+    shading_pct = float(assumptions.get("default_shading_loss_pct", 10.0))
+    co2_factor = float(assumptions.get("co2_emissions_factor_kg_per_kwh", 0.716))
+
+    # Location-specific yield if GHI is provided; else macro benchmark
+    if location_annual_ghi and location_annual_ghi > 1.0:
+        # Base system PR 0.78 derated by shading loss
+        effective_pr = 0.78 * (1.0 - shading_pct / 100.0)
+        specific_annual_yield = round(location_annual_ghi * 365.0 * effective_pr, 1)
+        yield_source = f"Location-Specific Climatology (GHI={round(location_annual_ghi, 2)} kWh/m²/d)"
+    else:
+        specific_annual_yield = float(assumptions.get("default_annual_yield_kwh_per_kwp", 1500.0))
+        yield_source = "Macro Benchmark Planning Assumption (1,500 kWh/kWp/yr)"
     radius = max(50, min(1000, radius_m))
     query = f"""
     [out:json][timeout:10];
@@ -103,7 +136,8 @@ async def fetch_osm_buildings(
             "action_required": "Draw custom roof polygon or import GeoJSON/CSV building coordinates.",
             "source": "OpenStreetMap Overpass API",
             "coordinates": {"lat": lat, "lon": lon},
-            "radius_m": radius
+            "radius_m": radius,
+            "planning_assumptions_used": assumptions
         }
 
     # Build node map: id -> (lat, lon)
@@ -131,19 +165,19 @@ async def fetch_osm_buildings(
         if len(coords) < 3:
             continue
 
-        # Compute geodesic area
+        # Compute geodesic area from actual OSM geometry
         gross_area = calculate_polygon_area_sqm(coords)
         if gross_area < 15.0:  # Ignore tiny sheds or micro artifacts
             continue
 
-        # Usable roof area: ~78% obstacle-free default
-        usable_area = round(gross_area * 0.78, 1)
-        # Solar PV capacity @ 180W/m² mono-PERC
-        capacity_kwp = round(usable_area * 0.18, 2)
-        # Annual generation estimate @ 1500 kWh/kWp
-        annual_kwh = round(capacity_kwp * 1500.0, 1)
-        annual_savings_inr = round(annual_kwh * 7.5, 0)
-        avoided_co2_kg = round(annual_kwh * 0.716, 1)
+        # Usable roof area based on explicit transparent planning assumption
+        usable_area = round(gross_area * usable_fraction, 1)
+        # Solar PV capacity based on module power density assumption
+        capacity_kwp = round(usable_area * power_density, 2)
+        # Annual generation using location-specific solar yield
+        annual_kwh = round(capacity_kwp * specific_annual_yield, 1)
+        annual_savings_inr = round(annual_kwh * tariff, 0)
+        avoided_co2_kg = round(annual_kwh * co2_factor, 1)
 
         # Polygon centroid
         avg_lon = sum(c[0] for c in coords) / len(coords)
@@ -166,10 +200,25 @@ async def fetch_osm_buildings(
             "annual_generation_kwh": annual_kwh,
             "annual_savings_inr": annual_savings_inr,
             "avoided_co2_kg_annual": avoided_co2_kg,
-            "shading_loss_percentage": 10.0,
+            "shading_loss_percentage": shading_pct,
             "shading_assessment_notice": (
                 "Standard horizontal obstacle assumption (10% loss). "
                 "Detailed 3D shading analysis requires obstacle geometry or LiDAR survey."
+            ),
+            "footprint_geometry_source": "OpenStreetMap Overpass API (Mapped Community Polygon)",
+            "planning_assumptions": {
+                "usable_roof_fraction": usable_fraction,
+                "power_density_kwp_per_sqm": power_density,
+                "specific_annual_yield_kwh_per_kwp": specific_annual_yield,
+                "yield_source": yield_source,
+                "grid_tariff_inr_per_kwh": tariff,
+                "shading_loss_pct": shading_pct,
+                "co2_factor_kg_per_kwh": co2_factor
+            },
+            "disclaimer": (
+                "OpenStreetMap footprint is a cadastral/structural building perimeter, NOT a certified "
+                "usable rooftop. Usable area, structural roof load, orientation, and micro-shading "
+                "must be verified on-site by a qualified solar installer."
             ),
             "source": "OpenStreetMap Community Contributors"
         }
@@ -188,7 +237,8 @@ async def fetch_osm_buildings(
             "action_required": "Draw custom roof polygon or import GeoJSON/CSV building coordinates.",
             "source": "OpenStreetMap Overpass API",
             "coordinates": {"lat": lat, "lon": lon},
-            "radius_m": radius
+            "radius_m": radius,
+            "planning_assumptions_used": assumptions
         }
 
     return {
