@@ -551,6 +551,73 @@ export const WorkspaceHub: React.FC = () => {
       {/* 2. MODE A: INDIA SOLAR INTELLIGENCE (Flagship Default) */}
       {workspaceMode === 'india_map' ? (
         <div className="space-y-6 animate-in fade-in duration-300">
+          {/* TWO PRIMARY USER JOURNEYS */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Pathway A: Plan a New Solar Installation */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-orange-50/90 via-white to-amber-50/50 border border-orange-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-orange-500/10 text-[#FF6B16] border border-orange-500/20">
+                    Pathway A • Planning &amp; Feasibility
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-[#FF6B16] flex items-center justify-center">
+                    <Compass className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-[#0B1739]">Plan a New Solar Installation</h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Explore solar resources, analyze rooftop polygons, screen open land, forecast generation, and solve knapsack budget allocation for single buildings or multi-site portfolios.
+                </p>
+              </div>
+              <div className="pt-4 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const searchInput = document.getElementById('workspace-location-search');
+                    if (searchInput) {
+                      searchInput.focus();
+                      searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#FF6B16] hover:bg-[#EA580C] text-white font-bold text-xs shadow-md shadow-orange-500/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <span>Start Solar Planning</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-[11px] text-slate-400 font-medium">Search or select a city below</span>
+              </div>
+            </div>
+
+            {/* Pathway B: Manage an Existing Solar System */}
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/50 border border-emerald-200/80 shadow-xs hover:shadow-md transition-all flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-500/20">
+                    Pathway B • Operations &amp; Diagnostics
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                    <Activity className="w-4 h-4" />
+                  </div>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-[#0B1739]">Manage an Existing Solar System</h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Ingest actual inverter telemetry, evaluate empirical Performance Ratio (PR), inspect panel thermal hotspots, and track preventive work orders.
+                </p>
+              </div>
+              <div className="pt-4 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => navigate('/workspace/monitor')}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <span>Manage Existing Solar</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-[11px] text-slate-400 font-medium">Telemetry, thermography &amp; tickets</span>
+              </div>
+            </div>
+          </div>
+
           {/* A. PROMINENT SEARCH BAR & NEUTRAL SUGGESTIONS */}
           <div className="bg-white/90 backdrop-blur-xl border border-slate-200/90 rounded-3xl p-6 shadow-sm space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
@@ -573,6 +640,7 @@ export const WorkspaceHub: React.FC = () => {
               <div className="relative flex-1">
                 <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
                 <input
+                  id="workspace-location-search"
                   type="text"
                   value={searchLocationQuery}
                   onChange={(e) => setSearchLocationQuery(e.target.value)}
