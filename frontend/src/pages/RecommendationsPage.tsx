@@ -171,6 +171,21 @@ export const RecommendationsPage: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {/* Part E: Next Step Navigation */}
+      <div className="flex items-center justify-between p-5 rounded-3xl glass-panel">
+        <div>
+          <div className="text-xs font-bold text-[#0B1739]">Next Recommended Step</div>
+          <div className="text-xs text-[#61708A]">Synthesize full engineering, financial, and scheduling analysis into formal PDF proposals.</div>
+        </div>
+        <button
+          onClick={() => navigate('/reports')}
+          className="glass-button-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+        >
+          <span>Generate Formal PDF Report</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 };

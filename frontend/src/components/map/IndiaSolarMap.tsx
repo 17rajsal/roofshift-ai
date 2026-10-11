@@ -56,11 +56,11 @@ function MapController({
 
   useEffect(() => {
     if (clickedCoord) {
-      map.flyTo([clickedCoord.lat, clickedCoord.lng], 8, {
+      map.flyTo([clickedCoord.lat, clickedCoord.lng], 14, {
         duration: 1.2,
       });
     } else if (selectedRegion) {
-      map.flyTo([selectedRegion.coordinates.lat, selectedRegion.coordinates.lng], 6, {
+      map.flyTo([selectedRegion.coordinates.lat, selectedRegion.coordinates.lng], 7, {
         duration: 1.2,
       });
     }
@@ -75,11 +75,20 @@ function MapController({
   return null;
 }
 
-// Click event listener for arbitrary coordinates
-function MapClickHandler({ onMapClick }: { onMapClick: (lat: number, lng: number) => void }) {
+// Click event and zoom level listener
+function MapEventsHandler({
+  onMapClick,
+  onZoomChange,
+}: {
+  onMapClick: (lat: number, lng: number) => void;
+  onZoomChange: (zoom: number) => void;
+}) {
   useMapEvents({
     click(e) {
       onMapClick(e.latlng.lat, e.latlng.lng);
+    },
+    zoomend(e) {
+      onZoomChange(e.target.getZoom());
     },
   });
   return null;
@@ -119,6 +128,7 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
   const [zoneFilter, setZoneFilter] = useState<string>('all');
   const [isProvenanceModalOpen, setIsProvenanceModalOpen] = useState(false);
   const [resetViewCount, setResetViewCount] = useState(0);
+  const [currentZoom, setCurrentZoom] = useState<number>(5);
 
   // Sync external selected coordinate when provided
   useEffect(() => {
@@ -486,7 +496,7 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
           center={[22.8, 79.5]}
           zoom={5}
           minZoom={4}
-          maxZoom={9}
+          maxZoom={18}
           maxBounds={[
             [6.0, 65.0],
             [38.0, 98.0],
@@ -500,18 +510,20 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
             clickedCoord={clickedCoord}
             resetTrigger={resetViewCount}
           />
-          <MapClickHandler
+          <MapEventsHandler
             onMapClick={(lat, lng) => {
               setClickedCoord({ lat, lng });
               setSelectedRegion(null);
               if (onSelectCoordinate) onSelectCoordinate({ lat, lng });
             }}
+            onZoomChange={(z) => setCurrentZoom(z)}
           />
 
           {/* Clean OpenStreetMap basemap tiles for high readability */}
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            maxZoom={18}
           />
 
           {/* Render Clicked Coordinate Pin Marker */}
@@ -564,6 +576,26 @@ export const IndiaSolarMap: React.FC<IndiaSolarMapProps> = ({
             );
           })}
         </MapContainer>
+
+        {/* Floating Zoom Tier & Spatial Resolution Indicator */}
+        <div className="absolute top-3 left-3 z-1000 pointer-events-auto flex flex-col gap-1.5 max-w-sm">
+          <div className="glass-panel px-3 py-1.5 rounded-xl border border-white/80 shadow-md flex items-center gap-2 text-xs font-bold text-[#0B1739]">
+            <span className={`w-2.5 h-2.5 rounded-full ${
+              currentZoom < 8 ? 'bg-orange-500 animate-pulse' : currentZoom < 13 ? 'bg-blue-500' : 'bg-emerald-500'
+            }`} />
+            <span>
+              {currentZoom < 8 && 'Tier 1: National Solar Resource (36 States & UTs)'}
+              {currentZoom >= 8 && currentZoom < 13 && 'Tier 2: Regional & Urban Context (Cities & Corridors)'}
+              {currentZoom >= 13 && 'Tier 3: Site & Rooftop Precision (Footprint Level)'}
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono">z={currentZoom}</span>
+          </div>
+          {currentZoom >= 13 && (
+            <div className="bg-amber-500/90 text-amber-950 border border-amber-400/80 backdrop-blur-md px-3 py-1 rounded-xl text-[10px] leading-tight shadow-md">
+              <strong>Spatial Resolution:</strong> 0.5° satellite climatology grid cell. Overpass OSM building footprints shown where mapped.
+            </div>
+          )}
+        </div>
 
         {/* Floating Active Layer Legend (Bottom Right) */}
         <div className="absolute bottom-4 right-4 z-1000 pointer-events-auto">

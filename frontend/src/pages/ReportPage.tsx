@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useProject } from '../context/ProjectContext';
 import { GeneratedReportSummary } from '../types/models';
 import { api, resolveReportUrl } from '../services/api';
@@ -10,6 +11,8 @@ import {
   Download,
   ShieldCheck,
   FileCheck,
+  ArrowRight,
+  Activity,
 } from 'lucide-react';
 
 export const ReportPage: React.FC = () => {
@@ -295,6 +298,30 @@ export const ReportPage: React.FC = () => {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Part E: Next Step Navigation */}
+      <div className="flex items-center justify-between p-5 rounded-3xl glass-panel">
+        <div>
+          <div className="text-xs font-bold text-[#0B1739]">Workflow Complete</div>
+          <div className="text-xs text-[#61708A]">Return to Workspace Hub or monitor live telemetry and asset performance.</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/operations"
+            className="glass-button-secondary px-4 py-2 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs"
+          >
+            <Activity className="w-3.5 h-3.5 text-[#FF6B16]" />
+            <span>Open Solar Operations</span>
+          </Link>
+          <Link
+            to="/workspace"
+            className="glass-button-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+          >
+            <span>Return to Workspace Hub</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       </div>
     </div>

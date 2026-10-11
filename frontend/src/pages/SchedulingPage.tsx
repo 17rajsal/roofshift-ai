@@ -438,6 +438,21 @@ export const SchedulingPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Part E: Next Step Navigation */}
+      <div className="flex items-center justify-between p-5 rounded-3xl glass-panel">
+        <div>
+          <div className="text-xs font-bold text-[#0B1739]">Next Recommended Step</div>
+          <div className="text-xs text-[#61708A]">Review deterministic decision intelligence and phased rollout advisory.</div>
+        </div>
+        <button
+          onClick={() => navigate('/recommendations')}
+          className="glass-button-primary px-4 py-2 text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+        >
+          <span>View Optimization Recommendations</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 };
