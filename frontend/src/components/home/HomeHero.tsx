@@ -59,7 +59,7 @@ export const HomeHero: React.FC<HomeHeroProps> = ({ onRequestDemo, onWatchVideo 
               <button
                 onClick={() => {
                   if (onWatchVideo) onWatchVideo();
-                  else navigate('/map');
+                  else navigate('/workspace?mode=india');
                 }}
                 className="glass-button-secondary px-6 py-3.5 text-base flex items-center gap-2.5 cursor-pointer shadow-xs"
               >

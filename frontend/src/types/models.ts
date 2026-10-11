@@ -467,3 +467,71 @@ export interface BulkImportSummaryResponse {
   total_potential_kwp: number;
   total_annual_generation_kwh: number;
 }
+
+export interface IndiaSolarRegion {
+  id: string;
+  name: string;
+  short_name: string;
+  zone: string;
+  coordinates: { lat: number; lng: number };
+  bounds: { north: number; south: number; east: number; west: number };
+  ghi_daily_kwh: number;
+  dni_daily_kwh: number;
+  dhi_daily_kwh: number;
+  ambient_temp_celsius: number;
+  wind_speed_ms: number;
+  cloud_monsoon_pct: number;
+  rooftop_suitability_score: number;
+  open_land_suitability_score: number;
+  ai_suitability_composite: number;
+  suitability_tier: string;
+  zone_classification: string;
+  estimated_rooftop_potential_gw: number;
+  estimated_openland_potential_gw: number;
+  annual_yield_kwh_per_kwp: number;
+  monthly_ghi: Record<string, number>;
+  key_corridors: string[];
+  ai_recommendations: {
+    module_technology: string;
+    tracking_recommendation: string;
+    soiling_and_cleaning: string;
+    grid_and_storage: string;
+    seasonal_risk_summary: string;
+  };
+}
+
+export interface IndiaNationalSolarSummary {
+  total_analyzed_regions: number;
+  total_national_rooftop_potential_gw: number;
+  total_national_openland_potential_gw: number;
+  national_avg_daily_ghi_kwh: number;
+  national_avg_daily_dni_kwh: number;
+  national_avg_ambient_temp_c: number;
+  top_opportunity_regions: Array<{
+    id: string;
+    name: string;
+    score: number;
+    tier: string;
+    zone_classification: string;
+    ghi_daily_kwh: number;
+    rooftop_score: number;
+    openland_score: number;
+  }>;
+  provenance_summary: {
+    satellite_climatology: string;
+    temperature_meteorology: string;
+    capacity_potential: string;
+    modeling_engine: string;
+  };
+}
+
+export interface SampleCampusMetadata {
+  campus_name: string;
+  location: string;
+  coordinates: { lat: number; lng: number };
+  type: string;
+  buildings_count: number;
+  sample_buildings: string[];
+  purpose: string;
+  role_in_platform: string;
+}

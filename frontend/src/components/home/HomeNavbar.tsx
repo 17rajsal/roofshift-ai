@@ -96,9 +96,9 @@ export const HomeNavbar: React.FC<HomeNavbarProps> = ({ onRequestDemo }) => {
           </button>
 
           <button
-            onClick={() => navigate('/map')}
+            onClick={() => navigate('/workspace?mode=india')}
             className="ml-1 p-2.5 rounded-xl bg-white/70 hover:bg-white text-[#61708A] hover:text-[#FF6B16] border border-white/80 transition-all cursor-pointer shadow-2xs"
-            title="Open Full Workspace"
+            title="Open India Solar Intelligence Workspace"
           >
             <LayoutDashboard className="w-4 h-4" />
           </button>

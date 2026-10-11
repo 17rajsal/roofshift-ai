@@ -16,7 +16,8 @@ import {
   X,
   ExternalLink,
   SunMedium,
-  LayoutDashboard
+  LayoutDashboard,
+  Globe
 } from 'lucide-react';
 import { useProject } from '../../context/ProjectContext';
 import { formatINRShort } from '../../utils/formatters';
@@ -53,11 +54,18 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       title: 'Solar Intelligence',
       items: [
         {
+          name: 'India Solar Map',
+          path: '/workspace?mode=india',
+          icon: Globe,
+          badge: 'National',
+          badgeVariant: 'orange'
+        },
+        {
           name: 'Workspace Hub',
           path: '/workspace',
           icon: LayoutDashboard,
           badge: 'Overview',
-          badgeVariant: 'orange'
+          badgeVariant: 'neutral'
         },
         {
           name: 'Explore & Analyze',

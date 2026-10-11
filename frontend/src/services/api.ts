@@ -19,7 +19,10 @@ import {
   SolarMLForecastResponse,
   SolarMLDiurnalRequest,
   SolarMLDiurnalResponse,
-  BulkImportSummaryResponse
+  BulkImportSummaryResponse,
+  IndiaSolarRegion,
+  IndiaNationalSolarSummary,
+  SampleCampusMetadata
 } from '../types/models';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
@@ -411,5 +414,31 @@ export const api = {
 
   async getSolarMLModelInfo(): Promise<any> {
     return fetchJson<any>('/solar-ml/model-info');
+  },
+
+  // India-Scale Solar Intelligence
+  async getIndiaSolarSummary(): Promise<IndiaNationalSolarSummary> {
+    return fetchJson<IndiaNationalSolarSummary>('/solar-intelligence/summary');
+  },
+
+  async getIndiaSolarRegions(params?: {
+    zone?: string;
+    min_suitability?: number;
+    search?: string;
+  }): Promise<IndiaSolarRegion[]> {
+    const query = new URLSearchParams();
+    if (params?.zone) query.append('zone', params.zone);
+    if (params?.min_suitability !== undefined) query.append('min_suitability', String(params.min_suitability));
+    if (params?.search) query.append('search', params.search);
+    const qs = query.toString();
+    return fetchJson<IndiaSolarRegion[]>(`/solar-intelligence/regions${qs ? `?${qs}` : ''}`);
+  },
+
+  async getIndiaSolarRegion(regionId: string): Promise<IndiaSolarRegion> {
+    return fetchJson<IndiaSolarRegion>(`/solar-intelligence/regions/${encodeURIComponent(regionId)}`);
+  },
+
+  async getSampleCampusInfo(): Promise<SampleCampusMetadata> {
+    return fetchJson<SampleCampusMetadata>('/solar-intelligence/sample-campus');
   }
 };

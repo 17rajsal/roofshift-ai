@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Compass, Building, Activity, Flame, ChevronRight } from 'lucide-react';
+import { Globe, Compass, Building, Activity, Flame } from 'lucide-react';
+import { IndiaSolarMap } from '../components/map/IndiaSolarMap';
 import { SolarMapPage } from './SolarMapPage';
 import { BuildingsPage } from './BuildingsPage';
 import { EnergyInsightsPage } from './EnergyInsightsPage';
@@ -8,7 +9,7 @@ import { OperationsPage } from './OperationsPage';
 
 export const ExploreAnalyzeSection: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'map';
+  const currentTab = searchParams.get('tab') || 'india';
 
   const setTab = (tab: string) => {
     setSearchParams({ tab });
@@ -20,6 +21,18 @@ export const ExploreAnalyzeSection: React.FC = () => {
       <div className="bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-2xl p-2 shadow-sm flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 overflow-x-auto p-1">
           <button
+            onClick={() => setTab('india')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              currentTab === 'india'
+                ? 'bg-[#FF6B16] text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            <span>India Solar Map</span>
+          </button>
+
+          <button
             onClick={() => setTab('map')}
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               currentTab === 'map'
@@ -28,7 +41,7 @@ export const ExploreAnalyzeSection: React.FC = () => {
             }`}
           >
             <Compass className="w-4 h-4" />
-            <span>GIS Rooftop Mapping</span>
+            <span>Campus GIS Rooftops</span>
           </button>
 
           <button
@@ -77,6 +90,14 @@ export const ExploreAnalyzeSection: React.FC = () => {
 
       {/* Render active sub-view */}
       <div>
+        {currentTab === 'india' && (
+          <div className="space-y-4">
+            <IndiaSolarMap
+              onDrillDownToSite={() => setTab('map')}
+              onOpenSampleCampus={() => setTab('map')}
+            />
+          </div>
+        )}
         {currentTab === 'map' && <SolarMapPage />}
         {currentTab === 'buildings' && <BuildingsPage />}
         {currentTab === 'forecast' && <EnergyInsightsPage />}
