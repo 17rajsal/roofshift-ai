@@ -440,5 +440,9 @@ export const api = {
 
   async getSampleCampusInfo(): Promise<SampleCampusMetadata> {
     return fetchJson<SampleCampusMetadata>('/solar-intelligence/sample-campus');
+  },
+
+  async getIndiaSolarMethodology(): Promise<any> {
+    return fetchJson<any>('/solar-intelligence/methodology');
   }
 };

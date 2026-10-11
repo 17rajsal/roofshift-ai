@@ -8,7 +8,8 @@ from app.services.solar.india_solar_intelligence import (
     get_all_regions,
     get_region_by_id,
     compute_national_summary,
-    get_sample_campus_metadata
+    get_sample_campus_metadata,
+    get_scoring_methodology
 )
 
 router = APIRouter(prefix="/solar-intelligence")
@@ -55,3 +56,11 @@ def get_sample_campus_info():
     demonstrating building-level 3D polygon PV sizing.
     """
     return get_sample_campus_metadata()
+
+
+@router.get("/methodology", response_model=Dict[str, Any])
+def get_solar_intelligence_methodology():
+    """Retrieve full engineering methodology, multi-variable formulas,
+    provenance datasets, geographic resolution, and limitations.
+    """
+    return get_scoring_methodology()

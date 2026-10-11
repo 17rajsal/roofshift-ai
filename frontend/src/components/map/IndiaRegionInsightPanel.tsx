@@ -120,8 +120,8 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
         </div>
       </div>
 
-      {/* 4 Climatological Environmental Indicator Cards */}
-      <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+      {/* 4 Climatological Environmental Indicator Cards with Verified Data Provenance */}
+      <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
         <div className="p-2.5 rounded-xl bg-slate-50/90 border border-slate-100">
           <div className="flex items-center gap-1.5 text-slate-500 text-[11px] mb-1">
             <SunMedium className="w-3.5 h-3.5 text-[#FF6B16]" />
@@ -132,6 +132,9 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
             DNI: {region.dni_daily_kwh} kWh/m²/d
+          </div>
+          <div className="text-[9px] text-slate-400 font-medium mt-1 pt-1 border-t border-slate-200/60">
+            NASA POWER 20-Yr Baseline
           </div>
         </div>
 
@@ -152,6 +155,9 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
               <span className="text-slate-500">Nominal thermal band</span>
             )}
           </div>
+          <div className="text-[9px] text-slate-400 font-medium mt-1 pt-1 border-t border-slate-200/60">
+            IMD 30-Yr Climatological Normal
+          </div>
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-50/90 border border-slate-100">
@@ -164,6 +170,9 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
           </div>
           <div className="text-[10px] text-slate-500 mt-0.5">
             Convective cooling: +{(region.wind_speed_ms * 0.3).toFixed(1)}%
+          </div>
+          <div className="text-[9px] text-slate-400 font-medium mt-1 pt-1 border-t border-slate-200/60">
+            IMD 10m Mean Wind Baseline
           </div>
         </div>
 
@@ -178,7 +187,16 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
           <div className="text-[10px] text-slate-500 mt-0.5">
             Monsoon seasonal dip
           </div>
+          <div className="text-[9px] text-slate-400 font-medium mt-1 pt-1 border-t border-slate-200/60">
+            IMD Monsoon Seasonal Mean
+          </div>
         </div>
+      </div>
+
+      {/* Explicit Data Provenance Sub-Banner */}
+      <div className="mb-4 px-2.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200/60 text-[10px] text-slate-500 flex items-center justify-between">
+        <span className="font-medium">Macro regional baseline estimates</span>
+        <span className="text-[#FF6B16] font-semibold">Site drilldown: Live NASA API</span>
       </div>
 
       {/* Differentiated Suitability Comparison (Rooftop vs Open Land) */}
@@ -208,6 +226,9 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
               <span>Estimated State Potential:</span>
               <span className="font-semibold text-slate-700">{region.estimated_rooftop_potential_gw} GWp</span>
             </div>
+            <div className="text-[9px] text-slate-400 mt-0.5">
+              Reflects urban C&I demand density & available roof stock (excludes parapet shading)
+            </div>
           </div>
 
           <div>
@@ -229,6 +250,9 @@ export const IndiaRegionInsightPanel: React.FC<IndiaRegionInsightPanelProps> = (
             <div className="flex justify-between text-[10px] text-slate-400 mt-1">
               <span>Estimated Ground Potential:</span>
               <span className="font-semibold text-slate-700">{region.estimated_openland_potential_gw} GWp</span>
+            </div>
+            <div className="text-[9px] text-slate-400 mt-0.5">
+              Reflects wasteland parcels & ISTS grid access (penalizes terrain slope & forest restrictions)
             </div>
           </div>
         </div>

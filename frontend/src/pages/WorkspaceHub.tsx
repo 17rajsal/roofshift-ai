@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { useProject } from '../context/ProjectContext';
 import { api } from '../services/api';
-import { Building as BuildingModel, IndiaSolarRegion } from '../types/models';
+import { Building as BuildingModel, IndiaSolarRegion, IndiaNationalSolarSummary } from '../types/models';
 import { formatINR, formatNumber, formatArea } from '../utils/formatters';
 import { BulkImportModal } from '../components/buildings/BulkImportModal';
 import { NewProjectModal } from '../components/layout/NewProjectModal';
@@ -71,6 +71,20 @@ export const WorkspaceHub: React.FC = () => {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [recalculateMessage, setRecalculateMessage] = useState<string | null>(null);
+  const [nationalSummary, setNationalSummary] = useState<IndiaNationalSolarSummary | null>(null);
+
+  // Fetch National India Solar Summary for real-time dynamic dashboard telemetry
+  useEffect(() => {
+    let cancelled = false;
+    api.getIndiaSolarSummary()
+      .then((data) => {
+        if (!cancelled) setNationalSummary(data);
+      })
+      .catch((err) => console.error('Failed to load national solar summary:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Fetch buildings for active project
   useEffect(() => {
@@ -311,7 +325,7 @@ export const WorkspaceHub: React.FC = () => {
                 </div>
               </div>
               <div className="text-2xl font-extrabold text-[#0F172A]">
-                5.24 <span className="text-sm font-semibold text-slate-500">kWh/m²/day</span>
+                {nationalSummary ? nationalSummary.national_avg_daily_ghi_kwh : '5.01'} <span className="text-sm font-semibold text-slate-500">kWh/m²/day</span>
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                 <span className="text-emerald-600 font-bold">NASA POWER Baseline</span>
@@ -329,7 +343,7 @@ export const WorkspaceHub: React.FC = () => {
                 </div>
               </div>
               <div className="text-2xl font-extrabold text-[#0F172A]">
-                748 <span className="text-sm font-semibold text-slate-500">GWp</span>
+                {nationalSummary ? Math.round(nationalSummary.total_national_rooftop_potential_gw) : 748} <span className="text-sm font-semibold text-slate-500">GWp</span>
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                 <span>Commercial & industrial roofs</span>
@@ -346,7 +360,7 @@ export const WorkspaceHub: React.FC = () => {
                 </div>
               </div>
               <div className="text-2xl font-extrabold text-[#0F172A]">
-                1,240 <span className="text-sm font-semibold text-slate-500">GWp</span>
+                {nationalSummary ? Math.round(nationalSummary.total_national_openland_potential_gw) : 1240} <span className="text-sm font-semibold text-slate-500">GWp</span>
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                 <span>Arid & barren land suitable zones</span>
@@ -363,7 +377,7 @@ export const WorkspaceHub: React.FC = () => {
                 </div>
               </div>
               <div className="text-2xl font-extrabold text-[#0F172A]">
-                36 <span className="text-sm font-semibold text-slate-500">States & UTs</span>
+                {nationalSummary ? nationalSummary.total_analyzed_regions : 36} <span className="text-sm font-semibold text-slate-500">States & UTs</span>
               </div>
               <div className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                 <span className="text-emerald-600 font-bold">100% Geospatial Coverage</span>

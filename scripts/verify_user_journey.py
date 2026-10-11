@@ -46,19 +46,27 @@ def main():
     print(f"  • National Rooftop Potential: {summary['total_national_rooftop_potential_gw']:.1f} GWp")
     print(f"  • Utility Open-Land Potential: {summary['total_national_openland_potential_gw']:.1f} GWp")
     print(f"  • National Average GHI: {summary['national_avg_daily_ghi_kwh']} kWh/m²/day")
-    assert summary["total_analyzed_regions"] >= 20
-    assert summary["total_national_rooftop_potential_gw"] > 500
+    assert summary["total_analyzed_regions"] == 36
+    assert summary["total_national_rooftop_potential_gw"] == 748.0
+    assert summary["total_national_openland_potential_gw"] == 1240.0
+
+    # [Step 2b] Scoring Methodology & Limitations
+    methodology = get_json("/solar-intelligence/methodology")
+    print(f"  • AI Scoring Methodology: {methodology['engine_version']} ({methodology['geographic_resolution']['macro_regional_layer']})")
+    assert "rooftop_scoring_model" in methodology
+    assert "open_land_scoring_model" in methodology
 
     # [Step 3] Regional Solar Exploration & Filters
     regions = get_json("/solar-intelligence/regions")
     arid_regions = get_json("/solar-intelligence/regions?zone=Arid")
     high_regions = get_json("/solar-intelligence/regions?min_suitability=90")
     print(f"\n[Step 3] Regional Intelligence Filters:")
-    print(f"  • Total Loaded Regions: {len(regions)}")
+    print(f"  • Total Loaded Regions: {len(regions)} (All 36 States & UTs)")
     print(f"  • Arid Corridors: {len(arid_regions)} (e.g., {arid_regions[0]['name']})")
     print(f"  • High-Suitability Tier A/A+ Zones: {len(high_regions)}")
+    assert len(regions) == 36
     assert len(arid_regions) >= 1
-    assert len(high_regions) >= 4
+    assert len(high_regions) >= 5
 
     # [Step 4] Deep-Dive Regional Solar Climatology Profiles
     raj = get_json("/solar-intelligence/regions/rajasthan")

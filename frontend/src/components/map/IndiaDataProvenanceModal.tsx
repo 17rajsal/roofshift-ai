@@ -82,26 +82,35 @@ export const IndiaDataProvenanceModal: React.FC<IndiaDataProvenanceModalProps> =
           <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
             <div className="flex items-center gap-2 mb-2">
               <Cpu className="w-4 h-4 text-blue-600" />
-              <h3 className="font-bold text-sm text-[#0F172A]">2. Derived AI & Physics Formulations</h3>
+              <h3 className="font-bold text-sm text-[#0F172A]">2. AI Suitability Formulas & Weighting</h3>
               <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                Computational Model
+                Computational Model v8.2
               </span>
             </div>
-            <p className="text-slate-600 leading-relaxed mb-2">
-              Raw environmental inputs are processed through RoofShift AI’s multi-variable engineering engine:
+            <p className="text-slate-600 leading-relaxed mb-2.5">
+              Multi-variable decision formulas evaluate rooftop and ground-mount PV opportunity separately:
             </p>
-            <ul className="space-y-1 text-slate-500">
+            <div className="space-y-2 font-mono text-[11px] bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-slate-700">
+              <div>
+                <strong className="text-emerald-700 font-sans">Rooftop Score: </strong>
+                35% GHI + 30% C&I Density + 15% TempDerate + 10% WindCooling − 10% CloudLoss
+              </div>
+              <div>
+                <strong className="text-amber-700 font-sans">Open-Land Score: </strong>
+                35% DNI + 30% BarrenLand + 20% ISTS Grid + 10% TempDerate − 5% TerrainSlope
+              </div>
+              <div className="text-slate-500 font-sans text-[10px] pt-1 border-t border-slate-200/70">
+                Composite Score = 50% Rooftop + 50% Open-Land (Tier A+: ≥93, Tier A: 88-92, Tier B+: 82-87)
+              </div>
+            </div>
+            <ul className="space-y-1 text-slate-500 mt-2.5">
               <li className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                <span><strong>Temperature Derating:</strong> Pmax coefficient modeling (silicon standard -0.38%/°C above 25°C).</span>
+                <span><strong>Silicon Thermal Derate:</strong> Pmax temperature coefficient (-0.38%/°C above 25°C).</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                <span><strong>Convective Cooling:</strong> Aerodynamic wind dissipation offsetting module surface heat.</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                <span><strong>Dual Suitability Index:</strong> Differentiated scoring for commercial rooftop vs open-land utility solar.</span>
+                <span><strong>Convective Cooling:</strong> Aerodynamic wind dissipation (+0.3%/m/s) offsetting cell heat.</span>
               </li>
             </ul>
           </div>
@@ -110,15 +119,12 @@ export const IndiaDataProvenanceModal: React.FC<IndiaDataProvenanceModalProps> =
           <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
             <div className="flex items-center gap-2 mb-2">
               <Layers className="w-4 h-4 text-[#FF6B16]" />
-              <h3 className="font-bold text-sm text-[#0F172A]">3. Multi-Scale Spatial Hierarchy</h3>
+              <h3 className="font-bold text-sm text-[#0F172A]">3. Multi-Scale Spatial Hierarchy & Limitations</h3>
               <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
-                Hierarchical Drilldown
+                0.5° Grid & Sub-Meter
               </span>
             </div>
-            <p className="text-slate-600 leading-relaxed mb-1.5">
-              RoofShift AI operates across 4 distinct spatial resolution tiers:
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px] text-center font-semibold">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 py-1 text-[11px] text-center font-semibold">
               <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
                 <span className="text-[#FF6B16] block">Scale 1</span>
                 <span>National Map</span>
@@ -135,6 +141,11 @@ export const IndiaDataProvenanceModal: React.FC<IndiaDataProvenanceModalProps> =
                 <span className="text-violet-600 block">Scale 4</span>
                 <span>Site & Rooftop</span>
               </div>
+            </div>
+            <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/60 text-[10px] text-amber-900 leading-relaxed">
+              <span className="font-bold">Engineering Limitations: </span>
+              Macro regional scores represent 0.5° × 0.5° satellite climatology and state baselines.
+              They do not replace on-site shadow raytracing, local geotechnical soil tests, or DISCOM interconnection approvals.
             </div>
           </div>
         </div>

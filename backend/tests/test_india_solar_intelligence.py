@@ -17,8 +17,8 @@ client = TestClient(app)
 
 
 def test_india_regions_database_integrity():
-    """Verify all Indian regions have complete climatological and geospatial fields."""
-    assert len(INDIA_REGIONS_DATABASE) >= 20
+    """Verify all 36 Indian States and Union Territories have complete climatological and geospatial fields."""
+    assert len(INDIA_REGIONS_DATABASE) == 36
     for r in INDIA_REGIONS_DATABASE:
         assert "id" in r
         assert "name" in r
@@ -39,11 +39,11 @@ def test_india_regions_database_integrity():
 
 
 def test_compute_national_summary():
-    """Verify national aggregation figures."""
+    """Verify national aggregation figures across all 36 States & UTs."""
     summary = compute_national_summary()
-    assert summary["total_analyzed_regions"] == len(INDIA_REGIONS_DATABASE)
-    assert summary["total_national_rooftop_potential_gw"] > 300.0
-    assert summary["total_national_openland_potential_gw"] > 500.0
+    assert summary["total_analyzed_regions"] == 36
+    assert summary["total_national_rooftop_potential_gw"] == 748.0
+    assert summary["total_national_openland_potential_gw"] == 1240.0
     assert 4.5 <= summary["national_avg_daily_ghi_kwh"] <= 6.5
     assert len(summary["top_opportunity_regions"]) == 5
     assert summary["provenance_summary"]["satellite_climatology"].startswith("NASA POWER")
@@ -106,6 +106,11 @@ def test_api_get_region_detail_and_404():
     assert res_404.status_code == 404
     assert "not found" in res_404.json()["detail"].lower()
 
+    # Backwards compatibility alias for assam_northeast
+    res_alias = client.get("/api/v1/solar-intelligence/regions/assam_northeast")
+    assert res_alias.status_code == 200
+    assert res_alias.json()["id"] == "assam"
+
 
 def test_api_sample_campus_metadata():
     """Verify GET /api/v1/solar-intelligence/sample-campus returns transparent demo metadata."""
@@ -115,3 +120,21 @@ def test_api_sample_campus_metadata():
     assert "BITS Pilani" in data["campus_name"]
     assert data["buildings_count"] == 5
     assert "demonstrates" in data["purpose"].lower()
+
+
+def test_api_get_scoring_methodology():
+    """Verify GET /api/v1/solar-intelligence/methodology returns documented formulas, weights, and limitations."""
+    res = client.get("/api/v1/solar-intelligence/methodology")
+    assert res.status_code == 200
+    data = res.json()
+    assert "engine_version" in data
+    assert "geographic_resolution" in data
+    assert "macro_regional_layer" in data["geographic_resolution"]
+    assert "0.5°" in data["geographic_resolution"]["macro_regional_layer"]
+    assert "rooftop_scoring_model" in data
+    assert len(data["rooftop_scoring_model"]["inputs_and_weights"]) == 5
+    assert "open_land_scoring_model" in data
+    assert len(data["open_land_scoring_model"]["inputs_and_weights"]) == 5
+    assert "composite_scoring" in data
+    assert "limitations" in data
+    assert len(data["limitations"]) >= 3
