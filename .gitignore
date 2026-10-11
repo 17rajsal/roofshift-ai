@@ -77,3 +77,7 @@ roofshift-integration/
 # Additional delivery/test artifacts
 .npm
 pytest-cache-files-*/
+
+# Machine Learning Raw Datasets
+ml/data/
+*.csv.gz

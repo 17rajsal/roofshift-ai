@@ -14,12 +14,14 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { AwsIntegrationsModal } from '../AwsIntegrationsModal';
+import { SolarMLForecastModal } from '../SolarMLForecastModal';
 
 export const TopNavbar: React.FC<{ onOpenNavigation: () => void }> = ({ onOpenNavigation }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { activeProject, loading, error } = useProject();
   const [showAwsModal, setShowAwsModal] = useState(false);
+  const [showMLModal, setShowMLModal] = useState(false);
 
   const getPageTitle = () => {
     switch (location.pathname) {
@@ -116,6 +118,19 @@ export const TopNavbar: React.FC<{ onOpenNavigation: () => void }> = ({ onOpenNa
             </span>
           </button>
 
+          {/* Solar ML Forecast Model Pill */}
+          <button
+            onClick={() => setShowMLModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white/70 hover:bg-white text-[#0B1739] border border-white/90 shadow-2xs transition-all cursor-pointer group"
+            title="Real Machine Learning Solar Generation Forecaster & Benchmark"
+          >
+            <Sparkles className="w-4 h-4 text-[#FF6B16] group-hover:rotate-12 transition-transform" />
+            <span className="hidden md:inline">Solar ML</span>
+            <span className="text-[10px] bg-amber-500/15 text-amber-800 border border-amber-500/25 font-bold px-1.5 py-0.5 rounded-full">
+              XGBoost
+            </span>
+          </button>
+
           {/* Quick Action Buttons */}
           <div className="flex items-center gap-2">
             <button
@@ -140,6 +155,12 @@ export const TopNavbar: React.FC<{ onOpenNavigation: () => void }> = ({ onOpenNa
       <AwsIntegrationsModal
         isOpen={showAwsModal}
         onClose={() => setShowAwsModal(false)}
+      />
+
+      {/* Real Machine Learning Solar Generation Forecaster Modal */}
+      <SolarMLForecastModal
+        isOpen={showMLModal}
+        onClose={() => setShowMLModal(false)}
       />
     </>
   );

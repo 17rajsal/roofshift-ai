@@ -14,7 +14,11 @@ import {
   PanelInspectionResponse,
   DefectSummaryResponse,
   SolarMonitoringResponse,
-  MaintenanceCaseResponse
+  MaintenanceCaseResponse,
+  SolarMLForecastRequest,
+  SolarMLForecastResponse,
+  SolarMLDiurnalRequest,
+  SolarMLDiurnalResponse
 } from '../types/models';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
@@ -336,5 +340,24 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+
+  // Machine Learning Solar Forecasting
+  async getSolarMLForecast(data: SolarMLForecastRequest): Promise<SolarMLForecastResponse> {
+    return fetchJson<SolarMLForecastResponse>('/solar-ml/forecast', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getSolarMLDiurnalForecast(data: SolarMLDiurnalRequest): Promise<SolarMLDiurnalResponse> {
+    return fetchJson<SolarMLDiurnalResponse>('/solar-ml/diurnal-forecast', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getSolarMLModelInfo(): Promise<any> {
+    return fetchJson<any>('/solar-ml/model-info');
   }
 };

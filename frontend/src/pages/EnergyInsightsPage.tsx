@@ -24,8 +24,10 @@ import {
   UploadCloud,
   FileSpreadsheet,
   Download,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
+import { SolarMLForecastModal } from '../components/SolarMLForecastModal';
 import {
   AreaChart,
   Area,
@@ -48,6 +50,7 @@ export const EnergyInsightsPage: React.FC = () => {
 
   // Meter Demand CSV Upload State
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showMLModal, setShowMLModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<DemandUploadResult | null>(null);
@@ -131,6 +134,17 @@ export const EnergyInsightsPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => setShowMLModal(true)}
+            className="glass-button-secondary px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs text-amber-900 border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20"
+            title="Open Trained XGBoost Machine Learning Forecaster"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#FF6B16]" />
+            <span>Solar ML Forecaster</span>
+            <span className="text-[10px] bg-amber-500/25 text-amber-900 font-bold px-1.5 py-0.5 rounded">
+              XGBoost
+            </span>
+          </button>
           <button
             onClick={() => setShowUploadModal(true)}
             className="glass-button-secondary px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
@@ -478,6 +492,13 @@ export const EnergyInsightsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Solar ML Forecast & Benchmark Modal */}
+      <SolarMLForecastModal
+        isOpen={showMLModal}
+        onClose={() => setShowMLModal(false)}
+        initialCapacityKwp={insights?.total_capacity_kwp || 50}
+      />
     </div>
   );
 };
