@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -10,7 +11,9 @@ from app.models.scheduling import EnergyActivity
 from app.schemas.report import ReportGenerateRequest, ReportResponse
 from app.services.reports.pdf_generator import generate_project_pdf_report
 from app.services.scheduling.load_shifter import optimize_energy_scheduling
+from app.core.file_security import sanitize_filename, assert_path_in_directory
 
+logger = logging.getLogger("roofshift.reports")
 router = APIRouter()
 
 @router.post("/projects/{project_id}/reports", response_model=ReportResponse, status_code=status.HTTP_201_CREATED)
@@ -38,7 +41,11 @@ async def create_report(project_id: str, req: ReportGenerateRequest, db: Session
             generated_at=report_record.generated_at
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"PDF report generation error: {str(e)}")
+        logger.exception(f"PDF report generation error for project {project_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate PDF report. Please verify project inputs and try again."
+        )
 
 @router.get("/projects/{project_id}/reports", response_model=List[ReportResponse])
 def list_reports(project_id: str, db: Session = Depends(get_db)):
@@ -73,7 +80,8 @@ def download_report(report_id: str, db: Session = Depends(get_db)):
     from app.core.config import settings
     if storage_adapter.is_s3_active():
         try:
-            s3_key = f"reports/{r.filename}"
+            safe_s3_filename = sanitize_filename(r.filename)
+            s3_key = f"reports/{safe_s3_filename}"
             presigned_url = storage_adapter.s3_client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": settings.S3_BUCKET_NAME, "Key": s3_key},
@@ -84,12 +92,20 @@ def download_report(report_id: str, db: Session = Depends(get_db)):
         except Exception:
             pass  # Fall through to local filesystem copy
 
-    if not os.path.exists(r.file_path):
+    # Validate against directory traversal
+    try:
+        validated_path = assert_path_in_directory(r.file_path, settings.REPORTS_DIR)
+    except HTTPException:
+        logger.warning(f"Path traversal blocked on report download: {r.file_path}")
+        raise HTTPException(status_code=403, detail="Access denied: Invalid report file location.")
+
+    if not os.path.exists(validated_path):
         raise HTTPException(status_code=404, detail="Report file not found on disk")
 
+    safe_download_name = sanitize_filename(r.filename)
     return FileResponse(
-        path=r.file_path,
+        path=validated_path,
         media_type="application/pdf",
-        filename=r.filename,
-        headers={"Content-Disposition": f'attachment; filename="{r.filename}"'}
+        filename=safe_download_name,
+        headers={"Content-Disposition": f'attachment; filename="{safe_download_name}"'}
     )

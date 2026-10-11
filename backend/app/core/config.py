@@ -23,6 +23,8 @@ class Settings(BaseModel):
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8000",
+    ] if not os.getenv("BACKEND_CORS_ORIGINS") else [
+        o.strip() for o in os.getenv("BACKEND_CORS_ORIGINS", "").split(",") if o.strip()
     ]
     
     # NASA POWER API

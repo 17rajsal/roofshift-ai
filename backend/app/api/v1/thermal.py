@@ -18,6 +18,7 @@ from app.schemas.thermal import (
     ThermalCreateMaintenanceRequest,
     ThermalObservationItem
 )
+from app.core.file_security import validate_csv_content, sanitize_csv_formula_injection
 
 router = APIRouter()
 
@@ -253,12 +254,8 @@ async def upload_thermal_csv(
         raise HTTPException(status_code=404, detail="Project not found")
 
     raw_filename = file.filename or "thermal_observations.csv"
-    if not raw_filename.lower().endswith((".csv", ".txt")):
-        raise HTTPException(status_code=400, detail="Invalid file format. Please upload a CSV file.")
-
     content = await file.read()
-    if len(content) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File size exceeds limit of 5MB.")
+    validate_csv_content(content, filename=raw_filename, max_bytes=5 * 1024 * 1024)
 
     text = content.decode("utf-8-sig", errors="replace")
     reader = csv.DictReader(io.StringIO(text))
@@ -279,7 +276,7 @@ async def upload_thermal_csv(
 
     results: List[ThermalObservationAnalysis] = []
     for row_idx, row in enumerate(reader):
-        raw_pid = (row.get(pid_col) or "").strip()
+        raw_pid = sanitize_csv_formula_injection((row.get(pid_col) or "").strip())
         raw_temp = (row.get(temp_col) or "").strip()
 
         if not raw_pid or not raw_temp:

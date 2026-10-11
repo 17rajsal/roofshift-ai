@@ -26,6 +26,12 @@ async def lifespan(app: FastAPI):
         db.close()
     yield
 
+from app.core.security_middleware import (
+    SecurityHeadersMiddleware,
+    RateLimitMiddleware,
+    RequestSizeLimitMiddleware
+)
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
@@ -33,12 +39,23 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS setup
+# 1. Request payload size defense (15MB upper limit)
+app.add_middleware(RequestSizeLimitMiddleware, max_bytes=15 * 1024 * 1024)
+
+# 2. Defensive HTTP security headers
+app.add_middleware(SecurityHeadersMiddleware)
+
+# 3. Tiered IP-based rate limiting
+app.add_middleware(RateLimitMiddleware, enabled=True)
+
+# 4. CORS configuration with credential safety validation
+cors_allow_credentials = "*" not in settings.BACKEND_CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_credentials=cors_allow_credentials,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
