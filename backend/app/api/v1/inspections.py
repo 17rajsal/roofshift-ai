@@ -10,6 +10,7 @@ from app.models.project import Project
 from app.models.inspection import PanelInspection
 from app.schemas.inspection import PanelInspectionResponse, DefectSummaryResponse
 from app.services.inspection.panel_analyzer import analyze_solar_panel_image
+from app.core.file_security import validate_image_file, sanitize_filename, generate_safe_disk_filename
 
 router = APIRouter()
 
@@ -28,25 +29,25 @@ async def upload_panel_inspection(
         raise HTTPException(status_code=404, detail="Building not found")
 
     raw_filename = file.filename or "inspection.jpg"
-    clean_name = Path(raw_filename).name
+    clean_name = sanitize_filename(Path(raw_filename).name)
     ext = Path(clean_name).suffix.lower()
     if ext not in [".jpg", ".jpeg", ".png", ".webp", ".tif", ".tiff"]:
         raise HTTPException(status_code=400, detail="Invalid image file format. Supported: JPG, JPEG, PNG, WEBP, TIFF.")
 
     contents = await file.read()
-    if len(contents) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="Image file exceeds maximum limit of 10MB.")
+    validate_image_file(contents, clean_name, max_bytes=10 * 1024 * 1024)
 
     analysis = analyze_solar_panel_image(contents, clean_name)
 
     # Save image file safely
     uploads_dir = Path(settings.UPLOADS_DIR).resolve() / "inspections"
     uploads_dir.mkdir(parents=True, exist_ok=True)
-    save_path = uploads_dir / f"{building_id[:8]}_{clean_name}"
+    disk_filename = generate_safe_disk_filename(clean_name, prefix=building_id[:8])
+    save_path = uploads_dir / disk_filename
     with open(save_path, "wb") as f:
         f.write(contents)
 
-    rel_url = f"/uploads/inspections/{building_id[:8]}_{clean_name}"
+    rel_url = f"/uploads/inspections/{disk_filename}"
 
     record = PanelInspection(
         building_id=building_id,

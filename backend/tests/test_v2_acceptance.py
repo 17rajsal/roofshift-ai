@@ -311,9 +311,13 @@ def test_acceptance_9_database_persistence():
 # =====================================================================
 def test_acceptance_10_scheduling_time_window_constraints():
     """Shiftable loads are scheduled into solar surplus hours (10:00 - 15:00), not midnight."""
-    # Find demo project with pre-seeded activities
+    # Find demo project with pre-seeded activities (seed on-demand for test fixture)
     res = client.get("/api/v1/projects")
     projects = [p for p in res.json() if p.get("is_demo") == "true"]
+    if not projects:
+        seed_res = client.post("/api/v1/projects/seed-demo")
+        assert seed_res.status_code == 200
+        projects = [seed_res.json()]
     assert len(projects) > 0
     proj_id = projects[0]["id"]
 
@@ -335,6 +339,10 @@ def test_acceptance_11_delhi_demo_campus_workflow():
     """Verify complete end-to-end workflow on pre-seeded Delhi College Campus."""
     res = client.get("/api/v1/projects")
     projects = [p for p in res.json() if p.get("is_demo") == "true"]
+    if not projects:
+        seed_res = client.post("/api/v1/projects/seed-demo")
+        assert seed_res.status_code == 200
+        projects = [seed_res.json()]
     assert len(projects) >= 1
     demo = projects[0]
 

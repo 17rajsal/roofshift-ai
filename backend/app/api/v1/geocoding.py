@@ -10,7 +10,7 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 @router.get("/geocoding/search")
-async def search_location(q: str = Query(...)):
+async def search_location(q: str = Query(..., min_length=2, max_length=100)):
     """
     Geocodes Indian locations using OpenStreetMap Nominatim or Amazon Location Service.
     Falls back to cached Indian administrative centers on network failure or rate limits.
@@ -18,6 +18,8 @@ async def search_location(q: str = Query(...)):
     clean_q = q.strip() if q else ""
     if not clean_q or len(clean_q) < 2:
         raise HTTPException(status_code=422, detail="Query cannot be blank and must contain at least 2 characters")
+    if len(clean_q) > 100:
+        raise HTTPException(status_code=422, detail="Query cannot exceed 100 characters")
 
     # AWS Amazon Location Service if configured
     if settings.AWS_ENABLED and settings.GEOCODING_PROVIDER == "amazon_location":
@@ -38,7 +40,7 @@ async def search_location(q: str = Query(...)):
     encoded = urlencode(params)
     url = f"https://nominatim.openstreetmap.org/search?{encoded}"
     headers = {
-        "User-Agent": "RoofShift-AI/2.0 (environmental-hacks-2026)"
+        "User-Agent": "RoofShift-AI/2.0 (Solar-Engineering-Platform; contact@roofshift.ai)"
     }
 
     try:

@@ -14,7 +14,18 @@ import {
   PanelInspectionResponse,
   DefectSummaryResponse,
   SolarMonitoringResponse,
-  MaintenanceCaseResponse
+  MaintenanceCaseResponse,
+  SolarMLForecastRequest,
+  SolarMLForecastResponse,
+  SolarMLDiurnalRequest,
+  SolarMLDiurnalResponse,
+  BulkImportSummaryResponse,
+  IndiaSolarRegion,
+  IndiaNationalSolarSummary,
+  SampleCampusMetadata,
+  EnvironmentalProfileResponse,
+  OsmBuildingsResponse,
+  OpenAreaScreeningResponse
 } from '../types/models';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, '');
@@ -93,8 +104,59 @@ export const api = {
   },
 
   // Buildings
-  async getBuildings(projectId: string): Promise<Building[]> {
-    return fetchJson<Building[]>(`/projects/${projectId}/buildings`);
+  async getBuildings(
+    projectId: string,
+    params?: { limit?: number; offset?: number; category?: string; search?: string }
+  ): Promise<Building[]> {
+    const query = new URLSearchParams();
+    if (params?.limit !== undefined) query.set('limit', String(params.limit));
+    if (params?.offset !== undefined) query.set('offset', String(params.offset));
+    if (params?.category) query.set('category', params.category);
+    if (params?.search) query.set('search', params.search);
+    const qs = query.toString();
+    return fetchJson<Building[]>(`/projects/${projectId}/buildings${qs ? `?${qs}` : ''}`);
+  },
+
+  async bulkImportBuildings(projectId: string, fileOrPayload: File | any): Promise<BulkImportSummaryResponse> {
+    if (fileOrPayload instanceof File) {
+      const formData = new FormData();
+      formData.append('file', fileOrPayload);
+      const res = await fetch(`${API_BASE}/projects/${projectId}/buildings/bulk-import`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        throw await responseError(res);
+      }
+      return res.json();
+    } else {
+      return fetchJson<BulkImportSummaryResponse>(`/projects/${projectId}/buildings/bulk-import`, {
+        method: 'POST',
+        body: JSON.stringify(fileOrPayload),
+      });
+    }
+  },
+
+  async recalculateProjectBuildings(projectId: string): Promise<{
+    project_id: string;
+    total_buildings: number;
+    recalculated: number;
+    failed: number;
+    total_usable_area_sqm: number;
+    total_potential_kwp: number;
+    total_annual_generation_kwh: number;
+  }> {
+    return fetchJson<{
+      project_id: string;
+      total_buildings: number;
+      recalculated: number;
+      failed: number;
+      total_usable_area_sqm: number;
+      total_potential_kwp: number;
+      total_annual_generation_kwh: number;
+    }>(`/projects/${projectId}/recalculate`, {
+      method: 'POST',
+    });
   },
 
   async getBuilding(buildingId: string): Promise<Building> {
@@ -300,5 +362,107 @@ export const api = {
 
   async deleteMaintenanceCase(caseId: string): Promise<void> {
     return fetchJson<void>(`/maintenance-cases/${caseId}`, { method: 'DELETE' });
+  },
+
+  // Thermal Intelligence & Hotspot Diagnostics
+  async getThermalSummary(projectId: string): Promise<any> {
+    return fetchJson<any>(`/projects/${projectId}/thermal-summary`);
+  },
+
+  async uploadThermalCsv(projectId: string, file: File, buildingId?: string, baselineTempC: number = 42.0): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const query = new URLSearchParams();
+    if (buildingId) query.set('building_id', buildingId);
+    query.set('baseline_temp_c', String(baselineTempC));
+    const res = await fetch(`${API_BASE}/projects/${projectId}/thermal-upload-csv?${query.toString()}`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) {
+      throw await responseError(res);
+    }
+    return res.json();
+  },
+
+  async createThermalMaintenanceTicket(projectId: string, data: {
+    panel_id: string;
+    building_id?: string;
+    surface_temp_c: number;
+    delta_temp_c: number;
+    suspected_cause: string;
+    priority?: string;
+    notes?: string;
+  }): Promise<any> {
+    return fetchJson<any>(`/projects/${projectId}/thermal-maintenance-ticket`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Machine Learning Solar Forecasting
+  async getSolarMLForecast(data: SolarMLForecastRequest): Promise<SolarMLForecastResponse> {
+    return fetchJson<SolarMLForecastResponse>('/solar-ml/forecast', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getSolarMLDiurnalForecast(data: SolarMLDiurnalRequest): Promise<SolarMLDiurnalResponse> {
+    return fetchJson<SolarMLDiurnalResponse>('/solar-ml/diurnal-forecast', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  async getSolarMLModelInfo(): Promise<any> {
+    return fetchJson<any>('/solar-ml/model-info');
+  },
+
+  // India-Scale Solar Intelligence
+  async getIndiaSolarSummary(): Promise<IndiaNationalSolarSummary> {
+    return fetchJson<IndiaNationalSolarSummary>('/solar-intelligence/summary');
+  },
+
+  async getIndiaSolarRegions(params?: {
+    zone?: string;
+    min_suitability?: number;
+    search?: string;
+  }): Promise<IndiaSolarRegion[]> {
+    const query = new URLSearchParams();
+    if (params?.zone) query.append('zone', params.zone);
+    if (params?.min_suitability !== undefined) query.append('min_suitability', String(params.min_suitability));
+    if (params?.search) query.append('search', params.search);
+    const qs = query.toString();
+    return fetchJson<IndiaSolarRegion[]>(`/solar-intelligence/regions${qs ? `?${qs}` : ''}`);
+  },
+
+  async getIndiaSolarRegion(regionId: string): Promise<IndiaSolarRegion> {
+    return fetchJson<IndiaSolarRegion>(`/solar-intelligence/regions/${encodeURIComponent(regionId)}`);
+  },
+
+  async getSampleCampusInfo(): Promise<SampleCampusMetadata> {
+    return fetchJson<SampleCampusMetadata>('/solar-intelligence/sample-campus');
+  },
+
+  async getIndiaSolarMethodology(): Promise<any> {
+    return fetchJson<any>('/solar-intelligence/methodology');
+  },
+
+  // Real Geospatial Dynamic Intelligence
+  async getEnvironmentalProfile(lat: number, lng: number): Promise<EnvironmentalProfileResponse> {
+    return fetchJson<EnvironmentalProfileResponse>(`/geospatial/environmental-profile?lat=${lat}&lng=${lng}`);
+  },
+
+  async getOsmBuildings(lat: number, lng: number, radiusM: number = 250): Promise<OsmBuildingsResponse> {
+    return fetchJson<OsmBuildingsResponse>(`/geospatial/buildings?lat=${lat}&lng=${lng}&radius_m=${radiusM}`);
+  },
+
+  async getOpenAreaScreening(lat: number, lng: number): Promise<OpenAreaScreeningResponse> {
+    return fetchJson<OpenAreaScreeningResponse>(`/geospatial/open-area-screening?lat=${lat}&lng=${lng}`);
+  },
+
+  async getSunPosition(lat: number, lng: number, tzOffset: number = 5.5): Promise<any> {
+    return fetchJson<any>(`/geospatial/sun-position?lat=${lat}&lng=${lng}&tz_offset_hours=${tzOffset}`);
   }
 };

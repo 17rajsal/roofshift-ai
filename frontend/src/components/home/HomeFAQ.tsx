@@ -35,9 +35,9 @@ export const HomeFAQ: React.FC = () => {
     <section id="faq" className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
 
       {/* FAQ Banner / Header matching screenshot */}
-      <div className="bg-[#FAFBFD] rounded-3xl p-8 sm:p-12 border border-[#E8EDF4] flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
+      <div className="glass-panel rounded-3xl p-8 sm:p-12 border border-white/85 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 mb-12">
         <div className="text-center md:text-left">
-          <div className="inline-flex items-center gap-2 text-xs font-bold text-[#FF6B16] uppercase tracking-wider mb-2">
+          <div className="glass-badge inline-flex items-center gap-2 px-3 py-1 text-xs font-bold text-[#FF6B16] uppercase tracking-wider mb-2">
             <HelpCircle className="w-4 h-4" />
             <span>Got Questions?</span>
           </div>
@@ -54,7 +54,7 @@ export const HomeFAQ: React.FC = () => {
             const el = document.getElementById('faq-accordion');
             if (el) el.scrollIntoView({ behavior: 'smooth' });
           }}
-          className="px-6 py-3 rounded-xl bg-[#FF6B16] hover:bg-[#EA580C] text-white font-semibold text-sm transition-all shadow-xs hover:shadow hover:-translate-y-0.5 cursor-pointer flex-shrink-0"
+          className="glass-button-primary px-6 py-3 text-sm cursor-pointer flex-shrink-0 shadow-md"
         >
           View FAQ →
         </button>
@@ -67,10 +67,10 @@ export const HomeFAQ: React.FC = () => {
           return (
             <div
               key={idx}
-              className={`rounded-2xl border transition-all duration-200 overflow-hidden ${
+              className={`glass-panel rounded-2xl border transition-all duration-200 overflow-hidden ${
                 isOpen
-                  ? 'border-[#FF6B16]/30 bg-white shadow-xs'
-                  : 'border-[#E8EDF4] bg-white hover:border-slate-300'
+                  ? 'border-orange-500/40 bg-white/85 shadow-md'
+                  : 'border-white/80 hover:border-white shadow-xs'
               }`}
             >
               <button
@@ -81,7 +81,7 @@ export const HomeFAQ: React.FC = () => {
                 <span className="text-base font-bold text-[#0B1739] leading-snug">
                   {faq.q}
                 </span>
-                <span className="w-7 h-7 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 flex-shrink-0">
+                <span className="w-8 h-8 rounded-full bg-white/70 flex items-center justify-center text-slate-500 flex-shrink-0 shadow-2xs">
                   {isOpen ? <ChevronUp className="w-4 h-4 text-[#FF6B16]" /> : <ChevronDown className="w-4 h-4" />}
                 </span>
               </button>

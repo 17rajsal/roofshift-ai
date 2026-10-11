@@ -1,13 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import List
+import csv
+import io
+import json
+import logging
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Body, Request
+from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.models.project import Project
 from app.models.building import Building
 from app.models.solar import SolarAnalysis
-from app.schemas.building import BuildingCreate, BuildingUpdate, BuildingResponse, SolarAnalysisSummary
+from app.schemas.building import (
+    BuildingCreate,
+    BuildingUpdate,
+    BuildingResponse,
+    SolarAnalysisSummary,
+    BulkImportSummaryResponse,
+    BulkImportRowError
+)
 from app.services.solar.solar_engine import calculate_building_solar_potential
+from app.services.solar.nasa_power import fetch_solar_irradiance
+from app.core.file_security import validate_csv_content
 
+logger = logging.getLogger("roofshift.buildings")
 router = APIRouter()
 
 def build_building_response(b: Building) -> BuildingResponse:
@@ -66,8 +80,31 @@ def build_building_response(b: Building) -> BuildingResponse:
     )
 
 @router.get("/projects/{project_id}/buildings", response_model=List[BuildingResponse])
-def list_buildings(project_id: str, db: Session = Depends(get_db)):
-    buildings = db.query(Building).filter(Building.project_id == project_id).all()
+def list_buildings(
+    project_id: str,
+    limit: Optional[int] = Query(None, ge=1, le=2000),
+    offset: int = Query(0, ge=0),
+    category: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieves building portfolio for a project with optional pagination and filters.
+    Utilizes eager join loading to eliminate N+1 queries across large portfolios.
+    """
+    query = db.query(Building).options(joinedload(Building.solar_analysis)).filter(Building.project_id == project_id)
+    if category:
+        query = query.filter(Building.category.ilike(f"%{category.strip()}%"))
+    if search:
+        query = query.filter(Building.name.ilike(f"%{search.strip()}%"))
+
+    query = query.order_by(Building.name.asc())
+    if offset:
+        query = query.offset(offset)
+    if limit is not None:
+        query = query.limit(limit)
+
+    buildings = query.all()
     return [build_building_response(b) for b in buildings]
 
 @router.post("/projects/{project_id}/buildings", response_model=BuildingResponse, status_code=status.HTTP_201_CREATED)
@@ -106,6 +143,310 @@ async def create_building(project_id: str, data: BuildingCreate, db: Session = D
     db.refresh(new_b)
 
     return build_building_response(new_b)
+
+@router.post("/projects/{project_id}/buildings/bulk-import", response_model=BulkImportSummaryResponse)
+async def bulk_import_buildings(
+    project_id: str,
+    request: Request,
+    file: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
+    """
+    High-performance bulk building portfolio importer.
+    Supports structured CSV and GeoJSON uploads, plus direct JSON array payloads.
+    Validates coordinates, geometry, positive roof area, and consumption bounds per row.
+    Calculates solar potential using single-pass climatology caching for high throughput.
+    """
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    raw_items = []
+    content_type = request.headers.get("content-type", "").lower()
+
+    if "application/json" in content_type:
+        try:
+            body_data = await request.json()
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid JSON body: {str(e)}")
+
+        if isinstance(body_data, dict) and body_data.get("type") == "FeatureCollection":
+            for feat in body_data.get("features", []):
+                props = feat.get("properties", {}) or {}
+                geom = feat.get("geometry", {}) or {}
+                if geom.get("type") == "Polygon" and geom.get("coordinates"):
+                    coords = geom["coordinates"][0]
+                    polygon = [[c[1], c[0]] for c in coords]
+                    props.setdefault("latitude", sum(p[0] for p in polygon) / len(polygon))
+                    props.setdefault("longitude", sum(p[1] for p in polygon) / len(polygon))
+                    props["roof_polygon"] = polygon
+                elif geom.get("type") == "Point" and geom.get("coordinates"):
+                    props.setdefault("longitude", geom["coordinates"][0])
+                    props.setdefault("latitude", geom["coordinates"][1])
+                raw_items.append(props)
+        elif isinstance(body_data, dict) and "buildings" in body_data and isinstance(body_data["buildings"], list):
+            raw_items = body_data["buildings"]
+        elif isinstance(body_data, dict) and "features" in body_data and isinstance(body_data["features"], list):
+            for feat in body_data["features"]:
+                props = feat.get("properties", {}) or {}
+                raw_items.append(props)
+        elif isinstance(body_data, list):
+            raw_items = body_data
+        elif isinstance(body_data, dict):
+            raw_items = [body_data]
+    elif file:
+        filename = (file.filename or "").lower()
+        contents = await file.read()
+        if not contents:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        if filename.endswith(".csv") or filename.endswith(".txt"):
+            validate_csv_content(contents, filename=file.filename, max_bytes=10 * 1024 * 1024)
+            text = contents.decode("utf-8-sig", errors="replace")
+            reader = csv.DictReader(io.StringIO(text))
+            for r in reader:
+                raw_items.append(r)
+        elif filename.endswith(".geojson") or filename.endswith(".json"):
+            try:
+                geo_obj = json.loads(contents.decode("utf-8-sig"))
+                if isinstance(geo_obj, dict) and geo_obj.get("type") == "FeatureCollection":
+                    for feat in geo_obj.get("features", []):
+                        props = feat.get("properties", {}) or {}
+                        geom = feat.get("geometry", {}) or {}
+                        if geom.get("type") == "Polygon" and geom.get("coordinates"):
+                            coords = geom["coordinates"][0]
+                            polygon = [[c[1], c[0]] for c in coords]
+                            centroid_lat = sum(p[0] for p in polygon) / len(polygon)
+                            centroid_lon = sum(p[1] for p in polygon) / len(polygon)
+                            props.setdefault("latitude", centroid_lat)
+                            props.setdefault("longitude", centroid_lon)
+                            props["roof_polygon"] = polygon
+                        elif geom.get("type") == "Point" and geom.get("coordinates"):
+                            props.setdefault("longitude", geom["coordinates"][0])
+                            props.setdefault("latitude", geom["coordinates"][1])
+                        raw_items.append(props)
+                elif isinstance(geo_obj, list):
+                    raw_items = geo_obj
+                elif isinstance(geo_obj, dict) and "buildings" in geo_obj:
+                    raw_items = geo_obj["buildings"]
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid GeoJSON or JSON structure: {str(e)}")
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file format. Please upload CSV (.csv) or GeoJSON (.geojson).")
+    else:
+        raise HTTPException(status_code=400, detail="No file or JSON data provided for bulk import.")
+
+    if not raw_items:
+        raise HTTPException(status_code=400, detail="No building entries found in import payload.")
+
+    errors: List[BulkImportRowError] = []
+    created_buildings: List[Building] = []
+
+    # Pre-fetch solar irradiance once for project site to optimize batch calculation
+    try:
+        cached_irradiance = await fetch_solar_irradiance(project.latitude, project.longitude, db)
+    except Exception:
+        cached_irradiance = None
+
+    for idx, row in enumerate(raw_items, start=1):
+        # Normalize column keys to lowercase
+        norm_row = {str(k).strip().lower(): v for k, v in row.items()}
+        name = norm_row.get("name") or norm_row.get("building_name") or norm_row.get("title")
+        if not name or not str(name).strip():
+            errors.append(BulkImportRowError(
+                row=idx,
+                row_number=idx,
+                building_name="Unnamed",
+                identifier=f"Row {idx}",
+                error="Building name is required and cannot be empty",
+                reason="Missing building name"
+            ))
+            continue
+        name = str(name).strip()[:150]
+
+        # Latitude / Longitude
+        raw_lat = norm_row.get("latitude") or norm_row.get("lat") or project.latitude
+        raw_lon = norm_row.get("longitude") or norm_row.get("lon") or norm_row.get("lng") or project.longitude
+        try:
+            lat = float(raw_lat)
+            lon = float(raw_lon)
+            if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+                raise ValueError("Coordinates out of geographic range")
+        except Exception:
+            errors.append(BulkImportRowError(
+                row=idx,
+                row_number=idx,
+                building_name=name,
+                identifier=name,
+                error=f"Invalid coordinates: lat={raw_lat}, lon={raw_lon}",
+                reason="Invalid geographic coordinates"
+            ))
+            continue
+
+        # Roof Area
+        raw_area = norm_row.get("gross_roof_area") or norm_row.get("roof_area") or norm_row.get("area") or 300.0
+        try:
+            gross_roof_area = float(raw_area)
+            if gross_roof_area <= 0 or gross_roof_area > 10_000_000:
+                raise ValueError("Area must be positive and under 10,000,000 m²")
+        except Exception as e:
+            errors.append(BulkImportRowError(
+                row=idx,
+                row_number=idx,
+                building_name=name,
+                identifier=name,
+                error=f"Invalid gross roof area: {e}",
+                reason="Negative or out-of-range roof area"
+            ))
+            continue
+
+        # Usable %
+        raw_usable = norm_row.get("usable_roof_percentage") or norm_row.get("usable_percentage") or norm_row.get("usable_pct") or 70.0
+        try:
+            usable_pct = float(raw_usable)
+            usable_pct = max(0.0, min(100.0, usable_pct))
+        except Exception:
+            usable_pct = 70.0
+
+        # Consumption
+        raw_cons = norm_row.get("monthly_consumption_kwh") or norm_row.get("monthly_consumption") or norm_row.get("consumption") or 2500.0
+        try:
+            monthly_consumption = float(raw_cons)
+            if monthly_consumption <= 0:
+                monthly_consumption = 2500.0
+        except Exception:
+            monthly_consumption = 2500.0
+
+        # Shading
+        shading = str(norm_row.get("shading_category") or norm_row.get("shading") or "Low").strip().capitalize()
+        if shading not in ["Low", "Medium", "High", "Custom"]:
+            shading = "Low"
+
+        category = str(norm_row.get("category") or "Academic").strip().capitalize()
+        daytime_pct = float(norm_row.get("daytime_consumption_pct") or 65.0)
+
+        # Roof polygon GeoJSON/coordinate list if provided
+        polygon = row.get("roof_polygon")
+        if isinstance(polygon, str):
+            try:
+                polygon = json.loads(polygon)
+            except Exception:
+                polygon = None
+
+        new_b = Building(
+            project_id=project_id,
+            name=name,
+            category=category,
+            address=str(norm_row.get("address") or f"Plot {idx}, {project.city}"),
+            latitude=lat,
+            longitude=lon,
+            gross_roof_area=gross_roof_area,
+            usable_roof_percentage=usable_pct,
+            shading_category=shading,
+            custom_shading_loss=5.0 if shading == "Low" else (15.0 if shading == "Medium" else 30.0),
+            roof_polygon=polygon,
+            monthly_consumption_kwh=monthly_consumption,
+            daytime_consumption_pct=daytime_pct,
+            demand_origin="Bulk portfolio import",
+            cost_per_kwp=float(norm_row.get("cost_per_kwp") or 50000.0),
+            fixed_cost=float(norm_row.get("fixed_cost") or 0.0)
+        )
+        db.add(new_b)
+        created_buildings.append(new_b)
+
+    # Commit buildings in one batch
+    db.commit()
+
+    # Calculate solar potential for all newly created buildings in batch
+    for b in created_buildings:
+        db.refresh(b)
+        try:
+            await calculate_building_solar_potential(
+                b,
+                project,
+                db,
+                cached_irradiance=cached_irradiance,
+                commit=False
+            )
+        except Exception as e:
+            logger.warning(f"Failed solar potential for imported building {b.id}: {e}")
+
+    db.commit()
+    for b in created_buildings:
+        db.refresh(b)
+
+    all_project_buildings = (
+        db.query(Building)
+        .options(joinedload(Building.solar_analysis))
+        .filter(Building.project_id == project_id)
+        .all()
+    )
+    total_buildings = len(all_project_buildings)
+    total_usable_area = sum(b.gross_roof_area * (b.usable_roof_percentage / 100.0) for b in all_project_buildings)
+    total_kwp = sum(b.solar_analysis.max_pv_capacity_kwp for b in all_project_buildings if b.solar_analysis)
+    total_annual_kwh = sum(b.solar_analysis.annual_generation_kwh for b in all_project_buildings if b.solar_analysis)
+
+    return BulkImportSummaryResponse(
+        total_processed=len(raw_items),
+        imported=len(created_buildings),
+        updated=0,
+        failed=len(errors),
+        total_rows=len(raw_items),
+        imported_count=len(created_buildings),
+        error_count=len(errors),
+        errors=errors,
+        imported_buildings=[build_building_response(b) for b in created_buildings],
+        total_buildings_in_project=total_buildings,
+        total_usable_area_sqm=round(total_usable_area, 2),
+        total_potential_kwp=round(total_kwp, 2),
+        total_annual_generation_kwh=round(total_annual_kwh, 2),
+        message=f"Successfully imported and analyzed {len(created_buildings)} of {len(raw_items)} buildings."
+    )
+
+@router.post("/projects/{project_id}/recalculate")
+async def recalculate_project_buildings(project_id: str, db: Session = Depends(get_db)):
+    """
+    Recalculates solar potential across all buildings in a project after tariff or assumption updates.
+    """
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    buildings = db.query(Building).filter(Building.project_id == project_id).all()
+    cached_irradiance = await fetch_solar_irradiance(project.latitude, project.longitude, db)
+
+    for b in buildings:
+        await calculate_building_solar_potential(
+            b,
+            project,
+            db,
+            cached_irradiance=cached_irradiance,
+            commit=False
+        )
+
+    db.commit()
+
+    all_b = (
+        db.query(Building)
+        .options(joinedload(Building.solar_analysis))
+        .filter(Building.project_id == project_id)
+        .all()
+    )
+    total_usable = sum(b.gross_roof_area * (b.usable_roof_percentage / 100.0) for b in all_b)
+    total_kwp = sum(b.solar_analysis.max_pv_capacity_kwp for b in all_b if b.solar_analysis)
+    total_annual_kwh = sum(b.solar_analysis.annual_generation_kwh for b in all_b if b.solar_analysis)
+
+    return {
+        "status": "SUCCESS",
+        "project_id": project_id,
+        "total_buildings": len(buildings),
+        "recalculated": len(buildings),
+        "recalculated_buildings": len(buildings),
+        "failed": 0,
+        "total_usable_area_sqm": round(total_usable, 2),
+        "total_potential_kwp": round(total_kwp, 2),
+        "total_annual_generation_kwh": round(total_annual_kwh, 2)
+    }
 
 @router.get("/buildings/{building_id}", response_model=BuildingResponse)
 def get_building(building_id: str, db: Session = Depends(get_db)):

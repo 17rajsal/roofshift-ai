@@ -10,6 +10,12 @@ from app.models.building import Building
 from app.models.monitoring import SolarMonitoringLog
 from app.schemas.monitoring import SolarMonitoringResponse
 from app.services.monitoring.inverter_telemetry import process_inverter_telemetry_csv
+from app.core.file_security import (
+    validate_csv_content,
+    assert_path_in_directory,
+    generate_safe_disk_filename,
+    sanitize_filename
+)
 
 router = APIRouter()
 
@@ -29,13 +35,9 @@ async def upload_solar_monitoring_csv(
         raise HTTPException(status_code=404, detail="Project not found")
 
     raw_filename = file.filename or "monitoring.csv"
-    clean_name = Path(raw_filename).name
-    if not clean_name.lower().endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only CSV files (.csv) are supported.")
-
     contents = await file.read()
-    if len(contents) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File exceeds maximum limit of 10MB.")
+    validate_csv_content(contents, filename=raw_filename, max_bytes=10 * 1024 * 1024)
+    clean_name = sanitize_filename(raw_filename)
 
     # Determine installed capacity
     if building_id:
@@ -59,7 +61,9 @@ async def upload_solar_monitoring_csv(
     # Save telemetry file locally
     uploads_dir = Path(settings.UPLOADS_DIR).resolve() / "telemetry"
     uploads_dir.mkdir(parents=True, exist_ok=True)
-    save_path = uploads_dir / f"{project_id[:8]}_{clean_name}"
+    disk_filename = generate_safe_disk_filename(clean_name, prefix=f"{project_id[:8]}_telemetry_")
+    save_path = uploads_dir / disk_filename
+    assert_path_in_directory(save_path, uploads_dir)
     with open(save_path, "wb") as f:
         f.write(contents)
 

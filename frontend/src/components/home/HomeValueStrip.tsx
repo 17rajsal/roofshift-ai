@@ -48,8 +48,8 @@ export const HomeValueStrip: React.FC = () => {
 
   return (
     <section className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      {/* Soft pale green horizontal container matching screenshot */}
-      <div className="bg-[#EDF8F1] rounded-3xl p-8 sm:p-10 lg:p-12 border border-emerald-100">
+      {/* Soft mint frosted glass container */}
+      <div className="glass-panel rounded-3xl p-8 sm:p-10 lg:p-12 border border-emerald-200/60 shadow-xl bg-emerald-500/10 backdrop-blur-2xl">
 
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-10">

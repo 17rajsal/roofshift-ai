@@ -12,6 +12,12 @@ from app.models.project import Project
 from app.models.building import Building
 from app.schemas.energy import EnergyInsightsResponse
 from app.services.energy.surplus_analyzer import analyze_project_energy_surplus
+from app.core.file_security import (
+    validate_csv_content,
+    assert_path_in_directory,
+    generate_safe_disk_filename,
+    sanitize_filename
+)
 
 router = APIRouter()
 
@@ -40,18 +46,9 @@ async def upload_hourly_demand_csv(
         raise HTTPException(status_code=404, detail="Project not found")
 
     raw_filename = file.filename or ""
-    clean_filename = Path(raw_filename).name
-
-    # Check extension
-    if not clean_filename.lower().endswith(".csv") or Path(clean_filename).suffix.lower() != ".csv":
-        raise HTTPException(status_code=400, detail="Invalid file type. Only standard CSV files (.csv) are accepted.")
-
     contents = await file.read()
-    if len(contents) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File exceeds maximum size limit of 5MB.")
-
-    if not contents or len(contents.strip()) == 0:
-        raise HTTPException(status_code=400, detail="CSV file is empty.")
+    validate_csv_content(contents, filename=raw_filename, max_bytes=5 * 1024 * 1024)
+    clean_filename = sanitize_filename(raw_filename)
 
     try:
         # Parse CSV text
@@ -166,7 +163,9 @@ async def upload_hourly_demand_csv(
         # 6. Save validated file locally (safe path resolution)
         uploads_dir = Path(settings.UPLOADS_DIR).resolve()
         uploads_dir.mkdir(parents=True, exist_ok=True)
-        save_path = uploads_dir / clean_filename
+        disk_filename = generate_safe_disk_filename(clean_filename, prefix=f"{project_id[:8]}_demand_")
+        save_path = uploads_dir / disk_filename
+        assert_path_in_directory(save_path, uploads_dir)
 
         with open(save_path, "wb") as f:
             f.write(contents)

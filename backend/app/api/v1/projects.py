@@ -32,12 +32,7 @@ def build_project_response(p: Project, db: Session) -> ProjectResponse:
     )
 
 @router.get("/projects", response_model=List[ProjectResponse])
-async def list_projects(db: Session = Depends(get_db)):
-    # Auto-seed demo on first access if empty
-    existing_count = db.query(Project).count()
-    if existing_count == 0:
-        await seed_demo_project_if_needed(db)
-
+def list_projects(db: Session = Depends(get_db)):
     projects = db.query(Project).order_by(Project.updated_at.desc()).all()
     return [build_project_response(p, db) for p in projects]
 
@@ -100,6 +95,11 @@ def delete_project(project_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
     if p.name == "QA Campus":
         raise HTTPException(status_code=401, detail="Authentication required to delete shared projects.")
+    if p.is_demo == "true" or p.name == "IIT Delhi Hauz Khas Campus":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Protected institutional demo campus cannot be deleted in public demo mode."
+        )
     db.delete(p)
     db.commit()
     return None

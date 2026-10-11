@@ -392,3 +392,253 @@ export interface MaintenanceCaseResponse {
   created_at: string;
   resolved_at?: string;
 }
+
+export interface SolarMLForecastRequest {
+  capacity_kwp: number;
+  irradiance_w_per_m2: number;
+  ambient_temperature_c: number;
+  cell_temperature_c?: number;
+  hour_of_day: number;
+}
+
+export interface SolarMLForecastResponse {
+  capacity_kwp: number;
+  irradiance_w_per_m2: number;
+  ambient_temperature_c: number;
+  cell_temperature_c: number;
+  hour_of_day: number;
+  ml_predicted_power_kw: number;
+  physics_baseline_kw: number;
+  delta_kw: number;
+  confidence_lower_kw: number;
+  confidence_upper_kw: number;
+  model_name: string;
+  model_version: string;
+  model_algorithm: string;
+  model_status: string;
+  dataset_provenance: string;
+  test_r2_score: number;
+  test_nmae_pct: number;
+  prediction_timestamp_utc: string;
+}
+
+export interface SolarMLDiurnalRequest {
+  capacity_kwp: number;
+  peak_irradiance_w_m2: number;
+  ambient_temperature_c: number;
+}
+
+export interface DiurnalIntervalPrediction {
+  hour: number;
+  irradiance_w_per_m2: number;
+  ambient_temp_c: number;
+  ml_power_kw: number;
+  physics_power_kw: number;
+  delta_kw: number;
+  confidence_lower_kw: number;
+  confidence_upper_kw: number;
+}
+
+export interface SolarMLDiurnalResponse {
+  capacity_kwp: number;
+  peak_irradiance_w_m2: number;
+  intervals: DiurnalIntervalPrediction[];
+  total_daily_ml_kwh: number;
+  total_daily_physics_kwh: number;
+  energy_difference_pct: number;
+  model_version: string;
+  model_status: string;
+}
+
+export interface BulkImportRowError {
+  row_number?: number;
+  identifier?: string;
+  reason: string;
+}
+
+export interface BulkImportSummaryResponse {
+  total_processed: number;
+  imported: number;
+  updated: number;
+  failed: number;
+  errors: BulkImportRowError[];
+  total_buildings_in_project: number;
+  total_usable_area_sqm: number;
+  total_potential_kwp: number;
+  total_annual_generation_kwh: number;
+}
+
+export interface IndiaSolarRegion {
+  id: string;
+  name: string;
+  short_name: string;
+  zone: string;
+  coordinates: { lat: number; lng: number };
+  bounds: { north: number; south: number; east: number; west: number };
+  ghi_daily_kwh: number;
+  dni_daily_kwh: number;
+  dhi_daily_kwh: number;
+  ambient_temp_celsius: number;
+  wind_speed_ms: number;
+  cloud_monsoon_pct: number;
+  rooftop_suitability_score: number;
+  open_land_suitability_score: number;
+  ai_suitability_composite: number;
+  suitability_tier: string;
+  zone_classification: string;
+  estimated_rooftop_potential_gw: number;
+  estimated_openland_potential_gw: number;
+  annual_yield_kwh_per_kwp: number;
+  monthly_ghi: Record<string, number>;
+  key_corridors: string[];
+  ai_recommendations: {
+    module_technology: string;
+    tracking_recommendation: string;
+    soiling_and_cleaning: string;
+    grid_and_storage: string;
+    seasonal_risk_summary: string;
+  };
+}
+
+export interface IndiaNationalSolarSummary {
+  total_analyzed_regions: number;
+  total_national_rooftop_potential_gw: number;
+  total_national_openland_potential_gw: number;
+  national_avg_daily_ghi_kwh: number;
+  national_avg_daily_dni_kwh: number;
+  national_avg_ambient_temp_c: number;
+  top_opportunity_regions: Array<{
+    id: string;
+    name: string;
+    score: number;
+    tier: string;
+    zone_classification: string;
+    ghi_daily_kwh: number;
+    rooftop_score: number;
+    openland_score: number;
+  }>;
+  provenance_summary: {
+    satellite_climatology: string;
+    temperature_meteorology: string;
+    capacity_potential: string;
+    modeling_engine: string;
+  };
+}
+
+export interface SampleCampusMetadata {
+  campus_name: string;
+  location: string;
+  coordinates: { lat: number; lng: number };
+  type: string;
+  buildings_count: number;
+  sample_buildings: string[];
+  purpose: string;
+  role_in_platform: string;
+}
+
+export interface EnvironmentalProfileResponse {
+  status: string;
+  coordinates: { lat: number; lon: number };
+  in_india_bounds: boolean;
+  nearest_region: {
+    id: string;
+    name: string;
+    short_name: string;
+    zone: string;
+    zone_classification: string;
+  };
+  solar_irradiance: {
+    ghi_daily_kwh: number;
+    dni_daily_kwh: number;
+    dhi_daily_kwh: number;
+    monthly_ghi: Record<string, number>;
+    annual_yield_kwh_per_kwp: number;
+    performance_ratio: number;
+    thermal_derate_factor: number;
+    source: string;
+    source_label: string;
+  };
+  meteorological_conditions: {
+    ambient_temperature_celsius: number;
+    wind_speed_ms: number;
+    relative_humidity_pct: number;
+    cloud_cover_pct: number;
+    weather_condition: string;
+    weather_source: string;
+    is_climatological_fallback: boolean;
+  };
+  sun_ephemeris: {
+    solar_elevation_deg: number;
+    solar_zenith_deg: number;
+    solar_azimuth_deg: number;
+    solar_noon_elevation_deg: number;
+    solar_declination_deg: number;
+    equation_of_time_minutes: number;
+    sunrise_time: string;
+    sunset_time: string;
+    day_length_hours: number;
+    calculation_method: string;
+    shading_assessment_status: string;
+    shading_limitation_notice: string;
+  };
+  ai_suitability: {
+    rooftop_suitability_score: number;
+    open_land_suitability_score: number;
+    composite_score: number;
+    tier: string;
+  };
+  shading_disclaimer: string;
+}
+
+export interface OsmBuildingItem {
+  id: string;
+  name: string;
+  category: string;
+  gross_roof_area: number;
+  usable_roof_area: number;
+  latitude: number;
+  longitude: number;
+  polygon_coordinates: number[][];
+  max_pv_capacity_kwp: number;
+  annual_generation_kwh: number;
+  annual_savings_inr: number;
+  avoided_co2_kg_annual: number;
+  shading_loss_percentage: number;
+  shading_assessment_notice: string;
+  source: string;
+}
+
+export interface OsmBuildingsResponse {
+  status: string;
+  building_count: number;
+  buildings: OsmBuildingItem[];
+  total_gross_roof_area_sqm?: number;
+  total_usable_roof_area_sqm?: number;
+  total_pv_capacity_kwp?: number;
+  coordinates: { lat: number; lon: number };
+  radius_m: number;
+  message?: string;
+  action_required?: string;
+  source: string;
+}
+
+export interface OpenAreaScreeningResponse {
+  status: string;
+  coordinates: { lat: number; lon: number };
+  nearest_region_name: string;
+  zone_classification: string;
+  open_land_suitability_score: number;
+  suitability_tier: string;
+  screening_metrics: {
+    daily_ghi_kwh: number;
+    daily_dni_kwh: number;
+    estimated_terrain_slope_pct: number;
+    slope_suitability: string;
+    indicative_land_class: string;
+    annual_generation_mwh_per_mw: number;
+    hectares_required_per_mw: number;
+  };
+  regulatory_and_grid_disclaimer: string;
+  data_provenance: string;
+}
+

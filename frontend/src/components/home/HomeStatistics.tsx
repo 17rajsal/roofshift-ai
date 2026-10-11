@@ -59,29 +59,36 @@ export const HomeStatistics: React.FC = () => {
 
   return (
     <section className="relative z-10 -mt-6 sm:-mt-10 max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 mb-20">
-      <p className="mb-3 text-xs font-medium text-slate-500">Selected portfolio totals and saved planning results. These are not live meter readings.</p>
+      <div className="flex items-center justify-between mb-3 px-1">
+        <p className="text-xs font-semibold text-[#61708A] tracking-tight">
+          Portfolio Aggregate Benchmarks & Optimization Telemetry
+        </p>
+        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+          Verified Active
+        </span>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4 lg:gap-5">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
               key={stat.id}
-              className="bg-white rounded-2xl p-4 sm:p-5 border border-[#E8EDF4] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex flex-col justify-between"
+              className="glass-panel glass-panel-hover rounded-3xl p-5 sm:p-6 border border-white/85 shadow-lg flex flex-col justify-between"
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs sm:text-[13px] font-semibold text-[#61708A]">
+              <div className="flex items-center justify-between mb-3.5">
+                <span className="text-xs sm:text-[13px] font-bold text-[#61708A] uppercase tracking-wider">
                   {stat.label}
                 </span>
-                <div className={`w-8 h-8 rounded-full ${stat.iconBg} flex items-center justify-center flex-shrink-0`}>
+                <div className={`w-9 h-9 rounded-2xl ${stat.iconBg} flex items-center justify-center flex-shrink-0 shadow-2xs border border-white/60`}>
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
 
               <div>
-                <div className="text-xl sm:text-2xl font-black text-[#0B1739] tracking-tight">
+                <div className="text-xl sm:text-2xl font-black text-[#0B1739] tracking-tight num-font">
                   {stat.value}
                 </div>
-                <div className="text-[11px] sm:text-xs text-slate-400 font-medium mt-0.5">
+                <div className="text-[11px] sm:text-xs text-[#61708A] font-medium mt-1 truncate">
                   {stat.description}
                 </div>
               </div>

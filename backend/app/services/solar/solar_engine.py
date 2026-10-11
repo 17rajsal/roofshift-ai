@@ -31,18 +31,23 @@ async def calculate_building_solar_potential(
     db: Session,
     area_per_kwp: float = settings.DEFAULT_AREA_PER_KWP,
     performance_ratio: float = settings.DEFAULT_PERFORMANCE_RATIO,
-    override_capacity_kwp: Optional[float] = None
+    override_capacity_kwp: Optional[float] = None,
+    cached_irradiance: Optional[Tuple[Dict[str, float], float, str, str]] = None,
+    commit: bool = True
 ) -> SolarAnalysis:
     """
     Computes rooftop solar energy generation, daytime self-consumption,
     export surplus, economics, and environmental offset for a candidate building.
     """
     # 1. Fetch Location-specific GHI (Global Horizontal Irradiance)
-    monthly_ghi_dict, annual_ghi, irradiance_source, data_quality_label = await fetch_solar_irradiance(
-        building.latitude,
-        building.longitude,
-        db
-    )
+    if cached_irradiance:
+        monthly_ghi_dict, annual_ghi, irradiance_source, data_quality_label = cached_irradiance
+    else:
+        monthly_ghi_dict, annual_ghi, irradiance_source, data_quality_label = await fetch_solar_irradiance(
+            building.latitude,
+            building.longitude,
+            db
+        )
 
     # 2. Roof geometry and capacity
     roof = finite(building.gross_roof_area, "gross_roof_area", 0, 10_000_000)
@@ -125,7 +130,7 @@ async def calculate_building_solar_potential(
         f" Evaluated capacity: {active_capacity:.6g} kWp; eligibility ceiling: {max_pv_capacity:.6g} kWp."
     )
 
-    if override_capacity_kwp is None:
+    if override_capacity_kwp is None and commit:
         db.commit()
         db.refresh(existing_analysis)
     return existing_analysis

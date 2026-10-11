@@ -35,11 +35,11 @@ export const HomeFooter: React.FC = () => {
   };
 
   return (
-    <footer className="bg-white border-t border-[#E8EDF4] pt-16 pb-12 text-sm text-[#61708A]">
+    <footer className="bg-white/70 backdrop-blur-2xl border-t border-white/80 pt-16 pb-12 text-sm text-[#61708A]">
       <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Main Columns Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 pb-12 border-b border-[#E8EDF4]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-8 pb-12 border-b border-slate-200/60">
 
           {/* Column 1: Branding & Bio (3 cols) */}
           <div className="lg:col-span-3 space-y-4">

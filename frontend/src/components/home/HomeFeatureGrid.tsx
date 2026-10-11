@@ -119,16 +119,19 @@ export const HomeFeatureGrid: React.FC = () => {
 
   return (
     <section id="features" className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-16">
-      {/* Warm off-white rounded wrapper matching screenshot */}
-      <div className="bg-[#F8FAFC] rounded-3xl p-6 sm:p-10 lg:p-12 border border-[#E8EDF4]">
+      {/* Frosted Glass Wrapper */}
+      <div className="glass-panel p-6 sm:p-10 lg:p-12 rounded-3xl border border-white/85 shadow-xl">
 
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-12">
+          <div className="glass-badge inline-flex items-center gap-2 px-3 py-1 text-xs font-bold text-[#FF6B16] mb-3 uppercase tracking-wider">
+            12-Feature Intelligence Suite
+          </div>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1739] tracking-tight">
-            All Features in One Platform
+            Complete Solar Engineering Platform
           </h2>
           <p className="mt-2.5 text-base text-[#61708A]">
-            Everything you need to plan, analyze, and manage rooftop solar projects.
+            From geospatial site discovery and NASA climatology to Knapsack Capex optimization and thermal hotspot diagnostics.
           </p>
         </div>
 
@@ -141,14 +144,14 @@ export const HomeFeatureGrid: React.FC = () => {
                 key={feat.id}
                 to={feat.route}
                 aria-label={`Open ${feat.title}`}
-                className="bg-white rounded-2xl p-5 border border-[#E8EDF4] shadow-2xs hover:shadow-md transition-all duration-200 hover:-translate-y-1 cursor-pointer flex flex-col justify-between group relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF6B16]"
+                className="glass-panel glass-panel-hover p-6 rounded-2xl border border-white/90 shadow-sm cursor-pointer flex flex-col justify-between group relative focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#FF6B16]"
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`w-10 h-10 rounded-xl ${feat.iconBg} flex items-center justify-center`}>
+                    <div className={`w-11 h-11 rounded-2xl ${feat.iconBg} flex items-center justify-center shadow-2xs border border-white/70`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span className="text-slate-300 group-hover:text-[#FF6B16] transition-colors">
+                    <span className="w-7 h-7 rounded-full bg-white/60 flex items-center justify-center text-slate-400 group-hover:text-[#FF6B16] group-hover:bg-orange-500/10 transition-all">
                       <ArrowUpRight className="w-4 h-4" />
                     </span>
                   </div>
@@ -161,8 +164,8 @@ export const HomeFeatureGrid: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-50 flex items-center justify-between text-[11px] font-semibold text-[#FF6B16] opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span>Open Tool</span>
+                <div className="mt-4 pt-3 border-t border-slate-200/50 flex items-center justify-between text-xs font-semibold text-[#FF6B16] opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span>Launch Tool</span>
                   <span>→</span>
                 </div>
               </Link>

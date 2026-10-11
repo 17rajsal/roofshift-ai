@@ -138,42 +138,46 @@ export const BuildingsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-800">{error}</div>}
+      {error && <div role="alert" className="rounded-2xl border border-red-200/80 bg-red-50/80 backdrop-blur-md p-4 text-xs text-red-800 shadow-sm">{error}</div>}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-panel p-6 rounded-3xl shadow-sm">
         <div>
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-slate-700" />
-            <span>Building Portfolio & Shading Derate Catalog</span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-2 rounded-xl bg-orange-500/10 text-[#FF6B16] border border-orange-500/20">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <h2 className="text-xl font-black text-[#0B1739] tracking-tight">
+              Building Portfolio &amp; Shading Derate Catalog
+            </h2>
+          </div>
+          <p className="text-xs sm:text-sm text-[#61708A] ml-11">
             Configure rooftop dimensions, structural tilt, azimuth angles, and diurnal consumption profiles.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
           <button
             onClick={() => {
               setEditingBuilding(null);
               setIsEditorOpen(true);
             }}
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+            className="flex-1 sm:flex-initial px-4 py-2.5 bg-white/80 hover:bg-white text-[#0B1739] border border-white/80 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-xs hover:shadow-md"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4 text-[#FF6B16]" />
             <span>Add Facility</span>
           </button>
           <button
             onClick={() => navigate('/optimize')}
-            className="px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+            className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#FF6B16] hover:bg-[#EA580C] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
           >
             <span>Proceed to Solver</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Buildings Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {buildings.map((b) => {
           const isSelected = b.id === selectedBuildingId;
           const sa = b.solar_analysis;
@@ -183,74 +187,74 @@ export const BuildingsPage: React.FC = () => {
             <div
               key={b.id}
               onClick={() => handleSelectBuilding(b.id)}
-              className={`p-5 rounded-xl border transition-all cursor-pointer relative bg-white flex flex-col justify-between shadow-xs ${
+              className={`p-6 rounded-3xl transition-all cursor-pointer relative flex flex-col justify-between ${
                 isSelected
-                  ? 'border-slate-800 ring-1 ring-slate-800 shadow-sm'
-                  : 'border-slate-200 hover:border-slate-300'
+                  ? 'glass-elevated border-[#FF6B16] ring-2 ring-[#FF6B16]/20 shadow-lg scale-[1.01]'
+                  : 'glass-panel hover:border-white/90 hover:shadow-md hover:scale-[1.005]'
               }`}
             >
               <div>
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-3">
                   <div>
-                    <span className="text-[10px] font-semibold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                    <span className="text-[10px] font-bold uppercase tracking-wider bg-white/80 text-[#0B1739] px-2.5 py-1 rounded-lg border border-white/80 shadow-2xs">
                       {b.category}
                     </span>
-                    <h3 className="font-bold text-sm text-slate-900 mt-1">{b.name}</h3>
+                    <h3 className="font-extrabold text-base text-[#0B1739] mt-2 tracking-tight">{b.name}</h3>
                   </div>
                   <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border shadow-2xs ${
                       b.shading_category === 'High'
-                        ? 'bg-red-50 text-red-700 border-red-200'
+                        ? 'bg-red-500/10 text-red-700 border-red-500/20'
                         : b.shading_category === 'Medium'
-                        ? 'bg-amber-50 text-amber-800 border-amber-200'
-                        : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        ? 'bg-amber-500/10 text-amber-800 border-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-800 border-emerald-500/20'
                     }`}
                   >
                     {b.shading_category} Shade
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs py-2 border-y border-slate-100 my-2">
+                <div className="grid grid-cols-2 gap-2.5 text-xs py-3.5 px-3 rounded-2xl glass-surface-secondary my-3 border border-white/60">
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Usable Roof:</span>
-                    <strong className="text-slate-900 tabular-nums">{formatArea(b.usable_roof_area)}</strong>
+                    <span className="text-[#61708A] text-[10px] font-semibold block">Usable Roof</span>
+                    <strong className="text-[#0B1739] font-bold tabular-nums text-xs">{formatArea(b.usable_roof_area)}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Monthly Load:</span>
-                    <strong className="text-slate-900 tabular-nums">{formatEnergy(b.monthly_consumption_kwh)}</strong>
+                    <span className="text-[#61708A] text-[10px] font-semibold block">Monthly Load</span>
+                    <strong className="text-[#0B1739] font-bold tabular-nums text-xs">{formatEnergy(b.monthly_consumption_kwh)}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Eligible Solar:</span>
-                    <strong className="text-slate-900 tabular-nums">{formatPower(sa?.max_pv_capacity_kwp)}</strong>
+                    <span className="text-[#61708A] text-[10px] font-semibold block">Eligible Solar</span>
+                    <strong className="text-[#FF6B16] font-bold tabular-nums text-xs">{formatPower(sa?.max_pv_capacity_kwp)}</strong>
                   </div>
                   <div>
-                    <span className="text-slate-500 text-[10px] block">Est. Annual Gen:</span>
-                    <strong className="text-slate-900 tabular-nums">{formatEnergy(sa?.annual_generation_kwh)}</strong>
+                    <span className="text-[#61708A] text-[10px] font-semibold block">Est. Annual Gen</span>
+                    <strong className="text-[#0B1739] font-bold tabular-nums text-xs">{formatEnergy(sa?.annual_generation_kwh)}</strong>
                   </div>
                 </div>
 
                 {sa && (
-                  <div className="text-xs text-slate-600 flex items-center justify-between pt-1">
-                    <span>Est. Savings: <strong className="text-emerald-700 tabular-nums">{formatINR(sa.annual_savings_inr)}/yr</strong></span>
-                    <span>Payback: <strong className="tabular-nums">{sa.simple_payback_years ? `${sa.simple_payback_years}y` : '—'}</strong></span>
+                  <div className="text-xs text-[#61708A] flex items-center justify-between pt-1">
+                    <span>Est. Savings: <strong className="text-[#16A34A] font-extrabold tabular-nums">{formatINR(sa.annual_savings_inr)}/yr</strong></span>
+                    <span>Payback: <strong className="text-[#0B1739] font-bold tabular-nums">{sa.simple_payback_years ? `${sa.simple_payback_years}y` : '—'}</strong></span>
                   </div>
                 )}
               </div>
 
               {/* Action Toolbar */}
-              <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-500 font-medium">
-                  {isSelected ? 'Active Selection' : 'Click to View Analytics'}
+              <div className="mt-4 pt-3 border-t border-slate-200/50 flex items-center justify-between">
+                <span className={`text-[11px] font-semibold ${isSelected ? 'text-[#FF6B16]' : 'text-[#61708A]'}`}>
+                  {isSelected ? '✓ Active Selection' : 'Click to View Analytics'}
                 </span>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={(e) => handleRecalculate(b, e)}
                     disabled={isRecalculating}
                     title="Recalculate Solar Potential"
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition-colors"
+                    className="p-2 text-[#61708A] hover:text-[#0B1739] rounded-xl hover:bg-white/80 transition-colors border border-transparent hover:border-white/80"
                   >
-                    <RotateCw className={`w-3.5 h-3.5 ${isRecalculating ? 'animate-spin' : ''}`} />
+                    <RotateCw className={`w-3.5 h-3.5 ${isRecalculating ? 'animate-spin text-[#FF6B16]' : ''}`} />
                   </button>
                   <button
                     onClick={(e) => {
@@ -259,21 +263,21 @@ export const BuildingsPage: React.FC = () => {
                       setIsEditorOpen(true);
                     }}
                     title="Edit Building"
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition-colors"
+                    className="p-2 text-[#61708A] hover:text-[#0B1739] rounded-xl hover:bg-white/80 transition-colors border border-transparent hover:border-white/80"
                   >
                     <Edit className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={(e) => handleDuplicate(b, e)}
                     title="Duplicate"
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition-colors"
+                    className="p-2 text-[#61708A] hover:text-[#0B1739] rounded-xl hover:bg-white/80 transition-colors border border-transparent hover:border-white/80"
                   >
                     <Copy className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={(e) => handleDelete(b, e)}
                     title="Delete"
-                    className="p-1.5 text-slate-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
+                    className="p-2 text-[#61708A] hover:text-red-600 rounded-xl hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -286,24 +290,24 @@ export const BuildingsPage: React.FC = () => {
 
       {/* Selected Building Deep Dive */}
       {selectedBuilding && detailedAnalysis && (
-        <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 pb-4 gap-2">
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200/50 pb-5 gap-3">
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-slate-900">
-                  {selectedBuilding.name} — Solar Physics & Economic Assessment
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-black text-[#0B1739] tracking-tight">
+                  {selectedBuilding.name} — Solar Physics &amp; Economic Assessment
                 </h3>
-                <span className="text-[10px] bg-slate-100 text-slate-700 font-mono px-2 py-0.5 rounded border border-slate-200">
+                <span className="text-[10px] bg-white/80 text-[#0B1739] font-mono font-bold px-2.5 py-1 rounded-lg border border-white/80 shadow-2xs">
                   {detailedAnalysis.irradiance_source}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-[#61708A] mt-1">
                 Evaluated with {(detailedAnalysis.performance_ratio * 100).toFixed(0)}% PR, {detailedAnalysis.effective_shading_loss_pct}% shading derate factor.
               </p>
             </div>
-            <div className="text-right">
-              <span className="text-[11px] text-slate-500 block">Avoided Carbon Offset</span>
-              <strong className="text-sm text-emerald-700 font-bold tabular-nums">
+            <div className="text-left sm:text-right bg-emerald-500/10 border border-emerald-500/20 px-4 py-2.5 rounded-2xl">
+              <span className="text-[11px] font-semibold text-[#61708A] block">Avoided Carbon Offset</span>
+              <strong className="text-base text-[#16A34A] font-black tabular-nums">
                 {formatCO2(detailedAnalysis.avoided_co2_kg_annual)}
               </strong>
             </div>
@@ -311,51 +315,51 @@ export const BuildingsPage: React.FC = () => {
 
           {/* 12-Month Solar Generation vs Consumption Chart */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                <BarChart3 className="w-3.5 h-3.5 text-slate-500" />
-                12-Month Generation vs Consumption Profile (kWh)
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-xs font-bold text-[#0B1739] uppercase tracking-wider flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-[#FF6B16]" />
+                <span>12-Month Generation vs Consumption Profile (kWh)</span>
               </h4>
-              <span className="text-xs text-slate-500 tabular-nums">
+              <span className="text-xs font-bold text-[#61708A] tabular-nums">
                 Peak Specific Yield: {detailedAnalysis.specific_yield_kwh_per_kwp} kWh/kWp
               </span>
             </div>
 
-            <div className="h-72 w-full">
+            <div className="h-72 w-full p-4 rounded-2xl glass-surface-secondary border border-white/60">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={detailedAnalysis.monthly_breakdown} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="2 2" stroke="#F1F5F9" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748B' }} stroke="#CBD5E1" />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748B' }} stroke="#CBD5E1" />
+                  <CartesianGrid strokeDasharray="2 2" stroke="rgba(200, 215, 235, 0.4)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#61708A' }} stroke="#CBD5E1" />
+                  <YAxis tick={{ fontSize: 11, fill: '#61708A' }} stroke="#CBD5E1" />
                   <Tooltip
                     formatter={(val: any) => [`${Number(val).toLocaleString()} kWh`]}
-                    contentStyle={{ fontSize: '12px', borderRadius: '6px', border: '1px solid #E2E8F0' }}
+                    contentStyle={{ fontSize: '12px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.9)', backgroundColor: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}
                   />
                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                  <Bar dataKey="generation_kwh" name="Solar Output (kWh)" fill="#059669" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="consumption_kwh" name="Facility Demand (kWh)" fill="#475569" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="generation_kwh" name="Solar Output (kWh)" fill="#FF6B16" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="consumption_kwh" name="Facility Demand (kWh)" fill="#0B1739" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
           {/* Key Engineering Details Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 rounded-2xl glass-surface-secondary border border-white/60 text-xs">
             <div>
-              <span className="text-slate-500 block text-[11px]">GHI Annual Climatology</span>
-              <strong className="text-slate-900 text-xs tabular-nums">{detailedAnalysis.ghi_annual_avg_kwh_m2_day} kWh/m²/day</strong>
+              <span className="text-[#61708A] block text-[11px] font-semibold">GHI Annual Climatology</span>
+              <strong className="text-[#0B1739] text-sm font-black tabular-nums">{detailedAnalysis.ghi_annual_avg_kwh_m2_day} kWh/m²/day</strong>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">On-Site Self-Consumption</span>
-              <strong className="text-slate-900 text-xs tabular-nums">{formatPct(detailedAnalysis.onsite_utilization_pct)}</strong>
+              <span className="text-[#61708A] block text-[11px] font-semibold">On-Site Self-Consumption</span>
+              <strong className="text-[#0B1739] text-sm font-black tabular-nums">{formatPct(detailedAnalysis.onsite_utilization_pct)}</strong>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">Turnkey Capex Estimate</span>
-              <strong className="text-slate-900 text-xs tabular-nums">{formatINR(detailedAnalysis.installation_cost_inr)}</strong>
+              <span className="text-[#61708A] block text-[11px] font-semibold">Turnkey Capex Estimate</span>
+              <strong className="text-[#0B1739] text-sm font-black tabular-nums">{formatINR(detailedAnalysis.installation_cost_inr)}</strong>
             </div>
             <div>
-              <span className="text-slate-500 block text-[11px]">Annual Bill Reduction</span>
-              <strong className="text-emerald-700 text-xs tabular-nums">{formatINR(detailedAnalysis.annual_savings_inr)}</strong>
+              <span className="text-[#61708A] block text-[11px] font-semibold">Annual Bill Reduction</span>
+              <strong className="text-[#16A34A] text-sm font-black tabular-nums">{formatINR(detailedAnalysis.annual_savings_inr)}</strong>
             </div>
           </div>
         </div>

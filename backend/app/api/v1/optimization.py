@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -8,6 +9,7 @@ from app.schemas.optimization import OptimizeRequest, OptimizationRunResponse
 from app.services.optimization.optimizer_service import run_project_optimization
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.post("/projects/{project_id}/optimize", response_model=OptimizationRunResponse)
 async def optimize_project_budget(
@@ -19,8 +21,11 @@ async def optimize_project_budget(
         return await run_project_optimization(project_id, request, db)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Optimization solver error: {str(e)}")
+        logger.error(f"Optimization solver failure: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Optimization solver encountered an internal error. Please check parameters.")
 
 @router.get("/projects/{project_id}/optimizations", response_model=List[OptimizationRunResponse])
 def list_optimization_runs(project_id: str, db: Session = Depends(get_db)):
